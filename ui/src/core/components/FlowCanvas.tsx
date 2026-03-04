@@ -46,7 +46,7 @@ function mapFlowNodes(
       },
       style: {
         width: node.size?.width,
-        height: node.size?.height,
+        height: node.type === 'group' ? node.size?.height : undefined,
         zIndex: node.type === 'group' ? 0 : 10,
         outline: selectedNodeId === node.id ? '2px solid rgba(56, 189, 248, 0.8)' : undefined,
         outlineOffset: selectedNodeId === node.id ? '2px' : undefined,
@@ -64,7 +64,7 @@ function mapFlowEdges(flow: FlowConfig, activeEdges: Set<string>): FlowEdge[] {
     sourceHandle: edge.sourceHandle,
     targetHandle: edge.targetHandle,
     label: edge.label,
-    type: edge.type ?? 'smoothstep',
+    type: edge.type ?? 'default',
     animated: edge.animated,
     markerEnd: {
       type: MarkerType.ArrowClosed,
