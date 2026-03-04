@@ -4,13 +4,14 @@ import type { FlowEdgeConfig, FlowNodeConfig } from '../types'
 
 const elk = new ELK()
 
-const EXCLUDED_SHAPES = new Set(['annotation', 'group'])
+const EXCLUDED_SHAPES = new Set<string>(['annotation', 'group'])
 
 const shapeDimensions: Record<string, { width: number; height: number }> = {
   rectangle: { width: 200, height: 50 },
   roundedRect: { width: 200, height: 50 },
   diamond: { width: 128, height: 128 },
   circle: { width: 112, height: 112 },
+  cylinder: { width: 96, height: 112 },
   pill: { width: 180, height: 36 },
   badge: { width: 160, height: 32 },
   octagon: { width: 160, height: 70 },

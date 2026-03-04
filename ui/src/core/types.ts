@@ -3,6 +3,7 @@ export type NodeShape =
   | 'roundedRect'
   | 'diamond'
   | 'circle'
+  | 'cylinder'
   | 'pill'
   | 'badge'
   | 'octagon'
