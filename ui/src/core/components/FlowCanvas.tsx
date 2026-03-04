@@ -99,10 +99,6 @@ export function FlowCanvas({
 }: FlowCanvasProps) {
   const [elkPositions, setElkPositions] = useState<Map<string, { x: number; y: number }> | null>(null)
 
-  useEffect(() => {
-    computeElkLayout(flow.nodes, flow.edges).then(setElkPositions).catch(console.error)
-  }, [flow])
-
   const initialNodes = useMemo(
     () => mapFlowNodes(flow, nodeStatuses, nodeLogMap, selectedNodeId, elkPositions ?? undefined),
     [flow, nodeStatuses, nodeLogMap, selectedNodeId, elkPositions],
