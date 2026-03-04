@@ -1,18 +1,18 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { mailPipelineFlow } from '../../../flows/mail-pipeline'
 import type { FlowEvent } from '../../types'
 import { useFlowAnimations } from '../useFlowAnimations'
 
-afterEach(() => {
-  vi.useRealTimers()
-})
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
 
 describe('useFlowAnimations', () => {
   it('activates a node on span_start then marks success and clears to idle', async () => {
-    vi.useFakeTimers()
-
     const start: FlowEvent = {
       type: 'span_start',
       timestamp: '2026-03-03T12:00:00.000Z',
@@ -43,6 +43,12 @@ describe('useFlowAnimations', () => {
           events,
           spanMapping: mailPipelineFlow.spanMapping,
           edges: mailPipelineFlow.edges,
+          timings: {
+            nodeSuccessResetMs: 30,
+            nodePulseResetMs: 30,
+            durationVisibleMs: 50,
+            edgeActiveMs: 30,
+          },
         }),
       {
         initialProps: { events: [] as FlowEvent[] },
@@ -53,22 +59,18 @@ describe('useFlowAnimations', () => {
       rerender({ events: [start] })
     })
 
-    await waitFor(() => {
-      expect(result.current.nodeStatuses.get('extract-worker')?.status).toBe('active')
-    })
+    expect(result.current.nodeStatuses.get('extract-worker')?.status).toBe('active')
 
     act(() => {
       rerender({ events: [start, end] })
     })
 
-    await waitFor(() => {
-      const status = result.current.nodeStatuses.get('extract-worker')
-      expect(status?.status).toBe('success')
-      expect(status?.durationMs).toBe(1_200)
-    })
+    const status = result.current.nodeStatuses.get('extract-worker')
+    expect(status?.status).toBe('success')
+    expect(status?.durationMs).toBe(1_200)
 
-    act(() => {
-      vi.advanceTimersByTime(3_100)
+    await act(async () => {
+      await sleep(50)
     })
 
     await waitFor(() => {

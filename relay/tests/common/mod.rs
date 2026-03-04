@@ -22,13 +22,17 @@ impl TestServer {
 pub type WsClient = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
 
 pub async fn spawn_server() -> TestServer {
-    let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind listener");
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind listener");
     let addr = listener.local_addr().expect("listener addr");
 
     let app = resq_flow_relay::build_app(resq_flow_relay::new_broadcaster());
 
     let handle = tokio::spawn(async move {
-        axum::serve(listener, app).await.expect("test server failed");
+        axum::serve(listener, app)
+            .await
+            .expect("test server failed");
     });
 
     TestServer {

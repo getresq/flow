@@ -19,6 +19,7 @@ export type FlowNode = Node<FlowNodeData>
 
 export interface FlowEdgeData extends Record<string, unknown> {
   active?: boolean
+  dimmed?: boolean
 }
 
 export type FlowEdge = Edge<FlowEdgeData>

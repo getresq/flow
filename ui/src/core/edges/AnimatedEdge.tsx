@@ -23,7 +23,9 @@ export function AnimatedEdge({
     targetPosition,
   })
 
-  const isActive = Boolean((data as { active?: boolean } | undefined)?.active)
+  const edgeState = data as { active?: boolean; dimmed?: boolean } | undefined
+  const isActive = Boolean(edgeState?.active)
+  const isDimmed = Boolean(edgeState?.dimmed)
 
   return (
     <>
@@ -34,7 +36,8 @@ export function AnimatedEdge({
         style={{
           stroke: isActive ? '#38bdf8' : '#475569',
           strokeWidth: isActive ? 1.8 : 1.2,
-          transition: 'stroke 300ms ease, stroke-width 300ms ease',
+          opacity: isDimmed ? 0.2 : 1,
+          transition: 'stroke 300ms ease, stroke-width 300ms ease, opacity 220ms ease',
         }}
       />
 
@@ -44,6 +47,7 @@ export function AnimatedEdge({
             className="pointer-events-none absolute rounded bg-slate-900/85 px-1.5 py-0.5 text-[9px] text-slate-200"
             style={{
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              opacity: isDimmed ? 0.25 : 1,
             }}
           >
             {label}

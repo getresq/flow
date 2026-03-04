@@ -49,6 +49,10 @@ async fn posts_mail_e2e_logs_and_receives_log_event() {
 
     let event = common::recv_flow_event(&mut socket).await;
     assert_eq!(event.event_type, "log");
+    assert!(event.seq.is_some());
+    assert_eq!(event.event_kind.as_deref(), Some("queue_enqueued"));
+    assert_eq!(event.queue_delta, Some(1));
+    assert_eq!(event.node_key.as_deref(), Some("rrq:queue:mail-analyze"));
     assert_eq!(event.span_name.as_deref(), Some("handle_mail_extract"));
     assert_eq!(event.service_name.as_deref(), Some("resq-mail-worker"));
     assert_eq!(event.message.as_deref(), Some("mail event"));

@@ -4,7 +4,8 @@ use std::net::SocketAddr;
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "resq_flow_relay=debug,tower_http=info".to_string()),
+            std::env::var("RUST_LOG")
+                .unwrap_or_else(|_| "resq_flow_relay=debug,tower_http=info".to_string()),
         )
         .init();
 

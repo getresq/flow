@@ -17,15 +17,10 @@ export function StandardNodeContent({
 }: StandardNodeContentProps) {
   const status = data.status?.status ?? 'idle'
   const icon = resolveIcon(data.style?.icon)
+  const isQueueNode = data.style?.icon === 'queue'
 
   return (
     <div className={clsx('relative flex h-full flex-col gap-2 p-3', compact && 'gap-1.5 p-2')}>
-      {data.logs && data.logs.length > 0 && (
-        <span className="absolute -top-2 -right-2 bg-sky-500 text-white text-[10px] font-medium rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 z-10">
-          {data.logs.length}
-        </span>
-      )}
-
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
@@ -56,9 +51,10 @@ export function StandardNodeContent({
         </ul>
       ) : null}
 
-      {typeof data.counter === 'number' ? (
-        <div className="inline-flex w-fit items-center rounded bg-black/35 px-2 py-0.5 text-[10px] font-semibold text-white/75">
-          count: {data.counter}
+      {isQueueNode && typeof data.counter === 'number' ? (
+        <div className="inline-flex w-fit items-center gap-1 rounded border border-amber-400/35 bg-amber-900/25 px-2 py-0.5 text-[10px] font-semibold text-amber-100">
+          <span className="rounded bg-amber-400/20 px-1 py-[1px] text-[9px] leading-none">Q</span>
+          <span>{data.counter}</span>
         </div>
       ) : null}
     </div>

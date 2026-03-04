@@ -60,6 +60,20 @@ export function BottomLogPanel({ flow, globalLogs, selectedNodeId, onSelectNode 
       .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp))
   }, [globalLogs, activeNodeFilters, nodeLabels, search])
 
+  const logsSummary = useMemo(() => {
+    if (activeNodeFilters.size === 1) {
+      const onlyNodeId = [...activeNodeFilters][0]
+      const nodeLabel = nodeLabels.get(onlyNodeId) ?? onlyNodeId
+      return `Showing ${filteredLogs.length} logs for ${nodeLabel}`
+    }
+
+    if (activeNodeFilters.size > 1) {
+      return `Showing ${filteredLogs.length} logs for ${activeNodeFilters.size} nodes`
+    }
+
+    return `Showing ${filteredLogs.length} logs`
+  }, [activeNodeFilters, filteredLogs.length, nodeLabels])
+
   useEffect(() => {
     if (!liveTail || collapsed) return
     const list = listRef.current
@@ -117,6 +131,7 @@ export function BottomLogPanel({ flow, globalLogs, selectedNodeId, onSelectNode 
       {/* Toolbar */}
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-slate-700/50 px-3">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">Logs</span>
+        <span className="text-[10px] text-slate-500">{logsSummary}</span>
 
         <div className="mx-2 h-4 w-px bg-slate-700" />
 

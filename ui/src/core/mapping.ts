@@ -22,7 +22,7 @@ function lookupPattern(mapping: SpanMapping, candidate: string | null | undefine
   }
 
   for (const [pattern, nodeId] of Object.entries(mapping)) {
-    if (candidate.includes(pattern) || pattern.includes(candidate)) {
+    if (candidate.includes(pattern)) {
       return nodeId
     }
   }
@@ -31,13 +31,24 @@ function lookupPattern(mapping: SpanMapping, candidate: string | null | undefine
 }
 
 export function resolveMappedNodeId(event: FlowEvent, spanMapping: SpanMapping): string | null {
-  const candidates = [
-    event.span_name,
-    readAttr(event, 'function_name'),
-    readAttr(event, 'queue_name'),
-    readAttr(event, 'worker_name'),
-    readAttr(event, 'action'),
-  ]
+  const queueFirst = event.event_kind === 'queue_enqueued' || event.event_kind === 'queue_picked'
+  const candidates = queueFirst
+    ? [
+        event.node_key,
+        readAttr(event, 'queue_name'),
+        readAttr(event, 'function_name'),
+        readAttr(event, 'worker_name'),
+        event.span_name,
+        readAttr(event, 'action'),
+      ]
+    : [
+        event.node_key,
+        event.span_name,
+        readAttr(event, 'function_name'),
+        readAttr(event, 'worker_name'),
+        readAttr(event, 'queue_name'),
+        readAttr(event, 'action'),
+      ]
 
   for (const candidate of candidates) {
     const mapped = lookupPattern(spanMapping, candidate)

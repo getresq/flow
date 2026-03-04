@@ -10,6 +10,8 @@ export type NodeShape =
   | 'group'
   | 'annotation'
 
+export type ThemeMode = 'dark' | 'light'
+
 export type NodeStatus = 'idle' | 'active' | 'success' | 'error'
 
 export interface NodeStyle {
@@ -34,7 +36,7 @@ export interface FlowNodeConfig {
   bullets?: string[]
   style?: NodeStyle
   position: { x: number; y: number }
-  size?: { width: number; height: number }
+  size?: { width: number; height?: number }
   minSize?: { width: number; height: number }
   parentId?: string
   handles?: NodeHandleConfig[]
@@ -69,6 +71,16 @@ export interface FlowConfig {
 
 export interface FlowEvent {
   type: 'span_start' | 'span_end' | 'log'
+  seq?: number
+  event_kind?:
+    | 'node_started'
+    | 'node_finished'
+    | 'queue_enqueued'
+    | 'queue_picked'
+    | 'log_event'
+    | 'event'
+  node_key?: string
+  queue_delta?: number
   timestamp: string
   span_name?: string
   service_name?: string
@@ -122,6 +134,19 @@ export interface RelayConnectionState {
   connected: boolean
   reconnecting: boolean
   clearEvents: () => void
+}
+
+export interface EventPlaybackState {
+  events: FlowEvent[]
+  speed: number
+  paused: boolean
+  pendingCount: number
+  setSpeed: (speed: number) => void
+  togglePaused: () => void
+  pause: () => void
+  resume: () => void
+  stepForward: () => void
+  clearPlayback: () => void
 }
 
 export interface FlowAnimationState {

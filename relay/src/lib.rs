@@ -1,8 +1,10 @@
 use std::net::SocketAddr;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
-use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::State;
+use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::http::{Method, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
@@ -21,13 +23,22 @@ const BROADCAST_BUFFER_SIZE: usize = 2_048;
 #[derive(Clone)]
 struct AppState {
     tx: broadcast::Sender<FlowEvent>,
+    seq: Arc<AtomicU64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FlowEvent {
     #[serde(rename = "type")]
     pub event_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub seq: Option<u64>,
     pub timestamp: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_kind: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub node_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub queue_delta: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub span_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -54,7 +65,11 @@ impl FlowEvent {
     fn new(event_type: impl Into<String>, timestamp: String) -> Self {
         Self {
             event_type: event_type.into(),
+            seq: None,
             timestamp,
+            event_kind: None,
+            node_key: None,
+            queue_delta: None,
             span_name: None,
             service_name: None,
             trace_id: None,
@@ -84,7 +99,10 @@ pub fn build_app(tx: broadcast::Sender<FlowEvent>) -> Router {
                 .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
                 .allow_headers(Any),
         )
-        .with_state(AppState { tx })
+        .with_state(AppState {
+            tx,
+            seq: Arc::new(AtomicU64::new(1)),
+        })
 }
 
 pub fn new_broadcaster() -> broadcast::Sender<FlowEvent> {
@@ -110,21 +128,20 @@ async fn post_traces(
     let events = parse_trace_events(&payload);
     let count = events.len();
 
-    for event in events {
+    for mut event in events {
+        annotate_flow_event(&mut event, &state.seq);
         let _ = state.tx.send(event);
     }
 
     (StatusCode::OK, Json(json!({ "received": count })))
 }
 
-async fn post_logs(
-    State(state): State<AppState>,
-    Json(payload): Json<Value>,
-) -> impl IntoResponse {
+async fn post_logs(State(state): State<AppState>, Json(payload): Json<Value>) -> impl IntoResponse {
     let events = parse_log_events(&payload);
     let count = events.len();
 
-    for event in events {
+    for mut event in events {
+        annotate_flow_event(&mut event, &state.seq);
         let _ = state.tx.send(event);
     }
 
@@ -132,13 +149,21 @@ async fn post_logs(
 }
 
 async fn ws_upgrade(ws: WebSocketUpgrade, State(state): State<AppState>) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_ws(socket, state.tx.clone(), state.tx.subscribe()))
+    ws.on_upgrade(move |socket| {
+        handle_ws(
+            socket,
+            state.tx.clone(),
+            state.tx.subscribe(),
+            state.seq.clone(),
+        )
+    })
 }
 
 async fn handle_ws(
     mut socket: WebSocket,
     tx: broadcast::Sender<FlowEvent>,
     mut rx: broadcast::Receiver<FlowEvent>,
+    seq: Arc<AtomicU64>,
 ) {
     let mut heartbeat = time::interval(Duration::from_secs(20));
     heartbeat.set_missed_tick_behavior(MissedTickBehavior::Delay);
@@ -153,7 +178,8 @@ async fn handle_ws(
                 match incoming {
                     Some(Ok(Message::Close(_))) | None => break,
                     Some(Ok(Message::Text(text))) => {
-                        if let Ok(event) = serde_json::from_str::<FlowEvent>(&text) {
+                        if let Ok(mut event) = serde_json::from_str::<FlowEvent>(&text) {
+                            annotate_flow_event(&mut event, &seq);
                             let _ = tx.send(event);
                         }
                     }
@@ -226,7 +252,9 @@ pub fn parse_trace_events(payload: &Value) -> Vec<FlowEvent> {
                 let start_time = start_nanos.map(nanos_to_iso);
                 let end_time = end_nanos.map(nanos_to_iso);
                 let duration_ms = match (start_nanos, end_nanos) {
-                    (Some(start), Some(end)) if end >= start => Some(((end - start) / 1_000_000) as u64),
+                    (Some(start), Some(end)) if end >= start => {
+                        Some(((end - start) / 1_000_000) as u64)
+                    }
                     _ => None,
                 };
 
@@ -239,14 +267,13 @@ pub fn parse_trace_events(payload: &Value) -> Vec<FlowEvent> {
                 {
                     attributes.insert("status".to_string(), Value::String(status_code.clone()));
                     if status_code == "STATUS_CODE_ERROR" || status_code == "2" {
-                        attributes.insert("outcome".to_string(), Value::String("error".to_string()));
+                        attributes
+                            .insert("outcome".to_string(), Value::String("error".to_string()));
                     }
                 }
 
-                let mut start_event = FlowEvent::new(
-                    "span_start",
-                    start_time.clone().unwrap_or_else(now_iso),
-                );
+                let mut start_event =
+                    FlowEvent::new("span_start", start_time.clone().unwrap_or_else(now_iso));
                 start_event.span_name = span_name.clone();
                 start_event.service_name = service_name.clone();
                 start_event.trace_id = trace_id.clone();
@@ -254,11 +281,14 @@ pub fn parse_trace_events(payload: &Value) -> Vec<FlowEvent> {
                 start_event.parent_span_id = parent_span_id.clone();
                 start_event.start_time = start_time.clone();
                 start_event.attributes = attributes.clone();
-                start_event.message = span_name.clone().map(|name| format!("span started: {name}"));
+                start_event.message = span_name
+                    .clone()
+                    .map(|name| format!("span started: {name}"));
 
                 events.push(start_event);
 
-                let mut end_event = FlowEvent::new("span_end", end_time.clone().unwrap_or_else(now_iso));
+                let mut end_event =
+                    FlowEvent::new("span_end", end_time.clone().unwrap_or_else(now_iso));
                 end_event.span_name = span_name;
                 end_event.service_name = service_name.clone();
                 end_event.trace_id = trace_id;
@@ -314,7 +344,8 @@ pub fn parse_log_events(payload: &Value) -> Vec<FlowEvent> {
                     })
                     .unwrap_or_else(now_iso);
 
-                let trace_id = string_field(log_record, "traceId").map(|v| normalize_identifier(&v));
+                let trace_id =
+                    string_field(log_record, "traceId").map(|v| normalize_identifier(&v));
                 let span_id = string_field(log_record, "spanId").map(|v| normalize_identifier(&v));
 
                 let mut event = FlowEvent::new("log", timestamp);
@@ -322,10 +353,16 @@ pub fn parse_log_events(payload: &Value) -> Vec<FlowEvent> {
                 event.span_name = attributes
                     .get("span_name")
                     .and_then(otel_value_as_string)
-                    .or_else(|| attributes.get("function_name").and_then(otel_value_as_string));
+                    .or_else(|| {
+                        attributes
+                            .get("function_name")
+                            .and_then(otel_value_as_string)
+                    });
                 event.trace_id = trace_id;
                 event.span_id = span_id;
-                event.parent_span_id = attributes.get("parent_span_id").and_then(otel_value_as_string);
+                event.parent_span_id = attributes
+                    .get("parent_span_id")
+                    .and_then(otel_value_as_string);
                 event.duration_ms = attributes
                     .get("duration_ms")
                     .and_then(otel_value_as_u64)
@@ -354,6 +391,74 @@ pub fn parse_log_events(payload: &Value) -> Vec<FlowEvent> {
     }
 
     events
+}
+
+fn annotate_flow_event(event: &mut FlowEvent, seq: &AtomicU64) {
+    if event.seq.is_none() {
+        event.seq = Some(seq.fetch_add(1, Ordering::Relaxed));
+    }
+
+    if event.event_kind.is_none() {
+        event.event_kind = Some(infer_event_kind(event));
+    }
+
+    if event.node_key.is_none() {
+        event.node_key = infer_node_key(event);
+    }
+
+    if event.queue_delta.is_none() {
+        event.queue_delta = event.event_kind.as_deref().and_then(queue_delta_for_kind);
+    }
+}
+
+fn infer_event_kind(event: &FlowEvent) -> String {
+    match event.event_type.as_str() {
+        "span_start" => "node_started".to_string(),
+        "span_end" => "node_finished".to_string(),
+        "log" => match event_attr_string(event, "action").as_deref() {
+            Some("enqueue") => "queue_enqueued".to_string(),
+            Some("worker_pickup") => "queue_picked".to_string(),
+            _ => "log_event".to_string(),
+        },
+        _ => "event".to_string(),
+    }
+}
+
+fn infer_node_key(event: &FlowEvent) -> Option<String> {
+    let action = event_attr_string(event, "action");
+    let queue_name = event_attr_string(event, "queue_name");
+    let function_name = event_attr_string(event, "function_name");
+    let worker_name = event_attr_string(event, "worker_name");
+    let span_name = event.span_name.clone();
+    let kind = event
+        .event_kind
+        .clone()
+        .unwrap_or_else(|| infer_event_kind(event));
+
+    match kind.as_str() {
+        "queue_enqueued" | "queue_picked" => queue_name
+            .or(function_name)
+            .or(worker_name)
+            .or(span_name)
+            .or(action),
+        _ => function_name
+            .or(span_name)
+            .or(worker_name)
+            .or(queue_name)
+            .or(action),
+    }
+}
+
+fn queue_delta_for_kind(kind: &str) -> Option<i64> {
+    match kind {
+        "queue_enqueued" => Some(1),
+        "queue_picked" => Some(-1),
+        _ => None,
+    }
+}
+
+fn event_attr_string(event: &FlowEvent, key: &str) -> Option<String> {
+    event.attributes.get(key).and_then(otel_value_as_string)
 }
 
 fn parse_attributes(attributes: Option<&Value>) -> Map<String, Value> {

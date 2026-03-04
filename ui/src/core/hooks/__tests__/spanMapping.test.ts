@@ -41,6 +41,18 @@ describe('span mapping resolution', () => {
     expect(resolveMappedNodeId(event, spanMapping)).toBe('write-threads')
   })
 
+  it('maps metadata action to write-metadata', () => {
+    const event: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-03T12:00:00.000Z',
+      attributes: {
+        action: 'metadata_written',
+      },
+    }
+
+    expect(resolveMappedNodeId(event, spanMapping)).toBe('write-metadata')
+  })
+
   it('returns null for unmapped event', () => {
     const event: FlowEvent = {
       type: 'log',
