@@ -366,7 +366,10 @@ export const mailPipelineFlow: FlowConfig = {
       type: 'octagon',
       label: 'STOP await human review',
       style: { color: 'red' },
-      position: { x: 1309.0764315493116, y: 1985.7175179964556 },
+      position: { x: 1301.9525961329919, y: 1715.850456047492 },
+      handles: [
+        { id: 'in-left', position: 'left', type: 'target' },
+      ],
     },
     {
       id: 'set-sending',
@@ -428,7 +431,7 @@ export const mailPipelineFlow: FlowConfig = {
       type: 'rectangle',
       label: '- record_extract_state\n- return Err (retry)',
       style: { color: 'gray' },
-      position: { x: 1872.1640556474906, y: 1421.5769856877591 },
+      position: { x: 1903.4318584145578, y: 1435.7896233091533 },
       size: { width: 200 },
     },
     {
@@ -439,9 +442,9 @@ export const mailPipelineFlow: FlowConfig = {
       position: { x: 1529.4462572730856, y: 1595.770239096253 },
       size: { width: 290 },
       handles: [
-        { position: 'top', type: 'target' },
-        { position: 'bottom', type: 'source' },
-        { position: 'right', type: 'source' },
+        { id: 'in-top', position: 'top', type: 'target' },
+        { id: 'out-bottom', position: 'bottom', type: 'source' },
+        { id: 'out-right', position: 'right', type: 'source' },
       ],
     },
     {
@@ -450,6 +453,9 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'postgres',
       style: { color: 'blue' },
       position: { x: 1964.6057777240476, y: 1563.604593317544 },
+      handles: [
+        { id: 'in-left', position: 'left', type: 'target' },
+      ],
     },
     {
       id: 'extract-success-2',
@@ -484,6 +490,11 @@ export const mailPipelineFlow: FlowConfig = {
       style: { color: 'yellow', icon: 'queue' },
       position: { x: 936.5434706737374, y: 2139.1931003261293 },
       size: { width: 250 },
+      handles: [
+        { id: 'in-top', position: 'top', type: 'target' },
+        { id: 'in-right', position: 'right', type: 'target' },
+        { id: 'out-bottom', position: 'bottom', type: 'source' },
+      ],
     },
     {
       id: 'send-worker',
@@ -519,7 +530,7 @@ export const mailPipelineFlow: FlowConfig = {
       type: 'badge',
       label: 'sent/send_failed/stale',
       style: { color: 'blue' },
-      position: { x: 910.3249631752841, y: 2699.031247024652 },
+      position: { x: 860.0776982468523, y: 2728.174660683143 },
       size: { width: 170 },
     },
     {
@@ -527,8 +538,12 @@ export const mailPipelineFlow: FlowConfig = {
       type: 'badge',
       label: 'retry',
       style: { color: 'orange' },
-      position: { x: 1100.3249631752842, y: 2699.031247024652 },
+      position: { x: 1146.5524469094416, y: 2726.1647700860053 },
       size: { width: 80 },
+      handles: [
+        { id: 'in-left', position: 'left', type: 'target' },
+        { id: 'out-top', position: 'top', type: 'source' },
+      ],
     },
   ],
 
@@ -673,6 +688,7 @@ export const mailPipelineFlow: FlowConfig = {
       source: 'autosend-decision',
       sourceHandle: 'autosend-decision-out-right',
       target: 'stop-review',
+      targetHandle: 'stop-review-in-left',
       label: 'No',
       type: 'dashed',
     },
@@ -683,7 +699,12 @@ export const mailPipelineFlow: FlowConfig = {
       target: 'set-sending',
       label: 'Yes',
     },
-    { id: 'e-set-sending-queue', source: 'set-sending', target: 'send-queue' },
+    {
+      id: 'e-set-sending-queue',
+      source: 'set-sending',
+      target: 'send-queue',
+      targetHandle: 'send-queue-in-top',
+    },
 
     // ── Extract pipeline ────────────────────────────────────────────────
     {
@@ -712,12 +733,20 @@ export const mailPipelineFlow: FlowConfig = {
       source: 'extract-success',
       sourceHandle: 'extract-success-out-bottom',
       target: 'upsert-contacts',
+      targetHandle: 'upsert-contacts-in-top',
       label: 'Yes',
     },
-    { id: 'e-upsert-pg', source: 'upsert-contacts', target: 'postgres-extract' },
+    {
+      id: 'e-upsert-pg',
+      source: 'upsert-contacts',
+      sourceHandle: 'upsert-contacts-out-right',
+      target: 'postgres-extract',
+      targetHandle: 'postgres-extract-in-left',
+    },
     {
       id: 'e-upsert-success2',
       source: 'upsert-contacts',
+      sourceHandle: 'upsert-contacts-out-bottom',
       target: 'extract-success-2',
       targetHandle: 'extract-success-2-in-top',
     },
@@ -745,14 +774,7 @@ export const mailPipelineFlow: FlowConfig = {
     },
 
     // ── Send pipeline ───────────────────────────────────────────────────
-    {
-      id: 'e-stop-review-send-q',
-      source: 'stop-review',
-      target: 'send-queue',
-      label: 'status = needs_review',
-      type: 'dashed',
-    },
-    { id: 'e-send-q-worker', source: 'send-queue', target: 'send-worker' },
+    { id: 'e-send-q-worker', source: 'send-queue', sourceHandle: 'send-queue-out-bottom', target: 'send-worker' },
     { id: 'e-send-worker-process', source: 'send-worker', target: 'send-process' },
     { id: 'e-send-process-validate', source: 'send-process', target: 'send-validate' },
     { id: 'e-send-validate-outcome', source: 'send-validate', target: 'sent-stale' },
@@ -760,6 +782,15 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'e-send-validate-retry',
       source: 'send-validate',
       target: 'retry-node',
+      targetHandle: 'retry-node-in-left',
+    },
+    {
+      id: 'e-retry-send-q',
+      source: 'retry-node',
+      sourceHandle: 'retry-node-out-top',
+      target: 'send-queue',
+      targetHandle: 'send-queue-in-right',
+      label: 'status = needs_review',
     },
   ],
 

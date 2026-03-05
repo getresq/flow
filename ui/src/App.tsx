@@ -11,10 +11,59 @@ import { useLogStream } from './core/hooks/useLogStream'
 import { DEFAULT_RELAY_WS_URL, useRelayConnection } from './core/hooks/useRelayConnection'
 import { useTraceJourney } from './core/hooks/useTraceJourney'
 import { useTraceTimeline } from './core/hooks/useTraceTimeline'
-import type { ThemeMode } from './core/types'
+import type { FlowEvent, ThemeMode } from './core/types'
 import { flows } from './flows'
 
 const THEME_STORAGE_KEY = 'resq-flow-theme'
+const DEFAULT_HISTORY_WINDOW = '30m'
+
+const HISTORY_WINDOW_OPTIONS: Record<string, number> = {
+  '15m': 15 * 60,
+  '30m': 30 * 60,
+  '1h': 60 * 60,
+  '6h': 6 * 60 * 60,
+  '24h': 24 * 60 * 60,
+}
+
+interface HistoryResponse {
+  from: string
+  to: string
+  events: FlowEvent[]
+  log_count: number
+  span_count: number
+  truncated: boolean
+  warnings?: string[]
+}
+
+function windowToSeconds(window: string): number {
+  return HISTORY_WINDOW_OPTIONS[window] ?? HISTORY_WINDOW_OPTIONS[DEFAULT_HISTORY_WINDOW]
+}
+
+function toHttpBase(wsUrl: string): string {
+  try {
+    const url = new URL(wsUrl)
+    if (url.protocol === 'ws:') {
+      url.protocol = 'http:'
+    }
+    if (url.protocol === 'wss:') {
+      url.protocol = 'https:'
+    }
+    url.pathname = ''
+    url.search = ''
+    url.hash = ''
+    return url.toString().replace(/\/$/, '')
+  } catch {
+    return 'http://localhost:4200'
+  }
+}
+
+function formatWindowSummary(fromIso: string, toIso: string): string {
+  const from = new Date(fromIso)
+  const to = new Date(toIso)
+  const fromLabel = Number.isNaN(from.getTime()) ? fromIso : from.toLocaleTimeString()
+  const toLabel = Number.isNaN(to.getTime()) ? toIso : to.toLocaleTimeString()
+  return `${fromLabel} → ${toLabel}`
+}
 
 function resolveInitialTheme(): ThemeMode {
   if (typeof window === 'undefined') {
@@ -36,10 +85,25 @@ function App() {
   const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>()
   const [focusActivePath, setFocusActivePath] = useState(false)
   const [theme, setTheme] = useState<ThemeMode>(resolveInitialTheme)
+  const [historyMode, setHistoryMode] = useState(false)
+  const [historyEvents, setHistoryEvents] = useState<FlowEvent[]>([])
+  const [historyWindow, setHistoryWindow] = useState(DEFAULT_HISTORY_WINDOW)
+  const [historyQuery, setHistoryQuery] = useState('')
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState<string | undefined>()
+  const [historySummary, setHistorySummary] = useState<{
+    from: string
+    to: string
+    logCount: number
+    spanCount: number
+    truncated: boolean
+    warnings: string[]
+  }>()
   const relayWsUrl = DEFAULT_RELAY_WS_URL
 
   const relay = useRelayConnection(relayWsUrl)
-  const playback = useEventPlayback(relay.events)
+  const sourceEvents = historyMode ? historyEvents : relay.events
+  const playback = useEventPlayback(sourceEvents)
 
   const currentFlow = useMemo(
     () => flows.find((flow) => flow.id === flowId) ?? flows[0],
@@ -86,8 +150,7 @@ function App() {
     }
   }, [currentFlow.edges, selectedJourney])
 
-  const clearAll = useCallback(() => {
-    relay.clearEvents()
+  const clearDerivedState = useCallback(() => {
     playback.clearPlayback()
     animations.clearStatuses()
     logStream.clearSession()
@@ -99,10 +162,78 @@ function App() {
     animations.clearStatuses,
     logStream.clearSession,
     playback.clearPlayback,
-    relay.clearEvents,
     traceJourney.clearJourneys,
     traceTimeline.clearTraces,
   ])
+
+  const clearAll = useCallback(() => {
+    relay.clearEvents()
+    setHistoryMode(false)
+    setHistoryEvents([])
+    setHistoryLoading(false)
+    setHistoryError(undefined)
+    setHistorySummary(undefined)
+    clearDerivedState()
+  }, [
+    clearDerivedState,
+    relay.clearEvents,
+  ])
+
+  const loadHistory = useCallback(async () => {
+    const now = new Date()
+    const seconds = windowToSeconds(historyWindow)
+    const from = new Date(now.getTime() - seconds * 1_000)
+    const relayHttpBase = toHttpBase(relayWsUrl)
+
+    const url = new URL('/v1/history', relayHttpBase)
+    url.searchParams.set('from', from.toISOString())
+    url.searchParams.set('to', now.toISOString())
+    url.searchParams.set('window', historyWindow)
+    url.searchParams.set('limit', '12000')
+    if (historyQuery.trim()) {
+      url.searchParams.set('query', historyQuery.trim())
+    }
+
+    setHistoryLoading(true)
+    setHistoryError(undefined)
+    setHistorySummary(undefined)
+
+    try {
+      const response = await fetch(url.toString())
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(body || `history request failed (${response.status})`)
+      }
+      const payload = (await response.json()) as HistoryResponse
+      const events = Array.isArray(payload.events) ? payload.events : []
+
+      clearDerivedState()
+      setHistoryEvents(events)
+      setHistoryMode(true)
+      setHistorySummary({
+        from: payload.from,
+        to: payload.to,
+        logCount: payload.log_count,
+        spanCount: payload.span_count,
+        truncated: payload.truncated,
+        warnings: payload.warnings ?? [],
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'failed to load history'
+      setHistoryError(message)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [clearDerivedState, historyQuery, historyWindow, relayWsUrl])
+
+  const exitHistoryMode = useCallback(() => {
+    relay.clearEvents()
+    clearDerivedState()
+    setHistoryMode(false)
+    setHistoryEvents([])
+    setHistoryError(undefined)
+    setHistorySummary(undefined)
+  }, [clearDerivedState, relay.clearEvents])
 
   useEffect(() => {
     clearAll()
@@ -139,12 +270,22 @@ function App() {
         reconnecting={relay.reconnecting}
         relayWsUrl={relayWsUrl}
         displayedEventCount={playback.events.length}
-        totalEventCount={relay.events.length}
+        totalEventCount={sourceEvents.length}
         queuedEventCount={playback.pendingCount}
         playbackPaused={playback.paused}
         playbackSpeed={playback.speed}
         focusActivePath={focusActivePath}
         theme={theme}
+        historyMode={historyMode}
+        historyLoading={historyLoading}
+        historyWindow={historyWindow}
+        historyQuery={historyQuery}
+        historySummary={
+          historySummary
+            ? `${formatWindowSummary(historySummary.from, historySummary.to)} · ${historySummary.logCount} logs · ${historySummary.spanCount} spans${historySummary.truncated ? ' · truncated' : ''}${historySummary.warnings[0] ? ` · ${historySummary.warnings[0]}` : ''}`
+            : undefined
+        }
+        historyError={historyError}
         onSelectFlow={setFlowId}
         onPlaybackPauseToggle={playback.togglePaused}
         onPlaybackStep={() => {
@@ -154,6 +295,12 @@ function App() {
         onPlaybackSpeedChange={playback.setSpeed}
         onToggleFocusActivePath={() => setFocusActivePath((previous) => !previous)}
         onToggleTheme={() => setTheme((previous) => (previous === 'dark' ? 'light' : 'dark'))}
+        onHistoryWindowChange={setHistoryWindow}
+        onHistoryQueryChange={setHistoryQuery}
+        onLoadHistory={() => {
+          void loadHistory()
+        }}
+        onExitHistory={exitHistoryMode}
         onClearSession={clearAll}
       />
 

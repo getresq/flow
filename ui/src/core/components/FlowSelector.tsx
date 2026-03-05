@@ -15,16 +15,33 @@ interface FlowSelectorProps {
   playbackSpeed: number
   focusActivePath: boolean
   theme: ThemeMode
+  historyMode: boolean
+  historyLoading: boolean
+  historyWindow: string
+  historyQuery: string
+  historySummary?: string
+  historyError?: string
   onSelectFlow: (flowId: string) => void
   onPlaybackPauseToggle: () => void
   onPlaybackStep: () => void
   onPlaybackSpeedChange: (speed: number) => void
   onToggleFocusActivePath: () => void
   onToggleTheme: () => void
+  onHistoryWindowChange: (window: string) => void
+  onHistoryQueryChange: (query: string) => void
+  onLoadHistory: () => void
+  onExitHistory: () => void
   onClearSession: () => void
 }
 
 const playbackSpeedOptions = [0.25, 0.5, 1, 2, 4, 8]
+const historyWindowOptions = [
+  { value: '15m', label: 'Last 15m' },
+  { value: '30m', label: 'Last 30m' },
+  { value: '1h', label: 'Last 1h' },
+  { value: '6h', label: 'Last 6h' },
+  { value: '24h', label: 'Last 24h' },
+]
 
 export function FlowSelector({
   flows,
@@ -39,12 +56,22 @@ export function FlowSelector({
   playbackSpeed,
   focusActivePath,
   theme,
+  historyMode,
+  historyLoading,
+  historyWindow,
+  historyQuery,
+  historySummary,
+  historyError,
   onSelectFlow,
   onPlaybackPauseToggle,
   onPlaybackStep,
   onPlaybackSpeedChange,
   onToggleFocusActivePath,
   onToggleTheme,
+  onHistoryWindowChange,
+  onHistoryQueryChange,
+  onLoadHistory,
+  onExitHistory,
   onClearSession,
 }: FlowSelectorProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -118,6 +145,12 @@ export function FlowSelector({
         {displayedEventCount}/{totalEventCount} events
         {queuedEventCount > 0 ? ` (${queuedEventCount} queued)` : ''}
       </div>
+
+      {historyMode ? (
+        <div className="rounded-full border border-amber-500/50 bg-amber-900/30 px-2 py-0.5 text-xs text-amber-200">
+          History mode
+        </div>
+      ) : null}
 
       <div className="flex items-center gap-2 rounded border border-slate-700/70 bg-slate-900/75 px-2 py-1">
         <label htmlFor="playback-speed" className="text-[10px] uppercase tracking-wide text-slate-500">
@@ -200,6 +233,50 @@ export function FlowSelector({
               >
                 Theme: {theme === 'dark' ? 'Dark' : 'Light'} (switch)
               </button>
+
+              <div className="my-2 h-px bg-slate-800" />
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">History</p>
+              <select
+                value={historyWindow}
+                onChange={(event) => onHistoryWindowChange(event.target.value)}
+                className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-200 outline-none focus:border-sky-400"
+              >
+                {historyWindowOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={historyQuery}
+                onChange={(event) => onHistoryQueryChange(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !historyLoading) {
+                    onLoadHistory()
+                  }
+                }}
+                placeholder="trace/job/thread id (optional)"
+                className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-200 outline-none focus:border-sky-400"
+              />
+              <button
+                type="button"
+                disabled={historyLoading}
+                onClick={onLoadHistory}
+                className="mt-1 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-200 hover:border-slate-500 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {historyLoading ? 'Loading…' : 'Load history window'}
+              </button>
+              {historyMode ? (
+                <button
+                  type="button"
+                  onClick={onExitHistory}
+                  className="mt-1 w-full rounded border border-amber-600/70 bg-amber-900/30 px-2 py-1 text-xs text-amber-200 hover:border-amber-500 hover:bg-amber-900/45"
+                >
+                  Return to live
+                </button>
+              ) : null}
+              {historySummary ? <p className="mt-1 text-[10px] text-slate-400">{historySummary}</p> : null}
+              {historyError ? <p className="mt-1 text-[10px] text-rose-300">{historyError}</p> : null}
             </div>
           ) : null}
         </div>
