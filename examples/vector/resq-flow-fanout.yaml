@@ -1,0 +1,99 @@
+# Local-dev example snippet for the shared Vector topology.
+# Merge this into a config that already defines the `otlp` source with
+# `use_otlp_decoding: true`.
+#
+# The applied runtime config lives in `fullstack/observability/vector/vector.yaml`.
+# This file exists for discoverability and copy/paste when needed.
+#
+# Design intent:
+# - keep Victoria as the primary path
+# - send only traces/logs to resq-flow
+# - keep Vector filtering coarse and cheap
+# - let the relay perform exact contract matching
+# - keep the resq-flow sinks best-effort
+#
+# Preferred targets:
+# - collector in Docker, relay on host:
+#     http://host.docker.internal:4200/v1/traces
+#     http://host.docker.internal:4200/v1/logs
+# - collector on host:
+#     http://localhost:4200/v1/traces
+#     http://localhost:4200/v1/logs
+#
+# Note:
+# With `use_otlp_decoding: true`, these filters operate on the decoded OTLP
+# export request object. A whole OTLP batch is forwarded when it contains any
+# stable mail marker. The relay still performs exact flow matching and tags
+# events with `matched_flow_ids`.
+
+transforms:
+  resq_flow_logs_filter:
+    type: filter
+    inputs:
+      - otlp.logs
+    condition:
+      type: vrl
+      source: |
+        match(downcase(encode_json(.)), r'mail_e2e_event')
+
+  resq_flow_traces_filter:
+    type: filter
+    inputs:
+      - otlp.traces
+    condition:
+      type: vrl
+      source: |
+        payload = downcase(encode_json(.))
+        match_any(payload, [
+          r'rrq:queue:mail-',
+          r'handle_mail_',
+          r'\bmail_[a-z0-9_]+\b',
+          r'\bincoming\.[a-z0-9_.-]+\b',
+          r'\banalyze\.[a-z0-9_.-]+\b',
+          r'\bextract\.[a-z0-9_.-]+\b',
+          r'\bsend\.[a-z0-9_.-]+\b',
+          r'service\.name.{0,160}mail',
+        ])
+
+sinks:
+  otlp_traces_to_resq_flow:
+    type: opentelemetry
+    inputs:
+      - resq_flow_traces_filter
+    buffer:
+      type: memory
+      max_events: 500
+      when_full: drop_newest
+    healthcheck:
+      enabled: false
+    protocol:
+      acknowledgements:
+        enabled: false
+      type: http
+      uri: http://host.docker.internal:4200/v1/traces
+      request:
+        retry_attempts: 0
+        timeout_secs: 2
+      encoding:
+        codec: otlp
+
+  otlp_logs_to_resq_flow:
+    type: opentelemetry
+    inputs:
+      - resq_flow_logs_filter
+    buffer:
+      type: memory
+      max_events: 500
+      when_full: drop_newest
+    healthcheck:
+      enabled: false
+    protocol:
+      acknowledgements:
+        enabled: false
+      type: http
+      uri: http://host.docker.internal:4200/v1/logs
+      request:
+        retry_attempts: 0
+        timeout_secs: 2
+      encoding:
+        codec: otlp
