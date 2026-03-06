@@ -113,6 +113,8 @@ Helpful commands:
 make test
 make print-endpoints
 make verify-ingest
+make smoke-vector-fanout
+make smoke-relay-ingest
 make replay
 make replay-direct
 ```

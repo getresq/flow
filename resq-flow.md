@@ -146,6 +146,19 @@ The `resq-flow` sinks in Vector should be intentionally low-risk:
 
 That keeps Victoria as the primary path even if the relay is unavailable.
 
+## Smoke Checks
+
+`resq-flow` now includes two simple OTLP smoke commands:
+
+- `make smoke-vector-fanout`
+- `make smoke-relay-ingest`
+
+`make smoke-vector-fanout` sends a protobuf OTLP log to Vector on `:4318` and waits for the relay ingest counters to move.
+
+`make smoke-relay-ingest` sends the same shape directly to the relay and waits for relay ingest counters to move.
+
+These are meant to be operational checks, not replacements for real producer traffic.
+
 ## Adding A New Flow
 
 1. Add `ui/src/flow-contracts/<flow-id>.json`.

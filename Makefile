@@ -1,12 +1,13 @@
-.PHONY: dev dev-relay dev-ui test test-relay test-ui replay replay-direct verify-ingest print-endpoints
+.PHONY: dev dev-relay dev-ui test test-relay test-ui replay replay-direct verify-ingest print-endpoints smoke-relay-ingest smoke-vector-fanout
 
 RESQ_FLOW_BASE_URL ?= http://localhost:4200
+RESQ_FLOW_VECTOR_LOGS_URL ?= http://localhost:4318/v1/logs
 
 dev: ## Start both relay + UI
 	@make -j2 dev-relay dev-ui
 
 dev-relay: ## Start Rust WebSocket relay
-	cd relay && cargo run
+	cd relay && cargo run --bin resq-flow-relay
 
 dev-ui: ## Start Vite dev server
 	cd ui && bun run dev
@@ -40,3 +41,9 @@ print-endpoints: ## Print relay and collector-compatible fanout endpoints
 	@echo "Relay logs endpoint:   $(RESQ_FLOW_BASE_URL)/v1/logs"
 	@echo "Collector (Docker) fanout target: http://host.docker.internal:4200"
 	@echo "Collector (native) fanout target: http://localhost:4200"
+
+smoke-relay-ingest: ## Send a protobuf OTLP smoke log directly to the relay, then verify ingest health
+	cd relay && OTLP_SMOKE_ENDPOINT=$(RESQ_FLOW_BASE_URL)/v1/logs OTLP_SMOKE_EXPECT_INGEST_URL=$(RESQ_FLOW_BASE_URL)/health/ingest cargo run --bin otlp_smoke
+
+smoke-vector-fanout: ## Send a protobuf OTLP smoke log through Vector and confirm it reaches the relay
+	cd relay && OTLP_SMOKE_ENDPOINT=$(RESQ_FLOW_VECTOR_LOGS_URL) OTLP_SMOKE_EXPECT_INGEST_URL=$(RESQ_FLOW_BASE_URL)/health/ingest cargo run --bin otlp_smoke

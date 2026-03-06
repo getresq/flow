@@ -8,6 +8,7 @@ axum = { version = "0.8", features = ["ws", "json"] }
 axum-extra = { version = "0.10", features = ["typed-header"] }
 base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
+hex = "0.4"
 opentelemetry-proto = { version = "0.31", features = ["gen-tonic-messages", "trace", "logs", "with-serde"] }
 prost = "0.14"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
