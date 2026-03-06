@@ -9,6 +9,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 pub struct TestServer {
     pub http_base: String,
+    #[allow(dead_code)]
     pub ws_base: String,
     handle: JoinHandle<()>,
 }
@@ -27,7 +28,7 @@ pub async fn spawn_server() -> TestServer {
         .expect("bind listener");
     let addr = listener.local_addr().expect("listener addr");
 
-    let app = resq_flow_relay::build_app(resq_flow_relay::new_broadcaster());
+    let app = resq_flow_relay::build_app(addr.to_string()).expect("build app");
 
     let handle = tokio::spawn(async move {
         axum::serve(listener, app)
@@ -42,12 +43,21 @@ pub async fn spawn_server() -> TestServer {
     }
 }
 
+#[allow(dead_code)]
 pub async fn connect_ws(url: &str) -> WsClient {
     let (stream, _) = connect_async(url).await.expect("connect websocket");
     stream
 }
 
+#[allow(dead_code)]
 pub async fn recv_flow_event(socket: &mut WsClient) -> resq_flow_relay::FlowEvent {
+    let mut events = recv_flow_events(socket).await;
+    assert_eq!(events.len(), 1, "expected a single flow event message");
+    events.remove(0)
+}
+
+#[allow(dead_code)]
+pub async fn recv_flow_events(socket: &mut WsClient) -> Vec<resq_flow_relay::FlowEvent> {
     loop {
         let message = timeout(Duration::from_secs(2), socket.next())
             .await
@@ -56,7 +66,13 @@ pub async fn recv_flow_event(socket: &mut WsClient) -> resq_flow_relay::FlowEven
             .expect("websocket error");
 
         if let Message::Text(text) = message {
-            return serde_json::from_str(&text).expect("deserialize FlowEvent");
+            if let Ok(envelope) = serde_json::from_str::<resq_flow_relay::WsEnvelope>(&text) {
+                return match envelope {
+                    resq_flow_relay::WsEnvelope::Snapshot { events }
+                    | resq_flow_relay::WsEnvelope::Batch { events } => events,
+                };
+            }
+            return vec![serde_json::from_str(&text).expect("deserialize FlowEvent")];
         }
     }
 }

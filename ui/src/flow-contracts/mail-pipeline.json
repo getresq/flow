@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "id": "mail-pipeline",
+  "name": "Mail Pipeline",
+  "telemetry": {
+    "log_events": ["mail_e2e_event"],
+    "queue_prefixes": ["rrq:queue:mail-"],
+    "function_prefixes": ["handle_mail_"],
+    "worker_prefixes": ["mail_"],
+    "stage_prefixes": ["incoming.", "analyze.", "extract.", "send."],
+    "span_prefixes": ["handle_mail_"],
+    "span_names": ["insert_reply_draft"]
+  },
+  "keep_context": {
+    "parent_spans": true,
+    "root_spans": true,
+    "error_events": true,
+    "unmapped_events_for_kept_traces": true
+  }
+}
