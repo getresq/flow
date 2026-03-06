@@ -464,6 +464,21 @@ export function FlowCanvas({
     }
   }, [nodes])
 
+  if (!flow.hasGraph || flow.nodes.length === 0) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-slate-950 px-6 text-center">
+        <div className="max-w-xl rounded-2xl border border-slate-800 bg-slate-900/70 px-6 py-8 shadow-[0_24px_80px_rgba(2,6,23,0.45)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Headless flow</p>
+          <h2 className="mt-3 text-2xl font-semibold text-slate-100">{flow.name}</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-400">
+            This flow is registered through the shared contract layer, but it does not have a React Flow view yet.
+            Logs, journeys, and history remain available through the detail panels below.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="relative h-full w-full">
       <div className="absolute left-3 top-3 z-20 flex gap-2">

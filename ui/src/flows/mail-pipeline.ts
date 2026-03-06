@@ -1,4 +1,7 @@
-import type { FlowConfig, SpanMapping } from '../core/types'
+import mailPipelineContractJson from '../flow-contracts/mail-pipeline.json'
+import type { FlowConfig, FlowContract, SpanMapping } from '../core/types'
+
+const mailPipelineContract = mailPipelineContractJson as FlowContract
 
 export const spanMapping: SpanMapping = {
   'rrq:queue:mail-backfill': 'batchfill-queue',
@@ -26,7 +29,7 @@ export const spanMapping: SpanMapping = {
   handle_mail_send_reply: 'send-worker',
   handle_mail_cron_tick: 'cron-scheduler',
 
-  mail_batchfill: 'batchfill-worker',
+  mail_backfill: 'batchfill-worker',
   mail_incoming: 'incoming-worker',
   mail_analyze: 'analyze-worker',
   mail_extract: 'extract-worker',
@@ -37,10 +40,16 @@ export const spanMapping: SpanMapping = {
   cursor_updated: 'check-process',
 }
 
+export const producerMapping: SpanMapping = {
+  handle_mail_backfill_start: 'trigger-oauth',
+}
+
 export const mailPipelineFlow: FlowConfig = {
-  id: 'mail-pipeline',
-  name: 'Mail Pipeline',
+  id: mailPipelineContract.id,
+  name: mailPipelineContract.name,
   description: 'Real-time view of enqueue, worker, and persistence steps for mail processing.',
+  contract: mailPipelineContract,
+  hasGraph: true,
   nodes: [
     // ── Row 1: Trigger + Batchfill queue ────────────────────────────────
 
@@ -55,7 +64,7 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'batchfill-queue',
       type: 'roundedRect',
-      label: 'rrq:queue:mail-batchfill',
+      label: 'rrq:queue:mail-backfill',
       sublabel: '(read batches of email)',
       style: { color: 'yellow', icon: 'queue' },
       position: { x: 102.17427794727337, y: -70.17862409484596 },
@@ -67,7 +76,7 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'batchfill-worker',
       type: 'rectangle',
-      label: 'mail_batchfill',
+      label: 'mail_backfill',
       sublabel: 'workers',
       style: { color: 'blue', icon: 'worker' },
       position: { x: 171.254113903571, y: 55.16426056351003 },
@@ -793,6 +802,6 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'status = needs_review',
     },
   ],
-
+  producerMapping,
   spanMapping,
 }

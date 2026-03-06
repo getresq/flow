@@ -60,13 +60,41 @@ export interface SpanMapping {
   [pattern: string]: string
 }
 
+export interface FlowTelemetryContract {
+  log_events: string[]
+  queue_prefixes: string[]
+  function_prefixes: string[]
+  worker_prefixes: string[]
+  stage_prefixes: string[]
+  span_prefixes?: string[]
+  span_names?: string[]
+}
+
+export interface FlowKeepContext {
+  parent_spans: boolean
+  root_spans: boolean
+  error_events: boolean
+  unmapped_events_for_kept_traces: boolean
+}
+
+export interface FlowContract {
+  version: number
+  id: string
+  name: string
+  telemetry: FlowTelemetryContract
+  keep_context: FlowKeepContext
+}
+
 export interface FlowConfig {
   id: string
   name: string
   description?: string
+  contract: FlowContract
+  hasGraph: boolean
   nodes: FlowNodeConfig[]
   edges: FlowEdgeConfig[]
   spanMapping: SpanMapping
+  producerMapping?: SpanMapping
 }
 
 export interface FlowEvent {
@@ -92,6 +120,7 @@ export interface FlowEvent {
   duration_ms?: number
   attributes?: Record<string, unknown>
   message?: string
+  matched_flow_ids?: string[]
 }
 
 export interface NodeRuntimeStatus {
@@ -140,6 +169,8 @@ export interface RelayConnectionState {
   events: FlowEvent[]
   connected: boolean
   reconnecting: boolean
+  resetKey: number
+  totalEventCount: number
   clearEvents: () => void
 }
 

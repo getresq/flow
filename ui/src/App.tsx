@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { BottomLogPanel } from './core/components/BottomLogPanel'
+import { eventMatchesFlow } from './core/events'
 import { FlowCanvas } from './core/components/FlowCanvas'
 import { FlowSelector } from './core/components/FlowSelector'
 import { useEventPlayback } from './core/hooks/useEventPlayback'
@@ -28,12 +29,15 @@ const HISTORY_WINDOW_OPTIONS: Record<string, number> = {
 interface HistoryResponse {
   from: string
   to: string
+  flow_id?: string
   events: FlowEvent[]
   log_count: number
   span_count: number
   truncated: boolean
   warnings?: string[]
 }
+
+type SourceMode = 'live' | 'history'
 
 function windowToSeconds(window: string): number {
   return HISTORY_WINDOW_OPTIONS[window] ?? HISTORY_WINDOW_OPTIONS[DEFAULT_HISTORY_WINDOW]
@@ -85,8 +89,11 @@ function App() {
   const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>()
   const [focusActivePath, setFocusActivePath] = useState(false)
   const [theme, setTheme] = useState<ThemeMode>(resolveInitialTheme)
-  const [historyMode, setHistoryMode] = useState(false)
-  const [historyEvents, setHistoryEvents] = useState<FlowEvent[]>([])
+  const [sourceMode, setSourceMode] = useState<SourceMode>('live')
+  const [historyState, setHistoryState] = useState<{ events: FlowEvent[]; resetKey: number }>({
+    events: [],
+    resetKey: 0,
+  })
   const [historyWindow, setHistoryWindow] = useState(DEFAULT_HISTORY_WINDOW)
   const [historyQuery, setHistoryQuery] = useState('')
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -102,22 +109,35 @@ function App() {
   const relayWsUrl = DEFAULT_RELAY_WS_URL
 
   const relay = useRelayConnection(relayWsUrl)
-  const sourceEvents = historyMode ? historyEvents : relay.events
-  const playback = useEventPlayback(sourceEvents)
 
   const currentFlow = useMemo(
     () => flows.find((flow) => flow.id === flowId) ?? flows[0],
     [flowId],
   )
 
+  const liveEvents = useMemo(
+    () => relay.events.filter((event) => eventMatchesFlow(event, currentFlow.id)),
+    [currentFlow.id, relay.events],
+  )
+  const historyEvents = useMemo(
+    () => historyState.events.filter((event) => eventMatchesFlow(event, currentFlow.id)),
+    [currentFlow.id, historyState.events],
+  )
+  const historyPlayback = useEventPlayback(historyEvents, { resetKey: historyState.resetKey })
+  const runtimeSessionKey = `${sourceMode}:${currentFlow.id}:${sourceMode === 'history' ? historyState.resetKey : relay.resetKey}`
+  const displayedEvents = sourceMode === 'history' ? historyPlayback.events : liveEvents
+  const totalSourceEventCount = sourceMode === 'history' ? historyEvents.length : liveEvents.length
+
   const animations = useFlowAnimations({
-    events: playback.events,
+    events: displayedEvents,
     spanMapping: currentFlow.spanMapping,
+    producerMapping: currentFlow.producerMapping,
     edges: currentFlow.edges,
+    sessionKey: runtimeSessionKey,
   })
-  const logStream = useLogStream(playback.events, currentFlow.spanMapping)
-  const traceTimeline = useTraceTimeline(playback.events, currentFlow.spanMapping)
-  const traceJourney = useTraceJourney(playback.events, currentFlow.spanMapping)
+  const logStream = useLogStream(displayedEvents, currentFlow.spanMapping, runtimeSessionKey)
+  const traceTimeline = useTraceTimeline(displayedEvents, currentFlow.spanMapping, runtimeSessionKey)
+  const traceJourney = useTraceJourney(displayedEvents, currentFlow.spanMapping, runtimeSessionKey)
 
   const selectedJourney = useMemo(
     () => (selectedTraceId ? traceJourney.journeyByTraceId.get(selectedTraceId) : undefined),
@@ -150,34 +170,21 @@ function App() {
     }
   }, [currentFlow.edges, selectedJourney])
 
-  const clearDerivedState = useCallback(() => {
-    playback.clearPlayback()
-    animations.clearStatuses()
-    logStream.clearSession()
-    traceTimeline.clearTraces()
-    traceJourney.clearJourneys()
+  useEffect(() => {
     setSelectedNodeId(undefined)
     setSelectedTraceId(undefined)
-  }, [
-    animations.clearStatuses,
-    logStream.clearSession,
-    playback.clearPlayback,
-    traceJourney.clearJourneys,
-    traceTimeline.clearTraces,
-  ])
+  }, [runtimeSessionKey])
 
   const clearAll = useCallback(() => {
     relay.clearEvents()
-    setHistoryMode(false)
-    setHistoryEvents([])
+    setSourceMode('live')
+    setHistoryState({ events: [], resetKey: 0 })
     setHistoryLoading(false)
     setHistoryError(undefined)
     setHistorySummary(undefined)
-    clearDerivedState()
-  }, [
-    clearDerivedState,
-    relay.clearEvents,
-  ])
+    setSelectedNodeId(undefined)
+    setSelectedTraceId(undefined)
+  }, [relay.clearEvents])
 
   const loadHistory = useCallback(async () => {
     const now = new Date()
@@ -190,6 +197,7 @@ function App() {
     url.searchParams.set('to', now.toISOString())
     url.searchParams.set('window', historyWindow)
     url.searchParams.set('limit', '12000')
+    url.searchParams.set('flow_id', currentFlow.id)
     if (historyQuery.trim()) {
       url.searchParams.set('query', historyQuery.trim())
     }
@@ -207,9 +215,11 @@ function App() {
       const payload = (await response.json()) as HistoryResponse
       const events = Array.isArray(payload.events) ? payload.events : []
 
-      clearDerivedState()
-      setHistoryEvents(events)
-      setHistoryMode(true)
+      setHistoryState((previous) => ({
+        events,
+        resetKey: previous.resetKey + 1,
+      }))
+      setSourceMode('history')
       setHistorySummary({
         from: payload.from,
         to: payload.to,
@@ -224,20 +234,17 @@ function App() {
     } finally {
       setHistoryLoading(false)
     }
-  }, [clearDerivedState, historyQuery, historyWindow, relayWsUrl])
+  }, [currentFlow.id, historyQuery, historyWindow, relayWsUrl])
 
   const exitHistoryMode = useCallback(() => {
-    relay.clearEvents()
-    clearDerivedState()
-    setHistoryMode(false)
-    setHistoryEvents([])
+    setSourceMode('live')
+    setHistoryState((previous) => ({
+      events: [],
+      resetKey: previous.resetKey + 1,
+    }))
     setHistoryError(undefined)
     setHistorySummary(undefined)
-  }, [clearDerivedState, relay.clearEvents])
-
-  useEffect(() => {
-    clearAll()
-  }, [flowId, clearAll])
+  }, [])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -259,6 +266,17 @@ function App() {
     }
   }, [])
 
+  const handleSelectFlow = useCallback((nextFlowId: string) => {
+    setFlowId(nextFlowId)
+    setSourceMode('live')
+    setHistoryState((previous) => ({
+      events: [],
+      resetKey: previous.resetKey + 1,
+    }))
+    setHistoryError(undefined)
+    setHistorySummary(undefined)
+  }, [])
+
   const selectedNode = currentFlow.nodes.find((node) => node.id === selectedNodeId) ?? null
 
   return (
@@ -269,14 +287,14 @@ function App() {
         connected={relay.connected}
         reconnecting={relay.reconnecting}
         relayWsUrl={relayWsUrl}
-        displayedEventCount={playback.events.length}
-        totalEventCount={sourceEvents.length}
-        queuedEventCount={playback.pendingCount}
-        playbackPaused={playback.paused}
-        playbackSpeed={playback.speed}
+        displayedEventCount={displayedEvents.length}
+        totalEventCount={totalSourceEventCount}
+        queuedEventCount={sourceMode === 'history' ? historyPlayback.pendingCount : 0}
+        playbackPaused={sourceMode === 'history' ? historyPlayback.paused : false}
+        playbackSpeed={sourceMode === 'history' ? historyPlayback.speed : 1}
         focusActivePath={focusActivePath}
         theme={theme}
-        historyMode={historyMode}
+        historyMode={sourceMode === 'history'}
         historyLoading={historyLoading}
         historyWindow={historyWindow}
         historyQuery={historyQuery}
@@ -286,13 +304,13 @@ function App() {
             : undefined
         }
         historyError={historyError}
-        onSelectFlow={setFlowId}
-        onPlaybackPauseToggle={playback.togglePaused}
+        onSelectFlow={handleSelectFlow}
+        onPlaybackPauseToggle={historyPlayback.togglePaused}
         onPlaybackStep={() => {
-          playback.pause()
-          playback.stepForward()
+          historyPlayback.pause()
+          historyPlayback.stepForward()
         }}
-        onPlaybackSpeedChange={playback.setSpeed}
+        onPlaybackSpeedChange={historyPlayback.setSpeed}
         onToggleFocusActivePath={() => setFocusActivePath((previous) => !previous)}
         onToggleTheme={() => setTheme((previous) => (previous === 'dark' ? 'light' : 'dark'))}
         onHistoryWindowChange={setHistoryWindow}

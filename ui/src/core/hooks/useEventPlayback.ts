@@ -47,7 +47,11 @@ function getNextDelayMs(previous: FlowEvent | undefined, next: FlowEvent | undef
   return Math.min(Math.max(scaled, MIN_DELAY_MS), MAX_DELAY_MS)
 }
 
-export function useEventPlayback(sourceEvents: FlowEvent[]): EventPlaybackState {
+interface UseEventPlaybackOptions {
+  resetKey?: number | string
+}
+
+export function useEventPlayback(sourceEvents: FlowEvent[], options?: UseEventPlaybackOptions): EventPlaybackState {
   const [visibleCount, setVisibleCount] = useState(0)
   const [speed, setSpeedState] = useState(DEFAULT_SPEED)
   const [paused, setPaused] = useState(false)
@@ -91,6 +95,10 @@ export function useEventPlayback(sourceEvents: FlowEvent[]): EventPlaybackState 
     setVisibleCount(0)
     setPaused(false)
   }, [clearTimer])
+
+  useEffect(() => {
+    clearPlayback()
+  }, [clearPlayback, options?.resetKey])
 
   useEffect(() => {
     if (sourceEvents.length < visibleCount) {

@@ -42,17 +42,30 @@ function toLogEntry(event: FlowEvent, nodeId?: string): LogEntry {
   }
 }
 
-export function useLogStream(events: FlowEvent[], spanMapping: SpanMapping): LogStreamState {
+export function useLogStream(
+  events: FlowEvent[],
+  spanMapping: SpanMapping,
+  sessionKey?: number | string,
+): LogStreamState {
   const [globalLogs, setGlobalLogs] = useState<LogEntry[]>([])
   const [nodeLogMap, setNodeLogMap] = useState<Map<string, LogEntry[]>>(new Map())
 
   const processedIndexRef = useRef(0)
+  const sessionKeyRef = useRef<number | string | undefined>(sessionKey)
 
   const clearSession = useCallback(() => {
     processedIndexRef.current = 0
     setGlobalLogs([])
     setNodeLogMap(new Map())
   }, [])
+
+  useEffect(() => {
+    if (sessionKeyRef.current === sessionKey) {
+      return
+    }
+    sessionKeyRef.current = sessionKey
+    clearSession()
+  }, [clearSession, sessionKey])
 
   useEffect(() => {
     if (events.length < processedIndexRef.current) {

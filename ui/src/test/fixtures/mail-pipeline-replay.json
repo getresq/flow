@@ -8,6 +8,7 @@
       "event": "mail_e2e_event",
       "action": "enqueue",
       "queue_name": "rrq:queue:mail-backfill",
+      "function_name": "handle_mail_backfill_start",
       "status": "ok"
     },
     "message": "enqueue batchfill"
@@ -21,7 +22,7 @@
     "start_time": "2026-03-03T12:00:00.120Z",
     "attributes": {
       "function_name": "handle_mail_backfill_start",
-      "worker_name": "mail_batchfill"
+      "worker_name": "mail_backfill"
     }
   },
   {
@@ -35,7 +36,7 @@
     "duration_ms": 500,
     "attributes": {
       "function_name": "handle_mail_backfill_start",
-      "worker_name": "mail_batchfill",
+      "worker_name": "mail_backfill",
       "status": "ok",
       "outcome": "success"
     }

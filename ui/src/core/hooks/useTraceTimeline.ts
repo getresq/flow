@@ -26,11 +26,16 @@ function sortSpans(spans: SpanEntry[]): SpanEntry[] {
   return [...spans].sort((left, right) => Date.parse(left.startTime) - Date.parse(right.startTime))
 }
 
-export function useTraceTimeline(events: FlowEvent[], spanMapping: SpanMapping): TraceTimelineState {
+export function useTraceTimeline(
+  events: FlowEvent[],
+  spanMapping: SpanMapping,
+  sessionKey?: number | string,
+): TraceTimelineState {
   const [nodeSpans, setNodeSpans] = useState<Map<string, SpanEntry[]>>(new Map())
   const [traceTree, setTraceTree] = useState<Map<string, SpanEntry[]>>(new Map())
 
   const processedIndexRef = useRef(0)
+  const sessionKeyRef = useRef<number | string | undefined>(sessionKey)
   const openSpansRef = useRef<Map<string, SpanEntry>>(new Map())
   const nodeSpansRef = useRef<Map<string, SpanEntry[]>>(new Map())
   const traceTreeRef = useRef<Map<string, SpanEntry[]>>(new Map())
@@ -43,6 +48,14 @@ export function useTraceTimeline(events: FlowEvent[], spanMapping: SpanMapping):
     setNodeSpans(new Map())
     setTraceTree(new Map())
   }, [])
+
+  useEffect(() => {
+    if (sessionKeyRef.current === sessionKey) {
+      return
+    }
+    sessionKeyRef.current = sessionKey
+    clearTraces()
+  }, [clearTraces, sessionKey])
 
   useEffect(() => {
     if (events.length < processedIndexRef.current) {

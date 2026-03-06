@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url'
 
 import { resolveMappedNodeId } from '../core/mapping'
 import type { FlowEvent } from '../core/types'
-import { mailPipelineFlow } from '../flows/mail-pipeline'
+import { flows } from '../flows'
+
+const replayFlow = flows.find((flow) => flow.id === 'mail-pipeline') ?? flows[0]
 
 function parseSpeedArg(defaultSpeed = 1): number {
   const speedFlagIndex = process.argv.findIndex((arg) => arg === '--speed')
@@ -44,7 +46,7 @@ export async function runDirectReplay(events: FlowEvent[], speed = 1) {
   for (let index = 0; index < events.length; index += 1) {
     const event = events[index]
     const next = events[index + 1]
-    const mappedNodeId = resolveMappedNodeId(event, mailPipelineFlow.spanMapping)
+    const mappedNodeId = resolveMappedNodeId(event, replayFlow.spanMapping)
 
     if (mappedNodeId) {
       hitCounter.set(mappedNodeId, (hitCounter.get(mappedNodeId) ?? 0) + 1)

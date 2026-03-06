@@ -101,15 +101,19 @@ function resolveEventKind(event: FlowEvent): NonNullable<FlowEvent['event_kind']
 interface UseFlowAnimationsInput {
   events: FlowEvent[]
   spanMapping: SpanMapping
+  producerMapping?: SpanMapping
   edges?: FlowEdgeConfig[]
   timings?: Partial<FlowAnimationTimings>
+  sessionKey?: number | string
 }
 
 export function useFlowAnimations({
   events,
   spanMapping,
+  producerMapping,
   edges = [],
   timings,
+  sessionKey,
 }: UseFlowAnimationsInput): FlowAnimationState {
   const resolvedTimings: FlowAnimationTimings = {
     nodeSuccessResetMs: timings?.nodeSuccessResetMs ?? NODE_SUCCESS_RESET_MS,
@@ -121,6 +125,7 @@ export function useFlowAnimations({
   const [activeEdges, setActiveEdges] = useState<Set<string>>(new Set())
 
   const processedIndexRef = useRef(0)
+  const sessionKeyRef = useRef<number | string | undefined>(sessionKey)
   const spanStartRef = useRef<Map<string, number>>(new Map())
   const nodeResetTimersRef = useRef<Map<string, number>>(new Map())
   const edgeResetTimersRef = useRef<Map<string, number>>(new Map())
@@ -207,6 +212,14 @@ export function useFlowAnimations({
   }, [resolvedTimings.edgeActiveMs])
 
   useEffect(() => {
+    if (sessionKeyRef.current === sessionKey) {
+      return
+    }
+    sessionKeyRef.current = sessionKey
+    clearStatuses()
+  }, [clearStatuses, sessionKey])
+
+  useEffect(() => {
     if (events.length < processedIndexRef.current) {
       clearStatuses()
       processedIndexRef.current = 0
@@ -229,7 +242,12 @@ export function useFlowAnimations({
       const functionName = readStringAttribute(event.attributes, 'function_name')
       const queueNodeId = matchCandidate(spanMapping, queueName)
       const workerNodeId = matchCandidate(spanMapping, workerName)
-      const producerNodeId = matchCandidate(spanMapping, functionName) ?? matchCandidate(spanMapping, event.span_name)
+      const producerLookup = producerMapping ?? spanMapping
+      const producerNodeId =
+        matchCandidate(producerLookup, functionName) ??
+        matchCandidate(producerLookup, event.span_name) ??
+        matchCandidate(spanMapping, functionName) ??
+        matchCandidate(spanMapping, event.span_name)
       const timestamp = parseTimestampMs(event.start_time ?? event.timestamp) ?? nowMs()
 
       if (event.trace_id && mappedNodeId) {
@@ -304,6 +322,16 @@ export function useFlowAnimations({
           scheduleNodeIdle(targetQueueNodeId, resolvedTimings.nodePulseResetMs)
 
           if (producerNodeId && producerNodeId !== targetQueueNodeId) {
+            updateNodeStatus(producerNodeId, (previous) => ({
+              status: 'active',
+              counter: previous?.counter,
+              updatedAt: nowMs(),
+              lastMessage: event.message ?? functionName ?? event.span_name,
+              durationMs: previous?.durationMs,
+              durationVisibleUntil: previous?.durationVisibleUntil,
+            }))
+            scheduleNodeIdle(producerNodeId, resolvedTimings.nodePulseResetMs)
+
             const edgeId = edgeLookup.get(`${producerNodeId}->${targetQueueNodeId}`)
             if (edgeId) {
               activateEdge(edgeId)
@@ -372,6 +400,7 @@ export function useFlowAnimations({
     resolvedTimings.nodePulseResetMs,
     resolvedTimings.nodeSuccessResetMs,
     scheduleNodeIdle,
+    producerMapping,
     spanMapping,
     updateNodeStatus,
   ])

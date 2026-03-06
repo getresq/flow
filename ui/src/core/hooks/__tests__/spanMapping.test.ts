@@ -17,6 +17,18 @@ describe('span mapping resolution', () => {
     expect(resolveMappedNodeId(event, spanMapping)).toBe('extract-worker')
   })
 
+  it('maps backfill worker function_name to batchfill-worker', () => {
+    const event: FlowEvent = {
+      type: 'span_start',
+      timestamp: '2026-03-03T12:00:00.000Z',
+      attributes: {
+        function_name: 'handle_mail_backfill_start',
+      },
+    }
+
+    expect(resolveMappedNodeId(event, spanMapping)).toBe('batchfill-worker')
+  })
+
   it('maps queue_name to analyze-queue', () => {
     const event: FlowEvent = {
       type: 'log',

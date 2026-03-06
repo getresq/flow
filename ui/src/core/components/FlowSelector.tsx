@@ -150,7 +150,11 @@ export function FlowSelector({
         <div className="rounded-full border border-amber-500/50 bg-amber-900/30 px-2 py-0.5 text-xs text-amber-200">
           History mode
         </div>
-      ) : null}
+      ) : (
+        <div className="rounded-full border border-emerald-500/40 bg-emerald-900/20 px-2 py-0.5 text-xs text-emerald-200">
+          Live mode
+        </div>
+      )}
 
       <div className="flex items-center gap-2 rounded border border-slate-700/70 bg-slate-900/75 px-2 py-1">
         <label htmlFor="playback-speed" className="text-[10px] uppercase tracking-wide text-slate-500">
@@ -160,6 +164,7 @@ export function FlowSelector({
           id="playback-speed"
           value={playbackSpeed}
           onChange={(event) => onPlaybackSpeedChange(Number.parseFloat(event.target.value))}
+          disabled={!historyMode}
           className="rounded border border-slate-600 bg-slate-800 px-1.5 py-0.5 text-[11px] text-slate-100 outline-none focus:border-sky-400"
         >
           {playbackSpeedOptions.map((option) => (
@@ -172,7 +177,8 @@ export function FlowSelector({
         <button
           type="button"
           onClick={onPlaybackPauseToggle}
-          className="rounded border border-slate-600 bg-slate-800 px-2 py-0.5 text-[11px] text-slate-100 hover:border-slate-500"
+          disabled={!historyMode}
+          className="rounded border border-slate-600 bg-slate-800 px-2 py-0.5 text-[11px] text-slate-100 hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-45"
         >
           {playbackPaused ? 'Resume' : 'Pause'}
         </button>
@@ -180,7 +186,7 @@ export function FlowSelector({
         <button
           type="button"
           onClick={onPlaybackStep}
-          disabled={queuedEventCount === 0}
+          disabled={!historyMode || queuedEventCount === 0}
           className="rounded border border-slate-600 bg-slate-800 px-2 py-0.5 text-[11px] text-slate-100 hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-45"
         >
           Step

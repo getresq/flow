@@ -42,6 +42,7 @@ describe('useFlowAnimations', () => {
         useFlowAnimations({
           events,
           spanMapping: mailPipelineFlow.spanMapping,
+          producerMapping: mailPipelineFlow.producerMapping,
           edges: mailPipelineFlow.edges,
           timings: {
             nodeSuccessResetMs: 30,
@@ -108,6 +109,7 @@ describe('useFlowAnimations', () => {
       useFlowAnimations({
         events,
         spanMapping: mailPipelineFlow.spanMapping,
+        producerMapping: mailPipelineFlow.producerMapping,
         edges: mailPipelineFlow.edges,
       }),
     )
@@ -146,6 +148,7 @@ describe('useFlowAnimations', () => {
         useFlowAnimations({
           events,
           spanMapping: mailPipelineFlow.spanMapping,
+          producerMapping: mailPipelineFlow.producerMapping,
           edges: mailPipelineFlow.edges,
         }),
       {
@@ -164,6 +167,40 @@ describe('useFlowAnimations', () => {
     await waitFor(() => {
       expect(result.current.nodeStatuses.get('analyze-queue')?.counter).toBe(0)
       expect(result.current.nodeStatuses.get('analyze-worker')?.status).toBe('active')
+    })
+  })
+
+  it('pulses the oauth trigger and edge when the backfill queue is enqueued from connect flow', async () => {
+    const enqueueEvent: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-03T12:00:00.000Z',
+      trace_id: 'trace-4',
+      span_id: 'log-4',
+      attributes: {
+        action: 'enqueue',
+        queue_name: 'rrq:queue:mail-backfill',
+        function_name: 'handle_mail_backfill_start',
+      },
+      message: 'rrq:queue:mail-backfill: job enqueued (handle_mail_backfill_start)',
+    }
+
+    const { result } = renderHook(() =>
+      useFlowAnimations({
+        events: [enqueueEvent],
+        spanMapping: mailPipelineFlow.spanMapping,
+        producerMapping: mailPipelineFlow.producerMapping,
+        edges: mailPipelineFlow.edges,
+        timings: {
+          nodePulseResetMs: 50,
+          edgeActiveMs: 50,
+        },
+      }),
+    )
+
+    await waitFor(() => {
+      expect(result.current.nodeStatuses.get('trigger-oauth')?.status).toBe('active')
+      expect(result.current.nodeStatuses.get('batchfill-queue')?.status).toBe('active')
+      expect(result.current.activeEdges.has('e-trigger-batchfill')).toBe(true)
     })
   })
 })
