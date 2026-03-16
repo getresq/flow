@@ -116,7 +116,7 @@ describe('useTraceJourney', () => {
     expect(journey.status).toBe('error')
     expect(journey.errorSummary).toBe('upsert failed')
     expect(journey.stages[0].status).toBe('error')
-    expect(journey.stages[0].nodeId).toBe('upsert-contacts')
+    expect(journey.stages[0].nodeId).toBe('extract-worker')
   })
 
   it('prefers explicit component_id when deriving journey nodes', () => {

@@ -30,10 +30,20 @@ function lookupPattern(mapping: SpanMapping, candidate: string | null | undefine
   return null
 }
 
+function isEdgeOwnedStage(event: FlowEvent): boolean {
+  return readAttr(event, 'stage_id') === 'actions.send_enqueue'
+}
+
 export function resolveMappedNodeId(event: FlowEvent, spanMapping: SpanMapping): string | null {
   const componentId = readAttr(event, 'component_id')
   if (componentId) {
     return spanMapping[componentId] ?? null
+  }
+
+  // This handoff belongs to the autosend -> send-queue edge, so we only map it
+  // when a producer explicitly opted into node identity via component_id.
+  if (isEdgeOwnedStage(event)) {
+    return null
   }
 
   const queueFirst = event.event_kind === 'queue_enqueued' || event.event_kind === 'queue_picked'

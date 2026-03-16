@@ -32,6 +32,7 @@ async fn posts_mail_e2e_logs_and_receives_log_event() {
                   "attributes": [
                     { "key": "event", "value": { "stringValue": "mail_e2e_event" } },
                     { "key": "flow_id", "value": { "stringValue": "mail-pipeline" } },
+                    { "key": "run_id", "value": { "stringValue": "thread-123" } },
                     { "key": "component_id", "value": { "stringValue": "analyze-queue" } },
                     { "key": "action", "value": { "stringValue": "enqueue" } },
                     { "key": "function_name", "value": { "stringValue": "handle_mail_extract" } },
@@ -67,6 +68,20 @@ async fn posts_mail_e2e_logs_and_receives_log_event() {
     assert_eq!(event.service_name.as_deref(), Some("resq-mail-worker"));
     assert_eq!(event.message.as_deref(), Some("mail event"));
     assert_eq!(event.matched_flow_ids, vec!["mail-pipeline"]);
+    assert_eq!(
+        event
+            .attributes
+            .get("run_id")
+            .and_then(|value| value.as_str()),
+        Some("thread-123")
+    );
+    assert_eq!(
+        event
+            .attributes
+            .get("component_id")
+            .and_then(|value| value.as_str()),
+        Some("analyze-queue")
+    );
     assert_eq!(
         event
             .attributes
@@ -196,6 +211,7 @@ async fn posts_protobuf_mail_e2e_logs_and_receives_log_event() {
                     attributes: vec![
                         string_attribute("event", "mail_e2e_event"),
                         string_attribute("flow_id", "mail-pipeline"),
+                        string_attribute("run_id", "thread-123"),
                         string_attribute("component_id", "analyze-queue"),
                         string_attribute("action", "enqueue"),
                         string_attribute("function_name", "handle_mail_extract"),
@@ -231,6 +247,20 @@ async fn posts_protobuf_mail_e2e_logs_and_receives_log_event() {
     assert_eq!(event.service_name.as_deref(), Some("resq-mail-worker"));
     assert_eq!(event.message.as_deref(), Some("mail event"));
     assert_eq!(event.matched_flow_ids, vec!["mail-pipeline"]);
+    assert_eq!(
+        event
+            .attributes
+            .get("run_id")
+            .and_then(|value| value.as_str()),
+        Some("thread-123")
+    );
+    assert_eq!(
+        event
+            .attributes
+            .get("component_id")
+            .and_then(|value| value.as_str()),
+        Some("analyze-queue")
+    );
 
     server.shutdown();
 }

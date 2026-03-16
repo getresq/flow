@@ -33,6 +33,7 @@ async fn posts_otlp_traces_and_receives_span_events_over_websocket() {
                   "endTimeUnixNano": "1710000000122000000",
                   "attributes": [
                     { "key": "flow_id", "value": { "stringValue": "mail-pipeline" } },
+                    { "key": "run_id", "value": { "stringValue": "thread-123" } },
                     { "key": "component_id", "value": { "stringValue": "extract-worker" } },
                     { "key": "function_name", "value": { "stringValue": "handle_mail_extract" } },
                     { "key": "queue_name", "value": { "stringValue": "rrq:queue:mail-analyze" } },
@@ -74,6 +75,20 @@ async fn posts_otlp_traces_and_receives_span_events_over_websocket() {
     assert_eq!(
         start_event.parent_span_id.as_deref(),
         Some("fedcba9876543210")
+    );
+    assert_eq!(
+        start_event
+            .attributes
+            .get("run_id")
+            .and_then(|value| value.as_str()),
+        Some("thread-123")
+    );
+    assert_eq!(
+        start_event
+            .attributes
+            .get("component_id")
+            .and_then(|value| value.as_str()),
+        Some("extract-worker")
     );
     assert_eq!(start_event.matched_flow_ids, vec!["mail-pipeline"]);
     assert_eq!(
@@ -118,6 +133,7 @@ async fn posts_protobuf_otlp_traces_and_receives_span_events_over_websocket() {
                     end_time_unix_nano: 1_710_000_000_122_000_000,
                     attributes: vec![
                         string_attribute("flow_id", "mail-pipeline"),
+                        string_attribute("run_id", "thread-123"),
                         string_attribute("component_id", "extract-worker"),
                         string_attribute("function_name", "handle_mail_extract"),
                         string_attribute("queue_name", "rrq:queue:mail-analyze"),
@@ -151,6 +167,20 @@ async fn posts_protobuf_otlp_traces_and_receives_span_events_over_websocket() {
     assert_eq!(
         start_event.trace_id.as_deref(),
         Some("0123456789abcdef0123456789abcdef")
+    );
+    assert_eq!(
+        start_event
+            .attributes
+            .get("run_id")
+            .and_then(|value| value.as_str()),
+        Some("thread-123")
+    );
+    assert_eq!(
+        start_event
+            .attributes
+            .get("component_id")
+            .and_then(|value| value.as_str()),
+        Some("extract-worker")
     );
     assert_eq!(start_event.matched_flow_ids, vec!["mail-pipeline"]);
     assert_eq!(end_event.event_type, "span_end");
