@@ -21,6 +21,7 @@ A `flow` is the static map of the system or process.
 
 - A flow is composed of nodes and paths.
 - A flow contains many runs.
+- A flow is still a flow even when no graph view is registered yet.
 - A flow is not composed of traces.
 
 Examples:
