@@ -16,6 +16,7 @@ describe('useTraceTimeline', () => {
         span_id: 'span-1',
         start_time: '2026-03-03T12:00:00.000Z',
         attributes: {
+          run_id: 'run-1',
           function_name: 'handle_mail_extract',
         },
       },
@@ -28,6 +29,7 @@ describe('useTraceTimeline', () => {
         start_time: '2026-03-03T12:00:00.000Z',
         end_time: '2026-03-03T12:00:00.900Z',
         attributes: {
+          run_id: 'run-1',
           function_name: 'handle_mail_extract',
           status: 'ok',
         },
@@ -42,7 +44,8 @@ describe('useTraceTimeline', () => {
 
     const span = result.current.nodeSpans.get('extract-worker')?.[0]
     expect(span?.durationMs).toBe(900)
-    expect(result.current.traceTree.get('trace-1')).toHaveLength(1)
+    expect(span?.runId).toBe('run-1')
+    expect(result.current.traceTree.get('run-1')).toHaveLength(1)
   })
 
   it('preserves parent-child relationships in trace tree', async () => {
@@ -54,6 +57,7 @@ describe('useTraceTimeline', () => {
         trace_id: 'trace-2',
         span_id: 'parent-span',
         attributes: {
+          run_id: 'run-2',
           function_name: 'handle_mail_incoming_check',
         },
       },
@@ -65,6 +69,7 @@ describe('useTraceTimeline', () => {
         span_id: 'child-span',
         parent_span_id: 'parent-span',
         attributes: {
+          run_id: 'run-2',
           function_name: 'handle_mail_extract',
         },
       },
@@ -78,6 +83,7 @@ describe('useTraceTimeline', () => {
         start_time: '2026-03-03T12:00:00.150Z',
         end_time: '2026-03-03T12:00:00.750Z',
         attributes: {
+          run_id: 'run-2',
           function_name: 'handle_mail_extract',
           status: 'ok',
         },
@@ -91,6 +97,7 @@ describe('useTraceTimeline', () => {
         start_time: '2026-03-03T12:00:00.000Z',
         end_time: '2026-03-03T12:00:01.000Z',
         attributes: {
+          run_id: 'run-2',
           function_name: 'handle_mail_incoming_check',
           status: 'ok',
         },
@@ -100,10 +107,10 @@ describe('useTraceTimeline', () => {
     const { result } = renderHook(() => useTraceTimeline(events, mailPipelineFlow.spanMapping))
 
     await waitFor(() => {
-      expect(result.current.traceTree.get('trace-2')).toHaveLength(2)
+      expect(result.current.traceTree.get('run-2')).toHaveLength(2)
     })
 
-    const traceEntries = result.current.traceTree.get('trace-2') ?? []
+    const traceEntries = result.current.traceTree.get('run-2') ?? []
     const child = traceEntries.find((entry) => entry.spanId === 'child-span')
     expect(child?.parentSpanId).toBe('parent-span')
   })

@@ -166,9 +166,10 @@ export function NodeDetailPanel({ node, status, logs, spans, onClose }: NodeDeta
     const grouped = new Map<string, SpanEntry[]>()
 
     for (const span of spans) {
-      const list = grouped.get(span.traceId) ?? []
+      const executionId = span.runId ?? span.traceId
+      const list = grouped.get(executionId) ?? []
       list.push(span)
-      grouped.set(span.traceId, list)
+      grouped.set(executionId, list)
     }
 
     return [...grouped.entries()]
@@ -330,7 +331,7 @@ export function NodeDetailPanel({ node, status, logs, spans, onClose }: NodeDeta
             <section className="rounded border border-slate-700 bg-slate-900/60 p-3">
               <h3 className="text-[10px] uppercase tracking-wide text-slate-500">Timing View</h3>
               <p className="mt-2 text-xs leading-5 text-slate-300">
-                This view keeps the raw timing detail for deeper debugging. Each group below is one recent trace ID seen at this node.
+                This view keeps the raw timing detail for deeper debugging. Each group below is one recent run seen at this node.
               </p>
             </section>
 
@@ -344,7 +345,7 @@ export function NodeDetailPanel({ node, status, logs, spans, onClose }: NodeDeta
                 return (
                   <details key={traceId} className="rounded border border-slate-700 bg-slate-900/50 p-2" open>
                     <summary className="cursor-pointer text-xs text-slate-200">
-                      trace: {traceId.slice(0, 12)}…
+                      run: {traceId.slice(0, 12)}…
                     </summary>
 
                     <div className="mt-2 space-y-2">

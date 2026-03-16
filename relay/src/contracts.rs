@@ -141,6 +141,9 @@ impl FlowRegistry {
         if let Some(term) = search.map(str::trim).filter(|term| !term.is_empty()) {
             let quoted = quote_logsql_string(term);
             let clauses = [
+                format!("flow_id:{quoted}"),
+                format!("run_id:{quoted}"),
+                format!("component_id:{quoted}"),
                 format!("trace_id:{quoted}"),
                 format!("job_id:{quoted}"),
                 format!("request_id:{quoted}"),
@@ -274,6 +277,7 @@ fn filter_events(
 
     let mut filtered = Vec::new();
     for (mut event, direct_flow_ids) in events.into_iter().zip(direct_matches.into_iter()) {
+        let has_explicit_flow_id = explicit_flow_id(&event).is_some();
         let mut matched_flow_ids = BTreeSet::new();
         for flow_id in direct_flow_ids {
             if selected_flow_id.is_none_or(|selected| selected == flow_id) {
@@ -282,6 +286,7 @@ fn filter_events(
         }
 
         if let Some(trace_id) = event.trace_id.as_ref()
+            && !has_explicit_flow_id
             && let Some(trace_flows) = trace_flow_ids.get(trace_id)
         {
             for flow_id in trace_flows {
@@ -311,6 +316,13 @@ fn filter_events(
 }
 
 fn match_contracts(registry: &FlowRegistry, event: &FlowEvent) -> Vec<String> {
+    if let Some(flow_id) = explicit_flow_id(event) {
+        return registry
+            .find(&flow_id)
+            .map(|contract| vec![contract.id.clone()])
+            .unwrap_or_default();
+    }
+
     let mut matched = Vec::new();
     for contract in registry.all() {
         if matches_contract(contract, event) {
@@ -371,6 +383,12 @@ fn matches_contract(contract: &FlowContract, event: &FlowEvent) -> bool {
         std::slice::from_ref(&event.span_name),
         &telemetry.span_prefixes,
     )
+}
+
+fn explicit_flow_id(event: &FlowEvent) -> Option<String> {
+    event
+        .attr_string("flow_id")
+        .filter(|value| !value.trim().is_empty())
 }
 
 fn matches_prefixes(candidates: &[Option<String>], prefixes: &[String]) -> bool {

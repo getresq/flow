@@ -16,6 +16,10 @@ function readAttr(event: FlowEvent, key: string): string | undefined {
   return undefined
 }
 
+export function eventExecutionKey(event: FlowEvent): string | undefined {
+  return readAttr(event, 'run_id') ?? event.trace_id ?? undefined
+}
+
 export function resolveEventKind(event: FlowEvent): NonNullable<FlowEvent['event_kind']> {
   if (event.event_kind) {
     return event.event_kind
@@ -67,13 +71,15 @@ export function normalizeFlowEvent(event: FlowEvent, nextSeq: number): FlowEvent
   const queueName = readAttr(event, 'queue_name')
   const functionName = readAttr(event, 'function_name')
   const workerName = readAttr(event, 'worker_name')
+  const componentId = readAttr(event, 'component_id')
   const action = readAttr(event, 'action')
   const nodeKey =
     event.node_key ??
-    ((eventKind === 'queue_enqueued' || eventKind === 'queue_picked'
-      ? queueName ?? functionName ?? workerName ?? event.span_name ?? action
-      : functionName ?? event.span_name ?? workerName ?? queueName ?? action) ??
-      undefined)
+    (componentId ??
+      ((eventKind === 'queue_enqueued' || eventKind === 'queue_picked'
+        ? queueName ?? functionName ?? workerName ?? event.span_name ?? action
+        : functionName ?? event.span_name ?? workerName ?? queueName ?? action) ??
+        undefined))
 
   return {
     ...event,
@@ -103,10 +109,16 @@ export function parseRelayEvents(data: string, currentMaxSeq: number): FlowEvent
 }
 
 export function eventMatchesFlow(event: FlowEvent, flowId: string): boolean {
-  if (!Array.isArray(event.matched_flow_ids) || event.matched_flow_ids.length === 0) {
-    return true
+  const explicitFlowId = readAttr(event, 'flow_id')
+  if (explicitFlowId) {
+    return explicitFlowId === flowId
   }
-  return event.matched_flow_ids.includes(flowId)
+
+  if (Array.isArray(event.matched_flow_ids) && event.matched_flow_ids.length > 0) {
+    return event.matched_flow_ids.includes(flowId)
+  }
+
+  return true
 }
 
 function unwrapRelayPayload(payload: unknown): unknown[] {

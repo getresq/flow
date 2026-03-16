@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { eventExecutionKey } from '../events'
 import { inferErrorState, readStringAttribute, resolveMappedNodeId } from '../mapping'
 import type { FlowEvent, LogEntry, LogStreamState, SpanMapping } from '../types'
 
@@ -24,6 +25,9 @@ function toLogEntry(event: FlowEvent, nodeId?: string): LogEntry {
     timestamp: event.timestamp,
     seq: event.seq,
     traceId: event.trace_id,
+    runId: eventExecutionKey(event),
+    flowId: readStringAttribute(event.attributes, 'flow_id'),
+    componentId: readStringAttribute(event.attributes, 'component_id'),
     stageId,
     stageName,
     errorClass: readStringAttribute(event.attributes, 'error_class'),

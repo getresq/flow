@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { eventExecutionKey } from '../events'
 import { inferErrorState, resolveMappedNodeId } from '../mapping'
 import type { FlowEvent, SpanEntry, SpanMapping, TraceTimelineState } from '../types'
 
@@ -80,6 +81,7 @@ export function useTraceTimeline(
 
       const nodeId = resolveMappedNodeId(event, spanMapping)
       const key = spanKey(event)
+      const executionKey = eventExecutionKey(event)
 
       if (event.type === 'span_start') {
         if (!key || !nodeId || !event.trace_id || !event.span_id) {
@@ -90,6 +92,10 @@ export function useTraceTimeline(
           spanName: event.span_name ?? 'unknown_span',
           nodeId,
           traceId: event.trace_id,
+          runId: executionKey,
+          flowId: typeof event.attributes?.flow_id === 'string' ? event.attributes.flow_id : undefined,
+          componentId:
+            typeof event.attributes?.component_id === 'string' ? event.attributes.component_id : undefined,
           spanId: event.span_id,
           parentSpanId: event.parent_span_id,
           startTime: event.start_time ?? event.timestamp,
@@ -122,6 +128,13 @@ export function useTraceTimeline(
         spanName: event.span_name ?? openEntry?.spanName ?? 'unknown_span',
         nodeId: resolvedNodeId,
         traceId: event.trace_id,
+        runId: executionKey ?? openEntry?.runId,
+        flowId:
+          (typeof event.attributes?.flow_id === 'string' ? event.attributes.flow_id : undefined) ??
+          openEntry?.flowId,
+        componentId:
+          (typeof event.attributes?.component_id === 'string' ? event.attributes.component_id : undefined) ??
+          openEntry?.componentId,
         spanId: event.span_id,
         parentSpanId: event.parent_span_id ?? openEntry?.parentSpanId,
         startTime,
@@ -135,9 +148,9 @@ export function useTraceTimeline(
       nodeList.push(finalEntry)
       nextNodeMap.set(resolvedNodeId, sortSpans(nodeList))
 
-      const traceList = nextTraceMap.get(event.trace_id) ?? []
+      const traceList = nextTraceMap.get(executionKey ?? event.trace_id) ?? []
       traceList.push(finalEntry)
-      nextTraceMap.set(event.trace_id, sortSpans(traceList))
+      nextTraceMap.set(executionKey ?? event.trace_id, sortSpans(traceList))
 
       openSpansRef.current.delete(key)
     }

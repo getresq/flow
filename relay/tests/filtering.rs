@@ -108,6 +108,104 @@ async fn drops_unrelated_trace_telemetry() {
 }
 
 #[tokio::test]
+async fn matches_known_explicit_flow_id_without_prefix_heuristics() {
+    let server = common::spawn_server().await;
+    let mut socket = common::connect_ws(&format!("{}/ws", server.ws_base)).await;
+
+    let payload = json!({
+      "resourceSpans": [
+        {
+          "resource": {
+            "attributes": [
+              { "key": "service.name", "value": { "stringValue": "resq-mail-worker" } }
+            ]
+          },
+          "scopeSpans": [
+            {
+              "spans": [
+                {
+                  "traceId": "dddddddddddddddddddddddddddddddd",
+                  "spanId": "1111111111111111",
+                  "name": "custom.mail.step",
+                  "startTimeUnixNano": "1710000006500000000",
+                  "endTimeUnixNano": "1710000006600000000",
+                  "attributes": [
+                    { "key": "flow_id", "value": { "stringValue": "mail-pipeline" } },
+                    { "key": "component_id", "value": { "stringValue": "extract-worker" } }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+
+    let response = reqwest::Client::new()
+        .post(format!("{}/v1/traces", server.http_base))
+        .json(&payload)
+        .send()
+        .await
+        .expect("post traces");
+
+    assert!(response.status().is_success());
+
+    let batch = common::recv_flow_events(&mut socket).await;
+    assert_eq!(batch.len(), 2);
+    assert_eq!(batch[0].matched_flow_ids, vec!["mail-pipeline"]);
+    assert_eq!(batch[1].matched_flow_ids, vec!["mail-pipeline"]);
+
+    server.shutdown();
+}
+
+#[tokio::test]
+async fn does_not_fallback_when_explicit_flow_id_is_unknown() {
+    let server = common::spawn_server().await;
+    let mut socket = common::connect_ws(&format!("{}/ws", server.ws_base)).await;
+
+    let payload = json!({
+      "resourceSpans": [
+        {
+          "resource": {
+            "attributes": [
+              { "key": "service.name", "value": { "stringValue": "resq-mail-worker" } }
+            ]
+          },
+          "scopeSpans": [
+            {
+              "spans": [
+                {
+                  "traceId": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                  "spanId": "1111111111111111",
+                  "name": "handle_mail_extract",
+                  "startTimeUnixNano": "1710000006650000000",
+                  "endTimeUnixNano": "1710000006750000000",
+                  "attributes": [
+                    { "key": "flow_id", "value": { "stringValue": "unknown-flow" } },
+                    { "key": "function_name", "value": { "stringValue": "handle_mail_extract" } }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+
+    let response = reqwest::Client::new()
+        .post(format!("{}/v1/traces", server.http_base))
+        .json(&payload)
+        .send()
+        .await
+        .expect("post traces");
+
+    assert!(response.status().is_success());
+    common::expect_no_message(&mut socket).await;
+
+    server.shutdown();
+}
+
+#[tokio::test]
 async fn keeps_error_context_without_keeping_all_unmapped_trace_events() {
     let server = common::spawn_server_with_contract_dir("error-only").await;
     let mut socket = common::connect_ws(&format!("{}/ws", server.ws_base)).await;

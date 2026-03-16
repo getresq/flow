@@ -139,6 +139,9 @@ export interface LogEntry {
   timestamp: string
   seq?: number
   traceId?: string
+  runId?: string
+  flowId?: string
+  componentId?: string
   stageId?: string
   stageName?: string
   errorClass?: string
@@ -157,6 +160,9 @@ export interface SpanEntry {
   spanName: string
   nodeId: string
   traceId: string
+  runId?: string
+  flowId?: string
+  componentId?: string
   spanId: string
   parentSpanId?: string
   startTime: string
@@ -209,6 +215,9 @@ export interface TraceTimelineState {
 export type TraceStatus = 'running' | 'success' | 'error' | 'partial'
 
 export interface TraceIdentifiers {
+  flowId?: string
+  runId?: string
+  componentId?: string
   mailboxOwner?: string
   provider?: string
   threadId?: string

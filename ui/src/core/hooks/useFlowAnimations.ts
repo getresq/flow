@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { resolveEventKind } from '../events'
+import { eventExecutionKey, resolveEventKind } from '../events'
 import { inferErrorState, readStringAttribute, resolveMappedNodeId } from '../mapping'
 import type {
   FlowAnimationState,
@@ -234,16 +234,17 @@ export function useFlowAnimations({
         matchCandidate(spanMapping, functionName) ??
         matchCandidate(spanMapping, event.span_name)
       const timestamp = parseTimestampMs(event.start_time ?? event.timestamp) ?? nowMs()
+      const executionKey = eventExecutionKey(event)
 
-      if (event.trace_id && mappedNodeId) {
-        const previousNode = traceLastNodeRef.current.get(event.trace_id)
+      if (executionKey && mappedNodeId) {
+        const previousNode = traceLastNodeRef.current.get(executionKey)
         if (previousNode && previousNode !== mappedNodeId) {
           const edgeId = edgeLookup.get(`${previousNode}->${mappedNodeId}`)
           if (edgeId) {
             activateEdge(edgeId)
           }
         }
-        traceLastNodeRef.current.set(event.trace_id, mappedNodeId)
+        traceLastNodeRef.current.set(executionKey, mappedNodeId)
       }
 
       if (eventKind === 'node_started') {

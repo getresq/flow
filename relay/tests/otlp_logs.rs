@@ -31,6 +31,9 @@ async fn posts_mail_e2e_logs_and_receives_log_event() {
                   "body": { "stringValue": "mail event" },
                   "attributes": [
                     { "key": "event", "value": { "stringValue": "mail_e2e_event" } },
+                    { "key": "flow_id", "value": { "stringValue": "mail-pipeline" } },
+                    { "key": "run_id", "value": { "stringValue": "thread-123" } },
+                    { "key": "component_id", "value": { "stringValue": "analyze-queue" } },
                     { "key": "action", "value": { "stringValue": "enqueue" } },
                     { "key": "function_name", "value": { "stringValue": "handle_mail_extract" } },
                     { "key": "queue_name", "value": { "stringValue": "rrq:queue:mail-analyze" } },
@@ -60,11 +63,25 @@ async fn posts_mail_e2e_logs_and_receives_log_event() {
     assert!(event.seq.is_some());
     assert_eq!(event.event_kind.as_deref(), Some("queue_enqueued"));
     assert_eq!(event.queue_delta, Some(1));
-    assert_eq!(event.node_key.as_deref(), Some("rrq:queue:mail-analyze"));
+    assert_eq!(event.node_key.as_deref(), Some("analyze-queue"));
     assert_eq!(event.span_name.as_deref(), Some("handle_mail_extract"));
     assert_eq!(event.service_name.as_deref(), Some("resq-mail-worker"));
     assert_eq!(event.message.as_deref(), Some("mail event"));
     assert_eq!(event.matched_flow_ids, vec!["mail-pipeline"]);
+    assert_eq!(
+        event
+            .attributes
+            .get("run_id")
+            .and_then(|value| value.as_str()),
+        Some("thread-123")
+    );
+    assert_eq!(
+        event
+            .attributes
+            .get("component_id")
+            .and_then(|value| value.as_str()),
+        Some("analyze-queue")
+    );
     assert_eq!(
         event
             .attributes
@@ -123,6 +140,55 @@ async fn filters_non_mail_e2e_logs() {
 }
 
 #[tokio::test]
+async fn drops_logs_with_unknown_explicit_flow_id() {
+    let server = common::spawn_server().await;
+    let mut socket = common::connect_ws(&format!("{}/ws", server.ws_base)).await;
+
+    let payload = json!({
+      "resourceLogs": [
+        {
+          "resource": {
+            "attributes": [
+              { "key": "service.name", "value": { "stringValue": "resq-mail-worker" } }
+            ]
+          },
+          "scopeLogs": [
+            {
+              "logRecords": [
+                {
+                  "timeUnixNano": "1710000001000000000",
+                  "traceId": "cccccccccccccccccccccccccccccccc",
+                  "spanId": "dddddddddddddddd",
+                  "body": { "stringValue": "mail event" },
+                  "attributes": [
+                    { "key": "event", "value": { "stringValue": "mail_e2e_event" } },
+                    { "key": "flow_id", "value": { "stringValue": "unknown-flow" } },
+                    { "key": "component_id", "value": { "stringValue": "analyze-queue" } },
+                    { "key": "action", "value": { "stringValue": "enqueue" } },
+                    { "key": "status", "value": { "stringValue": "ok" } }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+
+    let response = reqwest::Client::new()
+        .post(format!("{}/v1/logs", server.http_base))
+        .json(&payload)
+        .send()
+        .await
+        .expect("post logs");
+
+    assert!(response.status().is_success());
+    common::expect_no_message(&mut socket).await;
+
+    server.shutdown();
+}
+
+#[tokio::test]
 async fn posts_protobuf_mail_e2e_logs_and_receives_log_event() {
     let server = common::spawn_server().await;
     let mut socket = common::connect_ws(&format!("{}/ws", server.ws_base)).await;
@@ -144,6 +210,9 @@ async fn posts_protobuf_mail_e2e_logs_and_receives_log_event() {
                     body: Some(string_any_value("mail event")),
                     attributes: vec![
                         string_attribute("event", "mail_e2e_event"),
+                        string_attribute("flow_id", "mail-pipeline"),
+                        string_attribute("run_id", "thread-123"),
+                        string_attribute("component_id", "analyze-queue"),
                         string_attribute("action", "enqueue"),
                         string_attribute("function_name", "handle_mail_extract"),
                         string_attribute("queue_name", "rrq:queue:mail-analyze"),
@@ -173,11 +242,25 @@ async fn posts_protobuf_mail_e2e_logs_and_receives_log_event() {
     assert_eq!(event.event_type, "log");
     assert_eq!(event.event_kind.as_deref(), Some("queue_enqueued"));
     assert_eq!(event.queue_delta, Some(1));
-    assert_eq!(event.node_key.as_deref(), Some("rrq:queue:mail-analyze"));
+    assert_eq!(event.node_key.as_deref(), Some("analyze-queue"));
     assert_eq!(event.span_name.as_deref(), Some("handle_mail_extract"));
     assert_eq!(event.service_name.as_deref(), Some("resq-mail-worker"));
     assert_eq!(event.message.as_deref(), Some("mail event"));
     assert_eq!(event.matched_flow_ids, vec!["mail-pipeline"]);
+    assert_eq!(
+        event
+            .attributes
+            .get("run_id")
+            .and_then(|value| value.as_str()),
+        Some("thread-123")
+    );
+    assert_eq!(
+        event
+            .attributes
+            .get("component_id")
+            .and_then(|value| value.as_str()),
+        Some("analyze-queue")
+    );
 
     server.shutdown();
 }

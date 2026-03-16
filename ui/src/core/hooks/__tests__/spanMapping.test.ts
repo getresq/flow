@@ -5,6 +5,32 @@ import type { FlowEvent } from '../../types'
 import { spanMapping } from '../../../flows/mail-pipeline'
 
 describe('span mapping resolution', () => {
+  it('maps explicit component_id directly to the canonical node', () => {
+    const event: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-03T12:00:00.000Z',
+      attributes: {
+        component_id: 'extract-worker',
+        function_name: 'handle_mail_extract',
+      },
+    }
+
+    expect(resolveMappedNodeId(event, spanMapping)).toBe('extract-worker')
+  })
+
+  it('keeps explicit component_id when stage_id points at a different fallback node', () => {
+    const event: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-03T12:00:00.000Z',
+      attributes: {
+        component_id: 'check-process',
+        stage_id: 'scheduler.cursor_update',
+      },
+    }
+
+    expect(resolveMappedNodeId(event, spanMapping)).toBe('check-process')
+  })
+
   it('maps function_name to extract-worker', () => {
     const event: FlowEvent = {
       type: 'span_start',
@@ -41,28 +67,16 @@ describe('span mapping resolution', () => {
     expect(resolveMappedNodeId(event, spanMapping)).toBe('analyze-queue')
   })
 
-  it('maps action to write-threads', () => {
+  it('maps demoted store stage_id to its owning first-class node', () => {
     const event: FlowEvent = {
       type: 'log',
       timestamp: '2026-03-03T12:00:00.000Z',
       attributes: {
-        action: 'threads_written',
+        stage_id: 'incoming.write_metadata',
       },
     }
 
-    expect(resolveMappedNodeId(event, spanMapping)).toBe('write-threads')
-  })
-
-  it('maps metadata action to write-metadata', () => {
-    const event: FlowEvent = {
-      type: 'log',
-      timestamp: '2026-03-03T12:00:00.000Z',
-      attributes: {
-        action: 'metadata_written',
-      },
-    }
-
-    expect(resolveMappedNodeId(event, spanMapping)).toBe('write-metadata')
+    expect(resolveMappedNodeId(event, spanMapping)).toBe('incoming-worker')
   })
 
   it('maps rrq.function attributes for queue hops', () => {
@@ -89,16 +103,16 @@ describe('span mapping resolution', () => {
     expect(resolveMappedNodeId(event, spanMapping)).toBe('analyze-queue')
   })
 
-  it('maps explicit stage_id to target node', () => {
+  it('maps extract upsert detail to extract-worker', () => {
     const event: FlowEvent = {
       type: 'log',
       timestamp: '2026-03-03T12:00:00.000Z',
       attributes: {
-        stage_id: 'incoming.write_metadata',
+        stage_id: 'extract.upsert_contacts',
       },
     }
 
-    expect(resolveMappedNodeId(event, spanMapping)).toBe('write-metadata')
+    expect(resolveMappedNodeId(event, spanMapping)).toBe('extract-worker')
   })
 
   it('maps autosend decision stage_id to decision node', () => {
@@ -113,16 +127,56 @@ describe('span mapping resolution', () => {
     expect(resolveMappedNodeId(event, spanMapping)).toBe('autosend-decision')
   })
 
-  it('maps set_sending stage_id to set-sending node', () => {
+  it('maps autosend enqueue details back onto autosend-decision', () => {
     const event: FlowEvent = {
       type: 'log',
       timestamp: '2026-03-03T12:00:00.000Z',
       attributes: {
-        stage_id: 'analyze.set_sending',
+        stage_id: 'analyze.execute_enqueue',
       },
     }
 
-    expect(resolveMappedNodeId(event, spanMapping)).toBe('set-sending')
+    expect(resolveMappedNodeId(event, spanMapping)).toBe('autosend-decision')
+  })
+
+  it('does not promote actions.send_enqueue stage detail into a standalone node', () => {
+    const event: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-03T12:00:00.000Z',
+      attributes: {
+        stage_id: 'actions.send_enqueue',
+        queue_name: 'rrq:queue:mail-send',
+        function_name: 'handle_mail_send_reply',
+      },
+    }
+
+    expect(resolveMappedNodeId(event, spanMapping)).toBeNull()
+  })
+
+  it('still honors explicit component_id when actions.send_enqueue is mis-emitted as a node', () => {
+    const event: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-03T12:00:00.000Z',
+      attributes: {
+        component_id: 'send-queue',
+        stage_id: 'actions.send_enqueue',
+        queue_name: 'rrq:queue:mail-send',
+      },
+    }
+
+    expect(resolveMappedNodeId(event, spanMapping)).toBe('send-queue')
+  })
+
+  it('maps send precheck detail onto send-worker', () => {
+    const event: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-03T12:00:00.000Z',
+      attributes: {
+        stage_id: 'send.precheck',
+      },
+    }
+
+    expect(resolveMappedNodeId(event, spanMapping)).toBe('send-worker')
   })
 
   it('returns null for unmapped event', () => {
@@ -131,6 +185,19 @@ describe('span mapping resolution', () => {
       timestamp: '2026-03-03T12:00:00.000Z',
       attributes: {
         action: 'does_not_exist',
+      },
+    }
+
+    expect(resolveMappedNodeId(event, spanMapping)).toBeNull()
+  })
+
+  it('does not fallback when explicit component_id is unknown', () => {
+    const event: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-03T12:00:00.000Z',
+      attributes: {
+        component_id: 'unknown-component',
+        function_name: 'handle_mail_extract',
       },
     }
 

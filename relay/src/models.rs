@@ -203,6 +203,10 @@ pub fn infer_event_kind(event: &FlowEvent) -> String {
 }
 
 pub fn infer_node_key(event: &FlowEvent) -> Option<String> {
+    if let Some(component_id) = event.attr_string("component_id") {
+        return Some(component_id);
+    }
+
     let action = event.attr_string("action");
     let queue_name = event.attr_string("queue_name");
     let function_name = event.attr_string("function_name");

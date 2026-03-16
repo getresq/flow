@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { resolveEventKind } from '../events'
+import { eventExecutionKey, resolveEventKind } from '../events'
 import { inferErrorState, readStringAttribute, resolveMappedNodeId } from '../mapping'
 import type {
   FlowEvent,
@@ -81,6 +81,18 @@ function resolveStageId(event: FlowEvent, nodeId: string | null): string {
     return event.event_kind
   }
   return event.type
+}
+
+function resolveStageKey(event: FlowEvent, stageId: string, nodeId: string | null): string {
+  const componentKey =
+    readStringAttribute(event.attributes, 'component_id') ??
+    nodeId ??
+    event.node_key ??
+    readStringAttribute(event.attributes, 'function_name') ??
+    event.span_name ??
+    event.type
+
+  return `${componentKey}::${stageId}`
 }
 
 function resolveStageLabel(event: FlowEvent, stageId: string): string {
@@ -179,6 +191,7 @@ function materializeJourneys(journeyMap: Map<string, MutableJourney>): TraceJour
       const rootEntity =
         journey.identifiers.threadId ??
         journey.identifiers.replyDraftId ??
+        journey.identifiers.runId ??
         journey.identifiers.jobId ??
         journey.identifiers.requestId ??
         journey.identifiers.mailboxOwner
@@ -255,11 +268,12 @@ export function useTraceJourney(
 
     for (let index = 0; index < pending.length; index += 1) {
       const event = pending[index]
-      if (!event.trace_id) {
+      const executionKey = eventExecutionKey(event)
+      if (!executionKey) {
         continue
       }
 
-      const traceId = event.trace_id
+      const traceId = executionKey
       const seq = typeof event.seq === 'number' ? event.seq : processedIndexRef.current - pending.length + index + 1
       const nodeId = resolveMappedNodeId(event, spanMapping)
       const journey = journeyMap.get(traceId) ?? {
@@ -286,6 +300,9 @@ export function useTraceJourney(
 
       setIdentifierIfEmpty(journey.identifiers, 'mailboxOwner', readStringAttribute(event.attributes, 'mailbox_owner'))
       setIdentifierIfEmpty(journey.identifiers, 'provider', readStringAttribute(event.attributes, 'provider'))
+      setIdentifierIfEmpty(journey.identifiers, 'flowId', readStringAttribute(event.attributes, 'flow_id'))
+      setIdentifierIfEmpty(journey.identifiers, 'runId', readStringAttribute(event.attributes, 'run_id'))
+      setIdentifierIfEmpty(journey.identifiers, 'componentId', readStringAttribute(event.attributes, 'component_id'))
       setIdentifierIfEmpty(journey.identifiers, 'threadId', readStringAttribute(event.attributes, 'thread_id'))
       setIdentifierIfEmpty(
         journey.identifiers,
@@ -298,18 +315,19 @@ export function useTraceJourney(
       setIdentifierIfEmpty(journey.identifiers, 'journeyKey', readStringAttribute(event.attributes, 'journey_key'))
 
       const stageId = resolveStageId(event, nodeId)
-      const previousStageId = journey.stageOrder[journey.stageOrder.length - 1]
-      if (previousStageId && previousStageId !== stageId) {
-        const previousStage = journey.stagesById.get(previousStageId)
+      const stageKey = resolveStageKey(event, stageId, nodeId)
+      const previousStageKey = journey.stageOrder[journey.stageOrder.length - 1]
+      if (previousStageKey && previousStageKey !== stageKey) {
+        const previousStage = journey.stagesById.get(previousStageKey)
         if (previousStage && previousStage.status === 'running') {
           previousStage.status = 'success'
           previousStage.endSeq = Math.max(previousStage.endSeq, seq)
           previousStage.endTs = event.timestamp
-          journey.stagesById.set(previousStageId, previousStage)
+          journey.stagesById.set(previousStageKey, previousStage)
         }
       }
 
-      const stage = journey.stagesById.get(stageId) ?? {
+      const stage = journey.stagesById.get(stageKey) ?? {
         stageId,
         label: resolveStageLabel(event, stageId),
         nodeId: nodeId ?? undefined,
@@ -320,8 +338,8 @@ export function useTraceJourney(
         status: 'running',
       }
 
-      if (!journey.stagesById.has(stageId)) {
-        journey.stageOrder.push(stageId)
+      if (!journey.stagesById.has(stageKey)) {
+        journey.stageOrder.push(stageKey)
       }
 
       stage.label = resolveStageLabel(event, stageId)
@@ -340,7 +358,7 @@ export function useTraceJourney(
         stage.errorSummary = stage.errorSummary ?? resolveErrorSummary(event)
       }
 
-      journey.stagesById.set(stageId, stage)
+      journey.stagesById.set(stageKey, stage)
       journeyMap.set(traceId, journey)
     }
 

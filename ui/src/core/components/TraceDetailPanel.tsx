@@ -308,7 +308,7 @@ export function TraceDetailPanel({ journey, onClose }: TraceDetailPanelProps) {
                 </div>
               </div>
               <div className="mt-3 rounded border border-slate-700 bg-slate-950/60 p-2">
-                <div className="text-[10px] uppercase tracking-wide text-slate-500">Trace ID</div>
+                <div className="text-[10px] uppercase tracking-wide text-slate-500">Run ID</div>
                 <code className="mt-1 block break-all text-[11px] text-slate-200">{journey.traceId}</code>
               </div>
             </section>

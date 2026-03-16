@@ -98,7 +98,8 @@ export function BottomLogPanel({
     const query = search.trim().toLowerCase()
     return [...globalLogs]
       .filter((entry) => {
-        if (selectedTraceId && entry.traceId !== selectedTraceId) {
+        const executionId = entry.runId ?? entry.traceId
+        if (selectedTraceId && executionId !== selectedTraceId) {
           return false
         }
         if (activeNodeFilters.size > 0 && (!entry.nodeId || !activeNodeFilters.has(entry.nodeId))) {
@@ -111,6 +112,7 @@ export function BottomLogPanel({
         return (
           entry.message.toLowerCase().includes(query) ||
           (nodeLabel ? nodeLabel.toLowerCase().includes(query) : false) ||
+          (entry.runId ? entry.runId.toLowerCase().includes(query) : false) ||
           (entry.traceId ? entry.traceId.toLowerCase().includes(query) : false) ||
           (entry.stageId ? entry.stageId.toLowerCase().includes(query) : false)
         )
@@ -333,8 +335,9 @@ export function BottomLogPanel({
                   key={`${entry.timestamp}-${entry.message}-${index}`}
                   type="button"
                   onClick={() => {
-                    if (entry.traceId) {
-                      onSelectTrace(entry.traceId)
+                    const executionId = entry.runId ?? entry.traceId
+                    if (executionId) {
+                      onSelectTrace(executionId)
                     }
                     if (entry.nodeId) {
                       onSelectNode(entry.nodeId)

@@ -15,7 +15,9 @@
       "job_id": "backfill-start-001",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "component_id": "batchfill-queue"
     },
     "message": "enqueue mail backfill start"
   },
@@ -37,7 +39,9 @@
       "queue_wait_ms": 4,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "component_id": "batchfill-worker"
     },
     "message": "mail_backfill picked backfill start job"
   },
@@ -55,8 +59,34 @@
       "mailbox_owner": "ops@resq.ai",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "component_id": "batchfill-worker"
     }
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.019Z",
+    "type": "span_start",
+    "trace_id": "trace-backfill-001",
+    "span_id": "fixture-touchpoint-001",
+    "span_name": "mail.store.write_threads",
+    "attributes": {
+      "action": "threads_written",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "mailbox:ops@resq.ai",
+      "component_id": "batchfill-worker",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "stage_id": "backfill.write_threads",
+      "thread_count": 2,
+      "span.kind": "internal",
+      "message": "email threads written to S3"
+    },
+    "start_time": "2026-03-09T16:00:00.019Z",
+    "parent_span_id": "span-backfill-001"
   },
   {
     "timestamp": "2026-03-09T16:00:00.020Z",
@@ -69,13 +99,65 @@
       "status": "ok",
       "provider": "gmail",
       "mailbox_owner": "ops@resq.ai",
-      "threads_written": 2,
-      "destination": "s3",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "component_id": "batchfill-worker",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "stage_id": "backfill.write_threads",
+      "thread_count": 2
     },
-    "message": "stored 2 backfill threads to s3"
+    "message": "email threads written to S3"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.021Z",
+    "type": "span_end",
+    "trace_id": "trace-backfill-001",
+    "span_id": "fixture-touchpoint-001",
+    "span_name": "mail.store.write_threads",
+    "attributes": {
+      "action": "threads_written",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "mailbox:ops@resq.ai",
+      "component_id": "batchfill-worker",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "stage_id": "backfill.write_threads",
+      "thread_count": 2,
+      "span.kind": "internal",
+      "message": "email threads written to S3"
+    },
+    "start_time": "2026-03-09T16:00:00.019Z",
+    "end_time": "2026-03-09T16:00:00.021Z",
+    "duration_ms": 2,
+    "parent_span_id": "span-backfill-001"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.023Z",
+    "type": "span_start",
+    "trace_id": "trace-backfill-001",
+    "span_id": "fixture-touchpoint-002",
+    "span_name": "mail.store.write_metadata",
+    "attributes": {
+      "action": "metadata_written",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "mailbox:ops@resq.ai",
+      "component_id": "batchfill-worker",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "stage_id": "backfill.write_metadata",
+      "row_count": 2,
+      "span.kind": "internal",
+      "message": "email metadata written to Postgres (mail_threads)"
+    },
+    "start_time": "2026-03-09T16:00:00.023Z",
+    "parent_span_id": "span-backfill-001"
   },
   {
     "timestamp": "2026-03-09T16:00:00.024Z",
@@ -88,12 +170,41 @@
       "status": "ok",
       "provider": "gmail",
       "mailbox_owner": "ops@resq.ai",
-      "metadata_written": 2,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "component_id": "batchfill-worker",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "stage_id": "backfill.write_metadata",
+      "row_count": 2
     },
-    "message": "stored 2 backfill thread metadata rows"
+    "message": "email metadata written to Postgres (mail_threads)"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.025Z",
+    "type": "span_end",
+    "trace_id": "trace-backfill-001",
+    "span_id": "fixture-touchpoint-002",
+    "span_name": "mail.store.write_metadata",
+    "attributes": {
+      "action": "metadata_written",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "mailbox:ops@resq.ai",
+      "component_id": "batchfill-worker",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "stage_id": "backfill.write_metadata",
+      "row_count": 2,
+      "span.kind": "internal",
+      "message": "email metadata written to Postgres (mail_threads)"
+    },
+    "start_time": "2026-03-09T16:00:00.023Z",
+    "end_time": "2026-03-09T16:00:00.025Z",
+    "duration_ms": 2,
+    "parent_span_id": "span-backfill-001"
   },
   {
     "timestamp": "2026-03-09T16:00:00.028Z",
@@ -114,7 +225,9 @@
       "job_id": "extract-201",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-201"
+      "journey_id": "thread-201",
+      "run_id": "thread-201",
+      "component_id": "extract-queue"
     },
     "message": "enqueue extract for thread-201"
   },
@@ -137,7 +250,9 @@
       "job_id": "extract-202",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-202"
+      "journey_id": "thread-202",
+      "run_id": "thread-202",
+      "component_id": "extract-queue"
     },
     "message": "enqueue extract for thread-202"
   },
@@ -157,7 +272,9 @@
       "job_id": "backfill-chunk-002",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "component_id": "batchfill-queue"
     },
     "message": "enqueue next backfill chunk"
   },
@@ -179,7 +296,9 @@
       "outcome": "success",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "component_id": "batchfill-worker"
     }
   },
   {
@@ -198,7 +317,9 @@
       "result_status": "success",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "component_id": "batchfill-worker"
     },
     "message": "backfill start completed"
   },
@@ -223,7 +344,9 @@
       "queue_wait_ms": 13,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-201"
+      "journey_id": "thread-201",
+      "run_id": "thread-201",
+      "component_id": "extract-worker"
     },
     "message": "mail_extract picked thread-201"
   },
@@ -244,7 +367,9 @@
       "content_hash": "hash-201",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-201"
+      "journey_id": "thread-201",
+      "run_id": "thread-201",
+      "component_id": "extract-worker"
     }
   },
   {
@@ -268,7 +393,9 @@
       "queue_wait_ms": 23,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-202"
+      "journey_id": "thread-202",
+      "run_id": "thread-202",
+      "component_id": "extract-worker"
     },
     "message": "mail_extract picked thread-202"
   },
@@ -289,7 +416,9 @@
       "content_hash": "hash-202",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-202"
+      "journey_id": "thread-202",
+      "run_id": "thread-202",
+      "component_id": "extract-worker"
     }
   },
   {
@@ -310,7 +439,9 @@
       "queue_wait_ms": 28,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "component_id": "batchfill-worker"
     },
     "message": "mail_backfill picked backfill chunk"
   },
@@ -328,7 +459,9 @@
       "mailbox_owner": "ops@resq.ai",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "component_id": "batchfill-worker"
     }
   },
   {
@@ -344,7 +477,9 @@
       "mailbox_owner": "ops@resq.ai",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "cron-tick:gmail:ops@resq.ai:2026-03-09T16:00:00.068Z",
+      "component_id": "cron-scheduler"
     }
   },
   {
@@ -354,7 +489,7 @@
     "span_id": "log-012",
     "attributes": {
       "event": "mail_e2e_event",
-      "action": "stage_event",
+      "action": "stage",
       "stage_id": "extract.upsert_contacts",
       "stage_name": "Extract: upsert contacts",
       "function_name": "handle_mail_extract",
@@ -368,7 +503,9 @@
       "extracted_contacts": 3,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-201"
+      "journey_id": "thread-201",
+      "run_id": "thread-201",
+      "component_id": "extract-worker"
     },
     "message": "extract contact upsert completed"
   },
@@ -388,9 +525,37 @@
       "job_id": "incoming-301",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "incoming-check:gmail:ops@resq.ai:2026-03-09T16:00:00.072Z",
+      "component_id": "incoming-queue"
     },
     "message": "enqueue mail incoming check"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.073Z",
+    "type": "span_start",
+    "trace_id": "trace-incoming-001",
+    "span_id": "fixture-touchpoint-003",
+    "span_name": "mail.scheduler.cursor_update",
+    "attributes": {
+      "action": "cursor_updated",
+      "stage_id": "scheduler.cursor_update",
+      "stage_name": "Incoming: cursor update",
+      "function_name": "handle_mail_cron_tick",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "cursor_name": "incoming_check_scheduled_at",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "cron-tick:gmail:ops@resq.ai:2026-03-09T16:00:00.068Z",
+      "component_id": "check-process",
+      "span.kind": "internal",
+      "message": "mail_cursors.incoming_check_scheduled_at updated"
+    },
+    "start_time": "2026-03-09T16:00:00.073Z",
+    "parent_span_id": "span-cron-001"
   },
   {
     "timestamp": "2026-03-09T16:00:00.074Z",
@@ -400,7 +565,7 @@
     "attributes": {
       "event": "mail_e2e_event",
       "action": "cursor_updated",
-      "stage_id": "incoming.cursor_update",
+      "stage_id": "scheduler.cursor_update",
       "stage_name": "Incoming: cursor update",
       "function_name": "handle_mail_cron_tick",
       "status": "ok",
@@ -409,9 +574,39 @@
       "cursor_name": "incoming_check_scheduled_at",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "cron-tick:gmail:ops@resq.ai:2026-03-09T16:00:00.068Z",
+      "component_id": "check-process"
     },
     "message": "mail_cursors.incoming_check_scheduled_at updated"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.075Z",
+    "type": "span_end",
+    "trace_id": "trace-incoming-001",
+    "span_id": "fixture-touchpoint-003",
+    "span_name": "mail.scheduler.cursor_update",
+    "attributes": {
+      "action": "cursor_updated",
+      "stage_id": "scheduler.cursor_update",
+      "stage_name": "Incoming: cursor update",
+      "function_name": "handle_mail_cron_tick",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "cursor_name": "incoming_check_scheduled_at",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "cron-tick:gmail:ops@resq.ai:2026-03-09T16:00:00.068Z",
+      "component_id": "check-process",
+      "span.kind": "internal",
+      "message": "mail_cursors.incoming_check_scheduled_at updated"
+    },
+    "start_time": "2026-03-09T16:00:00.073Z",
+    "end_time": "2026-03-09T16:00:00.075Z",
+    "duration_ms": 2,
+    "parent_span_id": "span-cron-001"
   },
   {
     "timestamp": "2026-03-09T16:00:00.076Z",
@@ -430,7 +625,9 @@
       "mailbox_owner": "ops@resq.ai",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "cron-tick:gmail:ops@resq.ai:2026-03-09T16:00:00.068Z",
+      "component_id": "cron-scheduler"
     }
   },
   {
@@ -454,7 +651,9 @@
       "content_hash": "hash-201",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-201"
+      "journey_id": "thread-201",
+      "run_id": "thread-201",
+      "component_id": "extract-worker"
     }
   },
   {
@@ -474,9 +673,35 @@
       "result_status": "success",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-201"
+      "journey_id": "thread-201",
+      "run_id": "thread-201",
+      "component_id": "extract-worker"
     },
     "message": "extract completed for thread-201"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.085Z",
+    "type": "span_start",
+    "trace_id": "trace-backfill-002",
+    "span_id": "fixture-touchpoint-004",
+    "span_name": "mail.store.write_threads",
+    "attributes": {
+      "action": "threads_written",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "mailbox:ops@resq.ai",
+      "component_id": "batchfill-worker",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "stage_id": "backfill.write_threads",
+      "thread_count": 2,
+      "span.kind": "internal",
+      "message": "email threads written to S3"
+    },
+    "start_time": "2026-03-09T16:00:00.085Z",
+    "parent_span_id": "span-backfill-002"
   },
   {
     "timestamp": "2026-03-09T16:00:00.086Z",
@@ -489,13 +714,65 @@
       "status": "ok",
       "provider": "gmail",
       "mailbox_owner": "ops@resq.ai",
-      "threads_written": 2,
-      "destination": "s3",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "component_id": "batchfill-worker",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "stage_id": "backfill.write_threads",
+      "thread_count": 2
     },
-    "message": "stored 2 backfill chunk threads to s3"
+    "message": "email threads written to S3"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.087Z",
+    "type": "span_end",
+    "trace_id": "trace-backfill-002",
+    "span_id": "fixture-touchpoint-004",
+    "span_name": "mail.store.write_threads",
+    "attributes": {
+      "action": "threads_written",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "mailbox:ops@resq.ai",
+      "component_id": "batchfill-worker",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "stage_id": "backfill.write_threads",
+      "thread_count": 2,
+      "span.kind": "internal",
+      "message": "email threads written to S3"
+    },
+    "start_time": "2026-03-09T16:00:00.085Z",
+    "end_time": "2026-03-09T16:00:00.087Z",
+    "duration_ms": 2,
+    "parent_span_id": "span-backfill-002"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.089Z",
+    "type": "span_start",
+    "trace_id": "trace-backfill-002",
+    "span_id": "fixture-touchpoint-005",
+    "span_name": "mail.store.write_metadata",
+    "attributes": {
+      "action": "metadata_written",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "mailbox:ops@resq.ai",
+      "component_id": "batchfill-worker",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "stage_id": "backfill.write_metadata",
+      "row_count": 2,
+      "span.kind": "internal",
+      "message": "email metadata written to Postgres (mail_threads)"
+    },
+    "start_time": "2026-03-09T16:00:00.089Z",
+    "parent_span_id": "span-backfill-002"
   },
   {
     "timestamp": "2026-03-09T16:00:00.090Z",
@@ -508,12 +785,41 @@
       "status": "ok",
       "provider": "gmail",
       "mailbox_owner": "ops@resq.ai",
-      "metadata_written": 2,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "component_id": "batchfill-worker",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "stage_id": "backfill.write_metadata",
+      "row_count": 2
     },
-    "message": "stored 2 backfill chunk metadata rows"
+    "message": "email metadata written to Postgres (mail_threads)"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.091Z",
+    "type": "span_end",
+    "trace_id": "trace-backfill-002",
+    "span_id": "fixture-touchpoint-005",
+    "span_name": "mail.store.write_metadata",
+    "attributes": {
+      "action": "metadata_written",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "mailbox:ops@resq.ai",
+      "component_id": "batchfill-worker",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "stage_id": "backfill.write_metadata",
+      "row_count": 2,
+      "span.kind": "internal",
+      "message": "email metadata written to Postgres (mail_threads)"
+    },
+    "start_time": "2026-03-09T16:00:00.089Z",
+    "end_time": "2026-03-09T16:00:00.091Z",
+    "duration_ms": 2,
+    "parent_span_id": "span-backfill-002"
   },
   {
     "timestamp": "2026-03-09T16:00:00.094Z",
@@ -534,7 +840,9 @@
       "job_id": "extract-203",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-203"
+      "journey_id": "thread-203",
+      "run_id": "thread-203",
+      "component_id": "extract-queue"
     },
     "message": "enqueue extract for thread-203"
   },
@@ -557,7 +865,9 @@
       "job_id": "extract-204",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-204"
+      "journey_id": "thread-204",
+      "run_id": "thread-204",
+      "component_id": "extract-queue"
     },
     "message": "enqueue extract for thread-204"
   },
@@ -579,7 +889,9 @@
       "queue_wait_ms": 26,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "incoming-check:gmail:ops@resq.ai:2026-03-09T16:00:00.072Z",
+      "component_id": "incoming-worker"
     },
     "message": "mail_incoming picked incoming check"
   },
@@ -597,7 +909,9 @@
       "mailbox_owner": "ops@resq.ai",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "incoming-check:gmail:ops@resq.ai:2026-03-09T16:00:00.072Z",
+      "component_id": "incoming-worker"
     }
   },
   {
@@ -607,7 +921,7 @@
     "span_id": "log-021",
     "attributes": {
       "event": "mail_e2e_event",
-      "action": "stage_event",
+      "action": "stage",
       "stage_id": "extract.upsert_contacts",
       "stage_name": "Extract: upsert contacts",
       "function_name": "handle_mail_extract",
@@ -622,7 +936,9 @@
       "content_hash": "hash-202",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-202"
+      "journey_id": "thread-202",
+      "run_id": "thread-202",
+      "component_id": "extract-worker"
     },
     "message": "extract contact upsert failed"
   },
@@ -649,7 +965,9 @@
       "error_message": "duplicate key value violates unique constraint extracted_contacts_dedupe_key",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-202"
+      "journey_id": "thread-202",
+      "run_id": "thread-202",
+      "component_id": "extract-worker"
     }
   },
   {
@@ -670,9 +988,41 @@
       "error_type": "upsert_failed",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-202"
+      "journey_id": "thread-202",
+      "run_id": "thread-202",
+      "component_id": "extract-worker"
     },
     "message": "extract failed for thread-202"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.115Z",
+    "type": "span_start",
+    "trace_id": "trace-incoming-001",
+    "span_id": "fixture-touchpoint-006",
+    "span_name": "mail.store.write_threads",
+    "attributes": {
+      "action": "threads_written",
+      "stage_id": "incoming.write_threads",
+      "stage_name": "Incoming: write new mail threads",
+      "function_name": "handle_mail_incoming_check",
+      "worker_name": "mail_incoming",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "thread_id": "thread-301",
+      "s3_key": "mail/threads/thread-301.json",
+      "content_hash": "hash-301",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "incoming-worker",
+      "thread_count": 1,
+      "span.kind": "internal",
+      "message": "email threads written to S3"
+    },
+    "start_time": "2026-03-09T16:00:00.115Z",
+    "parent_span_id": "span-incoming-001"
   },
   {
     "timestamp": "2026-03-09T16:00:00.116Z",
@@ -692,13 +1042,76 @@
       "thread_id": "thread-301",
       "s3_key": "mail/threads/thread-301.json",
       "content_hash": "hash-301",
-      "threads_written": 1,
-      "destination": "s3",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "incoming-worker",
+      "thread_count": 1
     },
-    "message": "incoming wrote thread-301 to s3"
+    "message": "email threads written to S3"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.117Z",
+    "type": "span_end",
+    "trace_id": "trace-incoming-001",
+    "span_id": "fixture-touchpoint-006",
+    "span_name": "mail.store.write_threads",
+    "attributes": {
+      "action": "threads_written",
+      "stage_id": "incoming.write_threads",
+      "stage_name": "Incoming: write new mail threads",
+      "function_name": "handle_mail_incoming_check",
+      "worker_name": "mail_incoming",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "thread_id": "thread-301",
+      "s3_key": "mail/threads/thread-301.json",
+      "content_hash": "hash-301",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "incoming-worker",
+      "thread_count": 1,
+      "span.kind": "internal",
+      "message": "email threads written to S3"
+    },
+    "start_time": "2026-03-09T16:00:00.115Z",
+    "end_time": "2026-03-09T16:00:00.117Z",
+    "duration_ms": 2,
+    "parent_span_id": "span-incoming-001"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.121Z",
+    "type": "span_start",
+    "trace_id": "trace-incoming-001",
+    "span_id": "fixture-touchpoint-007",
+    "span_name": "mail.store.write_metadata",
+    "attributes": {
+      "action": "metadata_written",
+      "stage_id": "incoming.write_metadata",
+      "stage_name": "Incoming: write mail threads metadata",
+      "function_name": "handle_mail_incoming_check",
+      "worker_name": "mail_incoming",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "thread_id": "thread-301",
+      "s3_key": "mail/threads/thread-301.json",
+      "content_hash": "hash-301",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "incoming-worker",
+      "row_count": 1,
+      "span.kind": "internal",
+      "message": "email metadata written to Postgres (mail_threads)"
+    },
+    "start_time": "2026-03-09T16:00:00.121Z",
+    "parent_span_id": "span-incoming-001"
   },
   {
     "timestamp": "2026-03-09T16:00:00.122Z",
@@ -718,12 +1131,46 @@
       "thread_id": "thread-301",
       "s3_key": "mail/threads/thread-301.json",
       "content_hash": "hash-301",
-      "metadata_written": 1,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "incoming-worker",
+      "row_count": 1
     },
-    "message": "incoming wrote thread-301 metadata"
+    "message": "email metadata written to Postgres (mail_threads)"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.123Z",
+    "type": "span_end",
+    "trace_id": "trace-incoming-001",
+    "span_id": "fixture-touchpoint-007",
+    "span_name": "mail.store.write_metadata",
+    "attributes": {
+      "action": "metadata_written",
+      "stage_id": "incoming.write_metadata",
+      "stage_name": "Incoming: write mail threads metadata",
+      "function_name": "handle_mail_incoming_check",
+      "worker_name": "mail_incoming",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "thread_id": "thread-301",
+      "s3_key": "mail/threads/thread-301.json",
+      "content_hash": "hash-301",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "incoming-worker",
+      "row_count": 1,
+      "span.kind": "internal",
+      "message": "email metadata written to Postgres (mail_threads)"
+    },
+    "start_time": "2026-03-09T16:00:00.121Z",
+    "end_time": "2026-03-09T16:00:00.123Z",
+    "duration_ms": 2,
+    "parent_span_id": "span-incoming-001"
   },
   {
     "timestamp": "2026-03-09T16:00:00.126Z",
@@ -744,7 +1191,9 @@
       "job_id": "analyze-301",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "analyze-queue"
     },
     "message": "enqueue analyze for thread-301"
   },
@@ -767,9 +1216,38 @@
       "job_id": "extract-301",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "extract-queue"
     },
     "message": "enqueue extract for thread-301"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.129Z",
+    "type": "span_start",
+    "trace_id": "trace-incoming-001",
+    "span_id": "fixture-touchpoint-008",
+    "span_name": "mail.store.write_cursor",
+    "attributes": {
+      "action": "cursor_updated",
+      "stage_id": "incoming.cursor_update",
+      "stage_name": "Incoming: cursor update",
+      "function_name": "handle_mail_incoming_check",
+      "worker_name": "mail_incoming",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "cursor_name": "incoming_history_id",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "incoming-check:gmail:ops@resq.ai:2026-03-09T16:00:00.072Z",
+      "component_id": "incoming-worker",
+      "span.kind": "internal",
+      "message": "mail_cursors.incoming_history_id updated"
+    },
+    "start_time": "2026-03-09T16:00:00.129Z",
+    "parent_span_id": "span-incoming-001"
   },
   {
     "timestamp": "2026-03-09T16:00:00.130Z",
@@ -789,9 +1267,40 @@
       "cursor_name": "incoming_history_id",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "incoming-check:gmail:ops@resq.ai:2026-03-09T16:00:00.072Z",
+      "component_id": "incoming-worker"
     },
     "message": "mail_cursors.incoming_history_id updated"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.131Z",
+    "type": "span_end",
+    "trace_id": "trace-incoming-001",
+    "span_id": "fixture-touchpoint-008",
+    "span_name": "mail.store.write_cursor",
+    "attributes": {
+      "action": "cursor_updated",
+      "stage_id": "incoming.cursor_update",
+      "stage_name": "Incoming: cursor update",
+      "function_name": "handle_mail_incoming_check",
+      "worker_name": "mail_incoming",
+      "status": "ok",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "cursor_name": "incoming_history_id",
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "incoming-check:gmail:ops@resq.ai:2026-03-09T16:00:00.072Z",
+      "component_id": "incoming-worker",
+      "span.kind": "internal",
+      "message": "mail_cursors.incoming_history_id updated"
+    },
+    "start_time": "2026-03-09T16:00:00.129Z",
+    "end_time": "2026-03-09T16:00:00.131Z",
+    "duration_ms": 2,
+    "parent_span_id": "span-incoming-001"
   },
   {
     "timestamp": "2026-03-09T16:00:00.134Z",
@@ -811,7 +1320,9 @@
       "mailbox_owner": "ops@resq.ai",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "incoming-check:gmail:ops@resq.ai:2026-03-09T16:00:00.072Z",
+      "component_id": "incoming-worker"
     }
   },
   {
@@ -830,7 +1341,9 @@
       "result_status": "success",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "incoming-check:gmail:ops@resq.ai:2026-03-09T16:00:00.072Z",
+      "component_id": "incoming-worker"
     },
     "message": "incoming check completed"
   },
@@ -855,7 +1368,9 @@
       "queue_wait_ms": 14,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "analyze-worker"
     },
     "message": "mail_analyze picked thread-301"
   },
@@ -876,7 +1391,9 @@
       "content_hash": "hash-301",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "analyze-worker"
     }
   },
   {
@@ -900,7 +1417,9 @@
       "queue_wait_ms": 19,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "extract-worker"
     },
     "message": "mail_extract picked thread-301"
   },
@@ -921,7 +1440,9 @@
       "content_hash": "hash-301",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "extract-worker"
     }
   },
   {
@@ -931,7 +1452,7 @@
     "span_id": "log-031",
     "attributes": {
       "event": "mail_e2e_event",
-      "action": "stage_event",
+      "action": "stage",
       "stage_id": "analyze.decision",
       "stage_name": "Analyze: decision",
       "function_name": "handle_mail_analyze_reply",
@@ -945,7 +1466,9 @@
       "content_hash": "hash-301",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "analyze-decision"
     },
     "message": "analyze decision resolved"
   },
@@ -956,7 +1479,7 @@
     "span_id": "log-032",
     "attributes": {
       "event": "mail_e2e_event",
-      "action": "stage_event",
+      "action": "stage",
       "stage_id": "extract.upsert_contacts",
       "stage_name": "Extract: upsert contacts",
       "function_name": "handle_mail_extract",
@@ -970,7 +1493,9 @@
       "extracted_contacts": 2,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "extract-worker"
     },
     "message": "extract contact upsert completed"
   },
@@ -981,7 +1506,7 @@
     "span_id": "log-033",
     "attributes": {
       "event": "mail_e2e_event",
-      "action": "stage_event",
+      "action": "stage",
       "stage_id": "analyze.draft_insert",
       "stage_name": "Analyze: draft insert",
       "function_name": "handle_mail_analyze_reply",
@@ -996,7 +1521,9 @@
       "content_hash": "hash-301",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "draft-reply"
     },
     "message": "analyze draft insert completed"
   },
@@ -1007,9 +1534,9 @@
     "span_id": "log-034a",
     "attributes": {
       "event": "mail_e2e_event",
-      "action": "stage_event",
-      "stage_id": "analyze.autosend_decision",
-      "stage_name": "Analyze: autosend decision",
+      "action": "stage",
+      "stage_id": "analyze.action_batch_auto_approve",
+      "stage_name": "Analyze: auto-approve action batch",
       "function_name": "handle_mail_analyze_reply",
       "worker_name": "mail_analyze",
       "status": "ok",
@@ -1020,9 +1547,14 @@
       "reply_draft_id": 881,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "action_batch_id": 701,
+      "approval_kind": "auto",
+      "auto_approved": true,
+      "run_id": "thread-301",
+      "component_id": "autosend-decision"
     },
-    "message": "autosend decision resolved"
+    "message": "analyze auto-approved send action batch"
   },
   {
     "timestamp": "2026-03-09T16:00:00.167Z",
@@ -1031,22 +1563,24 @@
     "span_id": "log-034b",
     "attributes": {
       "event": "mail_e2e_event",
-      "action": "stage_event",
-      "stage_id": "analyze.set_sending",
-      "stage_name": "Analyze: set sending",
+      "action": "stage",
+      "stage_id": "analyze.execute_enqueue",
+      "stage_name": "Analyze: execute-approved enqueue",
       "function_name": "handle_mail_analyze_reply",
       "worker_name": "mail_analyze",
       "status": "ok",
-      "action_result": "reply_status_sending",
       "provider": "gmail",
       "mailbox_owner": "ops@resq.ai",
       "thread_id": "thread-301",
       "reply_draft_id": 881,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "action_batch_id": 701,
+      "run_id": "thread-301",
+      "component_id": "autosend-decision"
     },
-    "message": "reply marked sending"
+    "message": "analyze enqueued execute-approved job"
   },
   {
     "timestamp": "2026-03-09T16:00:00.168Z",
@@ -1055,12 +1589,37 @@
     "span_id": "log-034",
     "attributes": {
       "event": "mail_e2e_event",
-      "action": "enqueue",
-      "stage_id": "analyze.autosend_enqueue",
-      "stage_name": "Analyze: autosend enqueue",
+      "action": "stage",
+      "stage_id": "actions.send_enqueue",
+      "stage_name": "Execute-approved: send handoff",
+      "status": "ok",
       "queue_name": "rrq:queue:mail-send",
       "function_name": "handle_mail_send_reply",
-      "worker_name": "mail_analyze",
+      "job_id": "send-301",
+      "provider": "gmail",
+      "mailbox_owner": "ops@resq.ai",
+      "thread_id": "thread-301",
+      "reply_draft_id": 881,
+      "flow_id": "mail-pipeline",
+      "pipeline_id": "mail-pipeline",
+      "journey_id": "thread-301",
+      "action_batch_id": 701,
+      "batch_status": "executed",
+      "reply_status": "sending",
+      "run_id": "thread-301"
+    },
+    "message": "execute-approved send handoff result"
+  },
+  {
+    "timestamp": "2026-03-09T16:00:00.169Z",
+    "type": "log",
+    "trace_id": "trace-actions-301",
+    "span_id": "log-034-send-enqueue",
+    "attributes": {
+      "event": "mail_e2e_event",
+      "action": "enqueue",
+      "queue_name": "rrq:queue:mail-send",
+      "function_name": "handle_mail_send_reply",
       "status": "ok",
       "provider": "gmail",
       "mailbox_owner": "ops@resq.ai",
@@ -1069,9 +1628,11 @@
       "job_id": "send-301",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "send-queue"
     },
-    "message": "enqueue send for reply draft 881"
+    "message": "rrq:queue:mail-send: job enqueued (handle_mail_send_reply)"
   },
   {
     "timestamp": "2026-03-09T16:00:00.170Z",
@@ -1092,7 +1653,9 @@
       "thread_id": "thread-301",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "analyze-worker"
     }
   },
   {
@@ -1113,7 +1676,9 @@
       "result_status": "success",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "analyze-worker"
     },
     "message": "analyze completed for thread-301"
   },
@@ -1135,7 +1700,9 @@
       "mailbox_owner": "ops@resq.ai",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "component_id": "batchfill-worker"
     }
   },
   {
@@ -1154,7 +1721,9 @@
       "result_status": "success",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "mailbox:ops@resq.ai"
+      "journey_id": "mailbox:ops@resq.ai",
+      "run_id": "backfill:gmail:ops@resq.ai:2026-03-09T16:00:00.000Z",
+      "component_id": "batchfill-worker"
     },
     "message": "backfill chunk completed"
   },
@@ -1179,7 +1748,9 @@
       "content_hash": "hash-301",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "extract-worker"
     }
   },
   {
@@ -1199,7 +1770,9 @@
       "result_status": "success",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "extract-worker"
     },
     "message": "extract completed for thread-301"
   },
@@ -1223,7 +1796,9 @@
       "queue_wait_ms": 20,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "send-worker"
     },
     "message": "mail_send picked reply draft 881"
   },
@@ -1243,7 +1818,9 @@
       "reply_draft_id": 881,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "send-worker"
     }
   },
   {
@@ -1253,7 +1830,7 @@
     "span_id": "log-039",
     "attributes": {
       "event": "mail_e2e_event",
-      "action": "stage_event",
+      "action": "stage",
       "stage_id": "send.precheck",
       "stage_name": "Send: precheck",
       "function_name": "handle_mail_send_reply",
@@ -1265,7 +1842,9 @@
       "reply_draft_id": 881,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "send-worker"
     },
     "message": "send precheck passed"
   },
@@ -1276,7 +1855,7 @@
     "span_id": "log-040",
     "attributes": {
       "event": "mail_e2e_event",
-      "action": "stage_event",
+      "action": "stage",
       "stage_id": "send.provider_call",
       "stage_name": "Send: provider call",
       "function_name": "handle_mail_send_reply",
@@ -1288,7 +1867,9 @@
       "reply_draft_id": 881,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "send-process"
     },
     "message": "send provider call succeeded"
   },
@@ -1299,7 +1880,7 @@
     "span_id": "log-041",
     "attributes": {
       "event": "mail_e2e_event",
-      "action": "stage_event",
+      "action": "stage",
       "stage_id": "send.finalize",
       "stage_name": "Send: finalize",
       "function_name": "handle_mail_send_reply",
@@ -1311,7 +1892,9 @@
       "reply_draft_id": 881,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "send-process"
     },
     "message": "send finalize completed"
   },
@@ -1335,7 +1918,9 @@
       "reply_draft_id": 881,
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "send-worker"
     }
   },
   {
@@ -1356,7 +1941,9 @@
       "result_status": "success",
       "flow_id": "mail-pipeline",
       "pipeline_id": "mail-pipeline",
-      "journey_id": "thread-301"
+      "journey_id": "thread-301",
+      "run_id": "thread-301",
+      "component_id": "send-worker"
     },
     "message": "send completed for reply draft 881"
   }
