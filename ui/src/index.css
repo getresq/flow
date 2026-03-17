@@ -1,57 +1,130 @@
 @import 'tailwindcss';
 
 :root {
-  font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: 400;
-  color: #e2e8f0;
-  background-color: #0f172a;
+  color: #f1f5f9;
+  background-color: #020617;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* ── Semantic color tokens ── */
-  --color-active: #38bdf8;
-  --color-edge: #475569;
-  --color-edge-dimmed: #334155;
-  --color-edge-dashed: #fbbf24;
-  --color-marker: #64748b;
-  --color-marker-dashed: #94a3b8;
-  --color-canvas-dot: #1e293b;
-  --glow-active: oklch(65% 0.18 230);
+  /* ── Palette: Slate Refined · Ocean Blue (dark) ── */
+  /* Accent: #42a5f5 — Material Blue-400, hue 210°, no violet */
+
+  /* Surfaces */
+  --surface-primary: #020617;
+  --surface-raised: #06101f;
+  --surface-overlay: #0a1e38;
+  --surface-inset: #000d1a;
+
+  /* Borders */
+  --border-default: rgba(30, 58, 95, 0.7);
+  --border-subtle: rgba(30, 58, 95, 0.4);
+  --border-accent: rgba(66, 165, 245, 0.4);
+
+  /* Text */
+  --text-primary: #f1f5f9;
+  --text-secondary: #4d7fa8;
+  --text-muted: #2d5986;
+
+  /* Accent */
+  --accent-primary: #42a5f5;
+  --accent-primary-hover: #64b5f6;
+  --accent-primary-muted: rgba(66, 165, 245, 0.15);
+
+  /* Status */
+  --status-success: #34d399;
+  --status-warning: #fbbf24;
+  --status-error: #f87171;
+  --status-active: #42a5f5;
+  --status-idle: #4d7fa8;
+
+  /* Glows */
+  --glow-active: oklch(67% 0.18 210);
   --glow-success: oklch(72% 0.19 160);
-  --glow-error: oklch(62% 0.22 18);
-  --glow-idle: oklch(55% 0.02 260 / 0.35);
-  --ping-border: oklch(65% 0.18 230 / 0.6);
+  --glow-error: oklch(65% 0.22 25);
+  --glow-warning: oklch(75% 0.18 70);
+  --glow-idle: oklch(22% 0.05 210 / 0.5);
+  --ping-border: oklch(67% 0.18 210 / 0.6);
+
+  /* Canvas */
+  --canvas-bg: #020617;
+  --canvas-dot: rgba(30, 58, 95, 0.6);
+
+  /* Typography */
+  --font-sans: 'Inter', 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+
+  /* Spacing */
+  --panel-padding: 16px;
+  --panel-gap: 12px;
+  --card-padding: 12px;
+
+  /* Compatibility aliases for the current canvas implementation */
+  --color-active: var(--status-active);
+  --color-edge: #1e3a5f;
+  --color-edge-dimmed: #0f2340;
+  --color-edge-dashed: var(--status-warning);
+  --color-marker: var(--text-muted);
+  --color-marker-dashed: var(--text-secondary);
+  --color-canvas-dot: var(--canvas-dot);
 }
 
 :root[data-theme='light'] {
-  color: #0f172a;
-  background-color: #f8fafc;
-  --color-slate-950: oklch(98.4% 0.003 247.858);
-  --color-slate-900: oklch(96.8% 0.007 247.896);
-  --color-slate-800: oklch(92.9% 0.013 255.508);
-  --color-slate-700: oklch(86.9% 0.022 252.894);
-  --color-slate-600: oklch(70.4% 0.04 256.788);
-  --color-slate-500: oklch(55.4% 0.046 257.417);
-  --color-slate-400: oklch(44.6% 0.043 257.281);
-  --color-slate-300: oklch(37.2% 0.044 257.287);
-  --color-slate-200: oklch(27.9% 0.041 260.031);
-  --color-slate-100: oklch(20.8% 0.042 265.755);
+  color: #0a1929;
+  background-color: #f0f7ff;
 
-  --color-active: #0ea5e9;
-  --color-edge: #94a3b8;
-  --color-edge-dimmed: #cbd5e1;
-  --color-edge-dashed: #f59e0b;
-  --color-marker: #94a3b8;
-  --color-marker-dashed: #64748b;
-  --color-canvas-dot: #cbd5e1;
-  --glow-active: oklch(55% 0.2 230);
-  --glow-success: oklch(60% 0.2 160);
-  --glow-error: oklch(55% 0.24 18);
-  --glow-idle: oklch(70% 0.02 260 / 0.4);
-  --ping-border: oklch(55% 0.2 230 / 0.5);
+  /* ── Palette: Slate Refined · Ocean Blue (light) ── */
+
+  /* Surfaces */
+  --surface-primary: #f0f7ff;
+  --surface-raised: #dbeafe;
+  --surface-overlay: #bfdbfe;
+  --surface-inset: #e3f2fd;
+
+  /* Borders */
+  --border-default: #90caf9;
+  --border-subtle: #bbdefb;
+  --border-accent: rgba(21, 101, 192, 0.28);
+
+  /* Text */
+  --text-primary: #0a1929;
+  --text-secondary: #1e3a5f;
+  --text-muted: #4d7fa8;
+
+  /* Accent */
+  --accent-primary: #1565c0;
+  --accent-primary-hover: #1976d2;
+  --accent-primary-muted: rgba(21, 101, 192, 0.08);
+
+  /* Status */
+  --status-success: #2e7d32;
+  --status-warning: #f57c00;
+  --status-error: #c62828;
+  --status-active: #1565c0;
+  --status-idle: #90caf9;
+
+  /* Compatibility glow values for the current canvas implementation */
+  --glow-active: oklch(42% 0.18 210);
+  --glow-success: oklch(38% 0.2 160);
+  --glow-error: oklch(40% 0.24 18);
+  --glow-warning: oklch(55% 0.18 70);
+  --glow-idle: oklch(75% 0.04 210 / 0.4);
+  --ping-border: oklch(42% 0.18 210 / 0.5);
+
+  /* Compatibility canvas aliases */
+  --canvas-bg: #f0f7ff;
+  --canvas-dot: #bbdefb;
+  --color-active: var(--status-active);
+  --color-edge: #90caf9;
+  --color-edge-dimmed: #bbdefb;
+  --color-edge-dashed: var(--status-warning);
+  --color-marker: var(--text-muted);
+  --color-marker-dashed: var(--accent-primary);
+  --color-canvas-dot: var(--canvas-dot);
 }
 
 * {
@@ -62,13 +135,13 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--surface-primary);
+  color: var(--text-primary);
 }
 
 body[data-theme='light'] {
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--surface-primary);
+  color: var(--text-primary);
 }
 
 #root {
