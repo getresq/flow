@@ -1,9 +1,7 @@
 import { useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
 import { MoonStar, Settings2, SunMedium } from 'lucide-react'
 
 import {
-  Badge,
   Button,
   DropdownMenu,
   DropdownMenuContent,
@@ -33,11 +31,6 @@ interface FlowSelectorProps {
   connected: boolean
   reconnecting: boolean
   relayWsUrl: string
-  displayedEventCount: number
-  totalEventCount: number
-  queuedEventCount: number
-  playbackPaused: boolean
-  playbackSpeed: number
   viewMode: FlowViewMode
   availableViewModes: FlowViewMode[]
   focusMode: boolean
@@ -50,9 +43,6 @@ interface FlowSelectorProps {
   historySummary?: string
   historyError?: string
   onSelectFlow: (flowId: string) => void
-  onPlaybackPauseToggle: () => void
-  onPlaybackStep: () => void
-  onPlaybackSpeedChange: (speed: number) => void
   onViewModeChange: (viewMode: FlowViewMode) => void
   onToggleFocusMode: () => void
   onToggleFocusActivePath: () => void
@@ -64,7 +54,6 @@ interface FlowSelectorProps {
   onClearSession: () => void
 }
 
-const playbackSpeedOptions = [0.25, 0.5, 1, 2, 4, 8]
 const historyWindowOptions = [
   { value: '15m', label: 'Last 15m' },
   { value: '30m', label: 'Last 30m' },
@@ -73,21 +62,12 @@ const historyWindowOptions = [
   { value: '24h', label: 'Last 24h' },
 ]
 
-function modeBadgeVariant(historyMode: boolean) {
-  return historyMode ? 'warning' : 'success'
-}
-
 export function FlowSelector({
   flows,
   currentFlowId,
   connected,
   reconnecting,
   relayWsUrl,
-  displayedEventCount,
-  totalEventCount,
-  queuedEventCount,
-  playbackPaused,
-  playbackSpeed,
   viewMode,
   availableViewModes,
   focusMode,
@@ -100,9 +80,6 @@ export function FlowSelector({
   historySummary,
   historyError,
   onSelectFlow,
-  onPlaybackPauseToggle,
-  onPlaybackStep,
-  onPlaybackSpeedChange,
   onViewModeChange,
   onToggleFocusMode,
   onToggleFocusActivePath,
@@ -129,7 +106,7 @@ export function FlowSelector({
 
   return (
     <TooltipProvider>
-      <header className="relative z-50 grid h-12 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-[var(--border-default)] bg-[var(--surface-raised)]/95 px-4 backdrop-blur-sm">
+      <header className="relative z-50 grid h-12 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 bg-[var(--surface-raised)]/95 px-4 backdrop-blur-sm">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <label
@@ -170,73 +147,19 @@ export function FlowSelector({
             </Tooltip>
             <span className="text-sm text-[var(--text-secondary)]">{connectionLabel}</span>
           </div>
+
         </div>
 
         <div className="flex items-center justify-center gap-2">
           <Tabs value={viewMode} onValueChange={(value) => onViewModeChange(value as FlowViewMode)}>
-            <TabsList>
+            <TabsList className="border-0">
               {availableViewModes.map((mode) => (
                 <TabsTrigger key={mode} value={mode}>
-                  {mode === 'canvas' ? 'Canvas' : mode === 'metrics' ? 'Metrics' : 'Logs'}
+                  {mode === 'canvas' ? 'Flow' : mode === 'metrics' ? 'Metrics' : 'Logs'}
                 </TabsTrigger>
               ))}
             </TabsList>
           </Tabs>
-          <Badge variant={modeBadgeVariant(historyMode)} className="px-3 py-1 text-sm font-normal">
-            {historyMode ? 'History' : 'Live'}
-          </Badge>
-          <Badge variant="secondary" className="px-3 py-1 text-sm font-normal">
-            {displayedEventCount}/{totalEventCount} events
-            {queuedEventCount > 0 ? ` (${queuedEventCount} queued)` : ''}
-          </Badge>
-
-          <AnimatePresence initial={false}>
-            {historyMode ? (
-              <motion.div
-                initial={{ opacity: 0, x: 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 16 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-                className="flex items-center gap-2 rounded-md border border-[var(--border-default)] bg-[var(--surface-primary)]/40 px-2 py-1"
-              >
-                <label
-                  htmlFor="playback-speed"
-                  className="text-xs uppercase tracking-wide text-[var(--text-muted)]"
-                >
-                  Speed
-                </label>
-                <Select
-                  value={String(playbackSpeed)}
-                  onValueChange={(value) => onPlaybackSpeedChange(Number.parseFloat(value))}
-                >
-                  <SelectTrigger id="playback-speed" className="h-8 w-[88px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {playbackSpeedOptions.map((option) => (
-                      <SelectItem key={option} value={String(option)}>
-                        {option}x
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Button type="button" variant="outline" size="sm" onClick={onPlaybackPauseToggle}>
-                  {playbackPaused ? 'Resume' : 'Pause'}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={onPlaybackStep}
-                  disabled={queuedEventCount === 0}
-                >
-                  Step
-                </Button>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
         </div>
 
         <div className="flex items-center justify-end gap-2">

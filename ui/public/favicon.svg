@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="resq-flow-mark" x1="6" y1="44" x2="58" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#54E0C0" />
+      <stop offset="1" stop-color="#63C5FF" />
+    </linearGradient>
+    <linearGradient id="resq-flow-ribbon" x1="18" y1="47" x2="56" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0F7FBE" />
+      <stop offset="1" stop-color="#4FB9FF" />
+    </linearGradient>
+  </defs>
+
+  <path
+    d="M11 44C19 47 26 44 32 36C38 28 44 22 52 20"
+    stroke="url(#resq-flow-mark)"
+    stroke-width="8.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M17 47C29 50 40 47 49 38C52 35 54 31 56 28"
+    stroke="url(#resq-flow-ribbon)"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <ellipse cx="10.5" cy="44" rx="8.75" ry="8" fill="url(#resq-flow-mark)" />
+  <circle cx="32.5" cy="33.5" r="8.75" fill="url(#resq-flow-mark)" stroke="#12243d" stroke-width="1.25" />
+  <circle cx="54.5" cy="22.5" r="7.75" fill="#63C5FF" />
+</svg>

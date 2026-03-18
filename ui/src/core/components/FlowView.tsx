@@ -136,7 +136,7 @@ export function FlowView() {
     [flowIdParam],
   )
   const availableViewModes = useMemo<('canvas' | 'metrics' | 'logs')[]>(
-    () => (currentFlow.hasGraph ? ['canvas', 'metrics', 'logs'] : ['metrics', 'logs']),
+    () => (currentFlow.hasGraph ? ['canvas', 'logs', 'metrics'] : ['logs', 'metrics']),
     [currentFlow.hasGraph],
   )
   const activeViewMode = viewMode && availableViewModes.includes(viewMode)
@@ -183,7 +183,6 @@ export function FlowView() {
   const historyPlayback = useEventPlayback(historyEvents, { resetKey: historyState.resetKey })
   const runtimeSessionKey = `${sourceMode}:${currentFlow.id}:${sourceMode === 'history' ? historyState.resetKey : relayResetKey}`
   const displayedEvents = sourceMode === 'history' ? historyPlayback.events : liveEvents
-  const totalSourceEventCount = sourceMode === 'history' ? historyEvents.length : liveEvents.length
 
   const animations = useFlowAnimations({
     events: displayedEvents,
@@ -473,11 +472,6 @@ export function FlowView() {
               connected={relayConnected}
               reconnecting={relayReconnecting}
               relayWsUrl={relayWsUrl}
-              displayedEventCount={displayedEvents.length}
-              totalEventCount={totalSourceEventCount}
-              queuedEventCount={sourceMode === 'history' ? historyPlayback.pendingCount : 0}
-              playbackPaused={sourceMode === 'history' ? historyPlayback.paused : false}
-              playbackSpeed={sourceMode === 'history' ? historyPlayback.speed : 1}
               viewMode={activeViewMode}
               availableViewModes={[...availableViewModes]}
               focusMode={focusMode}
@@ -494,12 +488,6 @@ export function FlowView() {
               }
               historyError={historyError}
               onSelectFlow={handleSelectFlow}
-              onPlaybackPauseToggle={historyPlayback.togglePaused}
-              onPlaybackStep={() => {
-                historyPlayback.pause()
-                historyPlayback.stepForward()
-              }}
-              onPlaybackSpeedChange={historyPlayback.setSpeed}
               onViewModeChange={setActiveFlowViewMode}
               onToggleFocusMode={toggleFocusModeWithLayout}
               onToggleFocusActivePath={() => setFocusActivePath((previous) => !previous)}
