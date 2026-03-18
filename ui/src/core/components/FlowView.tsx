@@ -545,7 +545,6 @@ export function FlowView() {
           <LogsView
             flow={currentFlow}
             logs={logStream.globalLogs}
-            selectedNodeId={selectedNodeId}
             selectedTraceId={selectedTraceId}
             sourceMode={sourceMode}
             onSelectNode={handleSelectNode}

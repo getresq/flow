@@ -20,7 +20,6 @@ import type { SourceMode } from '../hooks/useUrlState'
 interface LogsViewProps {
   flow: FlowConfig
   logs: LogEntry[]
-  selectedNodeId?: string
   selectedTraceId?: string
   sourceMode: SourceMode
   onSelectNode: (nodeId?: string) => void
@@ -34,7 +33,6 @@ function getScrollViewport(root: HTMLDivElement | null) {
 export function LogsView({
   flow,
   logs,
-  selectedNodeId,
   selectedTraceId,
   sourceMode,
   onSelectNode,
@@ -45,12 +43,6 @@ export function LogsView({
   const [nodeFilter, setNodeFilter] = useState<string>('all')
   const [liveTail, setLiveTail] = useState(true)
   const scrollAreaRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    if (selectedNodeId) {
-      setNodeFilter(selectedNodeId)
-    }
-  }, [selectedNodeId])
 
   const nodeLabels = useMemo(() => {
     const map = new Map<string, string>()
