@@ -35,8 +35,8 @@ All tokens are defined in `ui/src/index.css`. Runtime JS values (for React Flow 
 | CSS Variable | Value |
 |---|---|
 | `--surface-primary` | `#f0f7ff` |
-| `--surface-raised` | `#dbeafe` |
-| `--surface-overlay` | `#bfdbfe` |
+| `--surface-raised` | `#ffffff` |
+| `--surface-overlay` | `#f0f7ff` |
 | `--accent-primary` | `#1565c0` |
 | `--accent-primary-hover` | `#1976d2` |
 | `--border-default` | `#90caf9` |

@@ -54,6 +54,38 @@
   --canvas-bg: #020617;
   --canvas-dot: rgba(30, 58, 95, 0.6);
 
+  /* Node colors (canvas shapes) */
+  --node-gray-border: rgba(71, 85, 105, 0.5);
+  --node-gray-bg: rgba(30, 41, 59, 0.6);
+  --node-gray-text: #cbd5e1;
+
+  --node-blue-border: rgba(2, 132, 199, 0.4);
+  --node-blue-bg: rgba(8, 47, 73, 0.4);
+  --node-blue-text: #bae6fd;
+
+  --node-green-border: rgba(5, 150, 105, 0.4);
+  --node-green-bg: rgba(6, 78, 59, 0.4);
+  --node-green-text: #a7f3d0;
+
+  --node-yellow-border: rgba(245, 158, 11, 0.4);
+  --node-yellow-bg: rgba(69, 26, 3, 0.4);
+  --node-yellow-text: #fde68a;
+
+  --node-orange-border: rgba(234, 88, 12, 0.4);
+  --node-orange-bg: rgba(67, 20, 7, 0.4);
+  --node-orange-text: #fed7aa;
+
+  --node-red-border: rgba(225, 29, 72, 0.4);
+  --node-red-bg: rgba(76, 5, 25, 0.4);
+  --node-red-text: #fecdd3;
+
+  --node-purple-border: rgba(139, 92, 246, 0.4);
+  --node-purple-bg: rgba(46, 16, 101, 0.4);
+  --node-purple-text: #ddd6fe;
+
+  --node-handle-border: rgba(255, 255, 255, 0.3);
+  --node-handle-bg: #334155;
+
   /* Typography */
   --font-sans: 'Inter', 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
@@ -75,14 +107,14 @@
 
 :root[data-theme='light'] {
   color: #0a1929;
-  background-color: #f0f7ff;
+  background-color: #f8fafc;
 
   /* ── Palette: Slate Refined · Ocean Blue (light) ── */
 
   /* Surfaces */
-  --surface-primary: #f0f7ff;
-  --surface-raised: #dbeafe;
-  --surface-overlay: #bfdbfe;
+  --surface-primary: #f8fafc;
+  --surface-raised: #ffffff;
+  --surface-overlay: #f8fafc;
   --surface-inset: #e3f2fd;
 
   /* Borders */
@@ -115,9 +147,41 @@
   --glow-idle: oklch(75% 0.04 210 / 0.4);
   --ping-border: oklch(42% 0.18 210 / 0.5);
 
+  /* Node colors (canvas shapes) */
+  --node-gray-border: rgba(148, 163, 184, 0.5);
+  --node-gray-bg: #ffffff;
+  --node-gray-text: #334155;
+
+  --node-blue-border: rgba(21, 101, 192, 0.28);
+  --node-blue-bg: #ffffff;
+  --node-blue-text: #0c4a6e;
+
+  --node-green-border: rgba(22, 163, 74, 0.3);
+  --node-green-bg: #ffffff;
+  --node-green-text: #14532d;
+
+  --node-yellow-border: rgba(245, 158, 11, 0.35);
+  --node-yellow-bg: #ffffff;
+  --node-yellow-text: #713f12;
+
+  --node-orange-border: rgba(234, 88, 12, 0.35);
+  --node-orange-bg: #ffffff;
+  --node-orange-text: #7c2d12;
+
+  --node-red-border: rgba(198, 40, 40, 0.3);
+  --node-red-bg: #ffffff;
+  --node-red-text: #7f1d1d;
+
+  --node-purple-border: rgba(124, 58, 237, 0.3);
+  --node-purple-bg: #ffffff;
+  --node-purple-text: #3b0764;
+
+  --node-handle-border: rgba(0, 0, 0, 0.15);
+  --node-handle-bg: #90caf9;
+
   /* Compatibility canvas aliases */
-  --canvas-bg: #f0f7ff;
-  --canvas-dot: #bbdefb;
+  --canvas-bg: #f8fafc;
+  --canvas-dot: rgba(21, 101, 192, 0.07);
   --color-active: var(--status-active);
   --color-edge: #90caf9;
   --color-edge-dimmed: #bbdefb;

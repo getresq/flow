@@ -12,45 +12,45 @@ const positionMap: Record<HandlePosition, Position> = {
 
 const colorMap: Record<string, { border: string; bg: string; text: string; glow: string }> = {
   gray: {
-    border: 'border-slate-600/50',
-    bg: 'bg-slate-800/60',
-    text: 'text-slate-300',
+    border: 'border-[var(--node-gray-border)]',
+    bg: 'bg-[var(--node-gray-bg)]',
+    text: 'text-[var(--node-gray-text)]',
     glow: '',
   },
   blue: {
-    border: 'border-sky-600/40',
-    bg: 'bg-sky-950/40',
-    text: 'text-sky-200',
+    border: 'border-[var(--node-blue-border)]',
+    bg: 'bg-[var(--node-blue-bg)]',
+    text: 'text-[var(--node-blue-text)]',
     glow: '',
   },
   green: {
-    border: 'border-emerald-600/40',
-    bg: 'bg-emerald-950/40',
-    text: 'text-emerald-200',
+    border: 'border-[var(--node-green-border)]',
+    bg: 'bg-[var(--node-green-bg)]',
+    text: 'text-[var(--node-green-text)]',
     glow: '',
   },
   yellow: {
-    border: 'border-amber-500/40',
-    bg: 'bg-amber-950/40',
-    text: 'text-amber-200',
+    border: 'border-[var(--node-yellow-border)]',
+    bg: 'bg-[var(--node-yellow-bg)]',
+    text: 'text-[var(--node-yellow-text)]',
     glow: '',
   },
   orange: {
-    border: 'border-orange-500/40',
-    bg: 'bg-orange-950/40',
-    text: 'text-orange-200',
+    border: 'border-[var(--node-orange-border)]',
+    bg: 'bg-[var(--node-orange-bg)]',
+    text: 'text-[var(--node-orange-text)]',
     glow: '',
   },
   red: {
-    border: 'border-rose-500/40',
-    bg: 'bg-rose-950/40',
-    text: 'text-rose-200',
+    border: 'border-[var(--node-red-border)]',
+    bg: 'bg-[var(--node-red-bg)]',
+    text: 'text-[var(--node-red-text)]',
     glow: '',
   },
   purple: {
-    border: 'border-violet-500/40',
-    bg: 'bg-violet-950/40',
-    text: 'text-violet-200',
+    border: 'border-[var(--node-purple-border)]',
+    bg: 'bg-[var(--node-purple-bg)]',
+    text: 'text-[var(--node-purple-text)]',
     glow: '',
   },
 }
@@ -125,14 +125,14 @@ export function renderHandles(
           id={resolveHandleId(nodeId, handle, 'target')}
           type="target"
           position={position}
-          className="!h-2 !w-2 !border !border-white/30 !bg-slate-700"
+          className="!h-2 !w-2 !border !border-[var(--node-handle-border)] !bg-[var(--node-handle-bg)]"
         />,
         <Handle
           key={`${nodeId}-${handle.position}-source`}
           id={resolveHandleId(nodeId, handle, 'source')}
           type="source"
           position={position}
-          className="!h-2 !w-2 !border !border-white/30 !bg-slate-700"
+          className="!h-2 !w-2 !border !border-[var(--node-handle-border)] !bg-[var(--node-handle-bg)]"
         />,
       ]
     }
@@ -143,7 +143,7 @@ export function renderHandles(
         id={resolveHandleId(nodeId, handle)}
         type={handle.type ?? 'source'}
         position={position}
-        className="!h-2 !w-2 !border !border-white/30 !bg-slate-700"
+        className="!h-2 !w-2 !border !border-[var(--node-handle-border)] !bg-[var(--node-handle-bg)]"
       />
     )
   })
