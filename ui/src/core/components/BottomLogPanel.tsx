@@ -126,23 +126,6 @@ export function BottomLogPanel({
     })
   }, [journeys, pinnedTraceIds, search])
 
-  const logsSummary = useMemo(() => {
-    if (selectedTraceId) {
-      return `Showing ${filteredLogs.length} logs for the selected run`
-    }
-
-    if (activeNodeFilters.size === 1) {
-      const onlyNodeId = [...activeNodeFilters][0]
-      const nodeLabel = nodeLabels.get(onlyNodeId) ?? onlyNodeId
-      return `Showing ${filteredLogs.length} logs for ${nodeLabel}`
-    }
-
-    if (activeNodeFilters.size > 1) {
-      return `Showing ${filteredLogs.length} logs for ${activeNodeFilters.size} nodes`
-    }
-
-    return `Showing ${filteredLogs.length} logs`
-  }, [activeNodeFilters, filteredLogs.length, nodeLabels, selectedTraceId])
 
   useEffect(() => {
     if (panelHeight > MIN_BOTTOM_PANEL_HEIGHT) {
@@ -280,19 +263,24 @@ export function BottomLogPanel({
         className="flex min-h-0 flex-1 flex-col"
       >
         <div className="flex min-h-11 shrink-0 items-center gap-3 border-b border-[var(--border-default)] px-4 py-3">
-          <TabsList className="border-0">
-            <TabsTrigger value="logs">Logs</TabsTrigger>
-            <TabsTrigger value="traces">Runs</TabsTrigger>
+          <TabsList className="shrink-0 border-0">
+            <TabsTrigger value="logs" className="whitespace-nowrap">
+              Logs
+              <span className="ml-1.5 text-[var(--text-secondary)]">· {filteredLogs.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="traces" className="whitespace-nowrap">
+              Runs
+              <span className="ml-1.5 text-[var(--text-secondary)]">· {filteredJourneys.length}</span>
+            </TabsTrigger>
           </TabsList>
-
-          <span className="text-xs text-[var(--text-secondary)]">
-            {tab === 'logs' ? logsSummary : `${filteredJourneys.length} runs`}
-          </span>
 
           {tab === 'logs' ? (
             <>
-              <Separator orientation="vertical" className="h-4" />
-              <div className="flex items-center gap-2 overflow-x-auto">
+              <Separator orientation="vertical" className="h-4 shrink-0" />
+              <div
+                className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto"
+                style={{ maskImage: 'linear-gradient(to right, black calc(100% - 24px), transparent)' }}
+              >
                 <Button
                   type="button"
                   variant={activeNodeFilters.size === 0 ? 'default' : 'outline'}
@@ -321,7 +309,7 @@ export function BottomLogPanel({
             </>
           ) : null}
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <Input
               placeholder={tab === 'logs' ? 'Search logs…' : 'Search runs…'}
               value={search}
