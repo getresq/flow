@@ -41,6 +41,34 @@ export interface NodeHandleConfig {
   id?: string
 }
 
+export type LayoutLane = 'main' | 'branch' | 'sidecar' | 'resource' | 'note'
+export type GroupLayoutMode = 'stack' | 'decision-tree'
+export type BranchTrack = 'primary' | 'right'
+
+export interface AnnotationAnchorConfig {
+  targetId: string
+  dx?: number
+  dy?: number
+}
+
+export interface BranchPlacementConfig {
+  anchorId: string
+  track: BranchTrack
+  rank: number
+  domain?: string
+  column?: number
+  dx?: number
+  dy?: number
+}
+
+export interface FlowNodeLayoutHints {
+  lane?: LayoutLane
+  order?: number
+  groupMode?: GroupLayoutMode
+  anchor?: AnnotationAnchorConfig
+  branch?: BranchPlacementConfig
+}
+
 export interface FlowNodeConfig {
   id: string
   type: NodeShape
@@ -53,6 +81,7 @@ export interface FlowNodeConfig {
   position: { x: number; y: number }
   size?: { width: number; height?: number }
   minSize?: { width: number; height: number }
+  layout?: FlowNodeLayoutHints
   parentId?: string
   handles?: NodeHandleConfig[]
   draggable?: boolean

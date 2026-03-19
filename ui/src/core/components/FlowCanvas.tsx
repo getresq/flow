@@ -13,7 +13,9 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { edgeTypes } from '../edges'
-import { computeElkLayout } from '../layout/elkLayout'
+import { applyBranchTemplatePositions } from '../layout/branchPlacement'
+import { applyLaneTemplatePositions } from '../layout/lanePlacement'
+import { computeElkLayout, type LayoutGeometry } from '../layout/elkLayout'
 import { nodeTypes } from '../nodes'
 import type { FlowEdge, FlowNode } from '../nodes/types'
 import type { FlowConfig, LogEntry, NodeRuntimeStatus, SpanEntry, ThemeMode } from '../types'
@@ -24,6 +26,8 @@ interface FocusState {
 }
 
 type CanvasInteractionMode = 'pointer' | 'pan'
+type Position = { x: number; y: number }
+type AnnotationAnchor = { anchorId: string; dx: number; dy: number }
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
@@ -130,6 +134,102 @@ function resolveFocusState(
   }
 }
 
+function nodeDimensions(node: FlowConfig['nodes'][number]) {
+  return {
+    width: node.size?.width ?? 200,
+    height: node.size?.height ?? (node.type === 'diamond' ? 144 : node.type === 'pill' ? 44 : 64),
+  }
+}
+
+function inferAnnotationAnchors(flow: FlowConfig): Map<string, AnnotationAnchor> {
+  const anchors = new Map<string, AnnotationAnchor>()
+  const candidates = flow.nodes.filter((node) => node.type !== 'annotation')
+  const nodeById = new Map(flow.nodes.map((node) => [node.id, node]))
+
+  const resolveAbsoluteConfigPosition = (nodeId: string): Position => {
+    const node = nodeById.get(nodeId)
+    if (!node) {
+      return { x: 0, y: 0 }
+    }
+
+    if (!node.parentId) {
+      return node.position
+    }
+
+    const parentPosition = resolveAbsoluteConfigPosition(node.parentId)
+    return {
+      x: parentPosition.x + node.position.x,
+      y: parentPosition.y + node.position.y,
+    }
+  }
+
+  for (const annotation of flow.nodes.filter((node) => node.type === 'annotation')) {
+    if (annotation.layout?.anchor) {
+      anchors.set(annotation.id, {
+        anchorId: annotation.layout.anchor.targetId,
+        dx: annotation.layout.anchor.dx ?? 0,
+        dy: annotation.layout.anchor.dy ?? 0,
+      })
+      continue
+    }
+
+    let best: { nodeId: string; distance: number; dx: number; dy: number } | null = null
+
+    for (const candidate of candidates) {
+      const position = resolveAbsoluteConfigPosition(candidate.id)
+      const dims = nodeDimensions(candidate)
+      const center = {
+        x: position.x + dims.width / 2,
+        y: position.y + dims.height / 2,
+      }
+      const dx = annotation.position.x - position.x
+      const dy = annotation.position.y - position.y
+      const distance = Math.hypot(annotation.position.x - center.x, annotation.position.y - center.y)
+
+      if (!best || distance < best.distance) {
+        best = { nodeId: candidate.id, distance, dx, dy }
+      }
+    }
+
+    if (best) {
+      anchors.set(annotation.id, { anchorId: best.nodeId, dx: best.dx, dy: best.dy })
+    }
+  }
+
+  return anchors
+}
+
+function resolveAbsolutePosition(
+  nodeId: string,
+  nodeById: Map<string, FlowConfig['nodes'][number]>,
+  directPositions: Map<string, Position>,
+  cache: Map<string, Position>,
+): Position {
+  const cached = cache.get(nodeId)
+  if (cached) {
+    return cached
+  }
+
+  const node = nodeById.get(nodeId)
+  if (!node) {
+    return { x: 0, y: 0 }
+  }
+
+  const position = directPositions.get(nodeId) ?? node.position
+  if (!node.parentId) {
+    cache.set(nodeId, position)
+    return position
+  }
+
+  const parentPosition = resolveAbsolutePosition(node.parentId, nodeById, directPositions, cache)
+  const absolute = {
+    x: parentPosition.x + position.x,
+    y: parentPosition.y + position.y,
+  }
+  cache.set(nodeId, absolute)
+  return absolute
+}
+
 function mapFlowNodes(
   flow: FlowConfig,
   nodeStatuses: Map<string, NodeRuntimeStatus>,
@@ -137,9 +237,24 @@ function mapFlowNodes(
   focusNodeIds: Set<string> | null,
   selectedNodeIds: Set<string>,
   runtimePositions: Map<string, { x: number; y: number }>,
-  elkPositions?: Map<string, { x: number; y: number }>,
+  annotationAnchors: Map<string, AnnotationAnchor>,
+  elkLayout?: Map<string, LayoutGeometry>,
   isEntering?: boolean,
 ): FlowNode[] {
+  const nodeById = new Map(flow.nodes.map((node) => [node.id, node]))
+  const directPositions = new Map<string, Position>()
+
+  for (const node of flow.nodes) {
+    directPositions.set(
+      node.id,
+      runtimePositions.get(node.id) ?? (elkLayout?.get(node.id) ? { x: elkLayout.get(node.id)!.x, y: elkLayout.get(node.id)!.y } : node.position),
+    )
+  }
+
+  const lanePositionedNodes = applyLaneTemplatePositions(flow.nodes, directPositions, runtimePositions)
+  const positionedNodes = applyBranchTemplatePositions(flow.nodes, lanePositionedNodes, runtimePositions)
+
+  const absolutePositionCache = new Map<string, Position>()
   let nonGroupIndex = 0
   return flow.nodes.map((node) => {
     const isNonGroup = node.type !== 'group'
@@ -148,13 +263,27 @@ function mapFlowNodes(
     const dimmed = Boolean(focusNodeIds && !focusNodeIds.has(node.id))
     const selected = selectedNodeIds.has(node.id)
     const runtimePosition = runtimePositions.get(node.id)
-    const defaultDraggable = !node.parentId && node.type !== 'group' && node.type !== 'annotation'
+    const layoutGeometry = elkLayout?.get(node.id)
+    let position = runtimePosition ?? positionedNodes.get(node.id) ?? (layoutGeometry ? { x: layoutGeometry.x, y: layoutGeometry.y } : node.position)
+
+    if (node.type === 'annotation') {
+      const anchor = annotationAnchors.get(node.id)
+      if (anchor) {
+        const anchorPosition = resolveAbsolutePosition(anchor.anchorId, nodeById, positionedNodes, absolutePositionCache)
+        position = {
+          x: anchorPosition.x + anchor.dx,
+          y: anchorPosition.y + anchor.dy,
+        }
+      }
+    }
+
+    const defaultDraggable = node.type !== 'annotation'
     const defaultSelectable = node.type !== 'annotation'
 
     return {
       id: node.id,
       type: node.type,
-      position: runtimePosition ?? elkPositions?.get(node.id) ?? node.position,
+      position,
       parentId: node.parentId,
       selectable: node.selectable ?? defaultSelectable,
       draggable: node.draggable ?? defaultDraggable,
@@ -172,8 +301,8 @@ function mapFlowNodes(
         minSize: node.minSize,
       },
       style: {
-        width: node.size?.width,
-        height: node.type === 'group' ? node.size?.height : undefined,
+        width: layoutGeometry?.width ?? node.size?.width,
+        height: layoutGeometry?.height ?? (node.type === 'group' ? node.size?.height : undefined),
         zIndex: node.type === 'group' ? 0 : selected ? 20 : 10,
         opacity: dimmed ? (node.type === 'group' ? 0.08 : 0.22) : 1,
         filter: dimmed ? 'saturate(0.5)' : undefined,
@@ -254,7 +383,7 @@ export function FlowCanvas({
   selectedNodeId,
   onSelectNode,
 }: FlowCanvasProps) {
-  const [elkPositions, setElkPositions] = useState<Map<string, { x: number; y: number }> | null>(null)
+  const [elkLayout, setElkLayout] = useState<Map<string, LayoutGeometry> | null>(null)
   const [interactionMode, setInteractionMode] = useState<CanvasInteractionMode>('pan')
   const [runtimePositions, setRuntimePositions] = useState<Map<string, { x: number; y: number }>>(new Map())
   const [saveState, setSaveState] = useState<'idle' | 'copied' | 'failed'>('idle')
@@ -262,13 +391,14 @@ export function FlowCanvas({
     () => new Set(selectedNodeId ? [selectedNodeId] : []),
   )
   const entranceRef = useRef(true)
+  const annotationAnchors = useMemo(() => inferAnnotationAnchors(flow), [flow])
   const nonGroupNodeCount = useMemo(
     () => flow.nodes.filter((node) => node.type !== 'group').length,
     [flow.nodes],
   )
 
   useEffect(() => {
-    setElkPositions(null)
+    setElkLayout(null)
     setRuntimePositions(new Map())
     setSelectedNodeIds(new Set())
     setSaveState('idle')
@@ -284,6 +414,24 @@ export function FlowCanvas({
       window.clearTimeout(entranceTimer)
     }
   }, [flow.id, nonGroupNodeCount])
+
+  useEffect(() => {
+    let cancelled = false
+
+    computeElkLayout(flow.nodes, flow.edges)
+      .then((layout) => {
+        if (!cancelled) {
+          setElkLayout(layout)
+        }
+      })
+      .catch((error) => {
+        console.error('ELK layout failed', error)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [flow])
 
   useEffect(() => {
     if (saveState === 'idle') {
@@ -366,10 +514,11 @@ export function FlowCanvas({
         focusState.nodeIds,
         selectedNodeIds,
         runtimePositions,
-        elkPositions ?? undefined,
+        annotationAnchors,
+        elkLayout ?? undefined,
         entranceRef.current,
       ),
-    [flow, nodeStatuses, nodeLogMap, focusState.nodeIds, selectedNodeIds, runtimePositions, elkPositions],
+    [flow, nodeStatuses, nodeLogMap, focusState.nodeIds, selectedNodeIds, runtimePositions, annotationAnchors, elkLayout],
   )
   const initialEdges = useMemo(
     () => mapFlowEdges(flow, activeEdges, focusState.edgeIds),
@@ -388,7 +537,8 @@ export function FlowCanvas({
         focusState.nodeIds,
         selectedNodeIds,
         runtimePositions,
-        elkPositions ?? undefined,
+        annotationAnchors,
+        elkLayout ?? undefined,
         entranceRef.current,
       ),
     )
@@ -399,8 +549,9 @@ export function FlowCanvas({
     focusState.nodeIds,
     selectedNodeIds,
     runtimePositions,
+    annotationAnchors,
     setNodes,
-    elkPositions,
+    elkLayout,
   ])
 
   useEffect(() => {
@@ -554,7 +705,7 @@ export function FlowCanvas({
           className="rounded border border-slate-700 bg-slate-900/95 px-2 py-1 text-[10px] text-slate-200"
           onClick={() => {
             setRuntimePositions(new Map())
-            computeElkLayout(flow.nodes, flow.edges).then(setElkPositions).catch(console.error)
+            computeElkLayout(flow.nodes, flow.edges).then(setElkLayout).catch(console.error)
           }}
         >
           Re-layout
@@ -602,7 +753,7 @@ export function FlowCanvas({
         fitViewOptions={{
           maxZoom: 1.1,
           padding: 0.12,
-          nodes: nodes.filter((node) => node.type !== 'group'),
+          nodes: nodes.filter((node) => node.type !== 'annotation'),
         }}
         minZoom={0.2}
         maxZoom={1.6}

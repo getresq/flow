@@ -86,6 +86,7 @@ export const spanMapping: SpanMapping = {
 
 export const producerMapping: SpanMapping = {
   handle_mail_backfill_start: 'trigger-oauth',
+  handle_mail_send_reply: 'enqueue-send-reply',
 }
 
 export const mailPipelineFlow: FlowConfig = {
@@ -347,6 +348,7 @@ export const mailPipelineFlow: FlowConfig = {
       style: { icon: 'queue' },
       position: { x: 980, y: 1010 },
       size: { width: 250 },
+      layout: { order: 56 },
       handles: [
         { id: 'in-left', position: 'left', type: 'target' },
         { id: 'out-bottom', position: 'bottom', type: 'source' },
@@ -362,6 +364,7 @@ export const mailPipelineFlow: FlowConfig = {
       position: { x: 1005, y: 1160 },
       bullets: workerBullets,
       size: { width: 210 },
+      layout: { lane: 'main', order: 58 },
     },
     {
       id: 'analyze-decision',
@@ -369,12 +372,21 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'analyze reply decision\n(propose mode)',
       style: { borderStyle: 'dashed' },
       position: { x: 1035, y: 1355 },
+      layout: { lane: 'main', order: 60 },
     },
     {
       id: 'analyze-note',
       type: 'annotation',
       label: '- prechecks before LLM\n- LLM can return skip / needs_review / draft_reply',
       position: { x: 1275, y: 1285 },
+      layout: { anchor: { targetId: 'analyze-decision', dx: 240, dy: -70 } },
+    },
+    {
+      id: 'analyze-exception-label',
+      type: 'annotation',
+      label: 'other outcomes',
+      position: { x: 1270, y: 1370 },
+      layout: { anchor: { targetId: 'skip-owner-stop', dx: -8, dy: -34 } },
     },
     {
       id: 'skip-owner-stop',
@@ -383,6 +395,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1275, y: 1370 },
       size: { width: 280 },
+      layout: { lane: 'branch', order: 61, branch: { anchorId: 'analyze-decision', track: 'right', rank: 0, domain: 'analyze', column: 0 } },
     },
     {
       id: 'reuse-batch-stop',
@@ -391,6 +404,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1300, y: 1470 },
       size: { width: 280 },
+      layout: { lane: 'branch', order: 62, branch: { anchorId: 'analyze-decision', track: 'right', rank: 1, domain: 'analyze', column: 0 } },
     },
     {
       id: 'skip-thread-status',
@@ -399,6 +413,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1310, y: 1570 },
       size: { width: 220 },
+      layout: { lane: 'branch', order: 63, branch: { anchorId: 'analyze-decision', track: 'right', rank: 2, domain: 'analyze', column: 0 } },
     },
     {
       id: 'analyze-error',
@@ -407,6 +422,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1210, y: 1665 },
       size: { width: 310 },
+      layout: { lane: 'branch', order: 66, branch: { anchorId: 'analyze-decision', track: 'right', rank: 3, domain: 'analyze', column: 0, dx: 0, dy: 8 } },
     },
     {
       id: 'supported-actions',
@@ -414,6 +430,7 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'Any supported\nproposed\nactions?',
       style: { borderStyle: 'dashed' },
       position: { x: 1035, y: 1595 },
+      layout: { lane: 'main', order: 64, branch: { anchorId: 'analyze-decision', track: 'primary', rank: 0 } },
     },
     {
       id: 'draft-reply',
@@ -424,6 +441,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 930, y: 1780 },
       size: { width: 190 },
+      layout: { lane: 'main', order: 68, branch: { anchorId: 'supported-actions-outcome', track: 'primary', rank: 0 } },
     },
     {
       id: 'unsupported-actions-outcome',
@@ -433,6 +451,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1270, y: 1780 },
       size: { width: 360 },
+      layout: { lane: 'branch', order: 65, branch: { anchorId: 'supported-actions', track: 'right', rank: 0, domain: 'analyze', column: 0, dx: 10 } },
     },
     {
       id: 'pause-manual-review',
@@ -441,6 +460,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1335, y: 1940 },
       size: { width: 200, height: 96 },
+      layout: { lane: 'branch', order: 67, branch: { anchorId: 'unsupported-actions-outcome', track: 'primary', rank: 0, dy: 4 } },
     },
     {
       id: 'supported-actions-outcome',
@@ -450,6 +470,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 875, y: 1945 },
       size: { width: 420 },
+      layout: { lane: 'main', order: 70, branch: { anchorId: 'supported-actions', track: 'primary', rank: 0, dy: 10 } },
     },
     {
       id: 'autosend-decision',
@@ -457,6 +478,7 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'Autosend\nenabled and\nbatch auto-\napprovable?',
       style: { borderStyle: 'dashed' },
       position: { x: 1035, y: 2145 },
+      layout: { lane: 'main', order: 72, branch: { anchorId: 'draft-reply', track: 'primary', rank: 0 } },
     },
     {
       id: 'pause-manual-approval',
@@ -465,6 +487,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1290, y: 2195 },
       size: { width: 210, height: 96 },
+      layout: { lane: 'branch', order: 73, branch: { anchorId: 'autosend-decision', track: 'right', rank: 0, domain: 'approval', column: 0, dx: 10 } },
     },
     {
       id: 'manual-approval-api',
@@ -473,6 +496,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1280, y: 2335 },
       size: { width: 245 },
+      layout: { lane: 'branch', order: 74, branch: { anchorId: 'pause-manual-approval', track: 'primary', rank: 0 } },
     },
     {
       id: 'autosend-approved',
@@ -482,6 +506,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 835, y: 2325 },
       size: { width: 360 },
+      layout: { lane: 'main', order: 76, branch: { anchorId: 'autosend-decision', track: 'primary', rank: 0, dy: 6 } },
     },
     {
       id: 'actions-queue',
@@ -490,6 +515,7 @@ export const mailPipelineFlow: FlowConfig = {
       style: { icon: 'queue' },
       position: { x: 985, y: 2525 },
       size: { width: 250 },
+      layout: { lane: 'main', order: 77 },
       handles: [
         { id: 'in-top', position: 'top', type: 'target' },
         { id: 'out-bottom', position: 'bottom', type: 'source' },
@@ -505,6 +531,7 @@ export const mailPipelineFlow: FlowConfig = {
       position: { x: 1005, y: 2670 },
       bullets: workerBullets,
       size: { width: 210 },
+      layout: { lane: 'main', order: 78 },
     },
     {
       id: 'actions-process-group',
@@ -513,7 +540,6 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 895, y: 2820 },
       size: { width: 430, height: 255 },
-      handles: [{ id: 'in-top', position: 'top', type: 'target' }],
     },
     {
       id: 'process-approved-action',
@@ -549,6 +575,7 @@ export const mailPipelineFlow: FlowConfig = {
       style: { icon: 'queue' },
       position: { x: 1565, y: 900 },
       size: { width: 250 },
+      layout: { lane: 'sidecar', order: 64 },
       handles: [
         { id: 'in-left', position: 'left', type: 'target' },
         { id: 'out-bottom', position: 'bottom', type: 'source' },
@@ -560,6 +587,7 @@ export const mailPipelineFlow: FlowConfig = {
       label:
         'contains both job types:\n- handle_mail_extract\n- handle_mail_recompute_opportunities\n\n* AI provider creds required for handle_mail_extract only',
       position: { x: 1825, y: 915 },
+      layout: { anchor: { targetId: 'extract-queue', dx: 260, dy: 15 } },
     },
     {
       id: 'extract-worker',
@@ -571,6 +599,7 @@ export const mailPipelineFlow: FlowConfig = {
       position: { x: 1580, y: 1035 },
       bullets: workerBullets,
       size: { width: 210 },
+      layout: { lane: 'sidecar', order: 68 },
     },
     {
       id: 'extract-ai',
@@ -579,6 +608,7 @@ export const mailPipelineFlow: FlowConfig = {
       style: { borderStyle: 'dashed' },
       position: { x: 1545, y: 1215 },
       size: { width: 300 },
+      layout: { lane: 'sidecar', order: 70 },
     },
     {
       id: 'extract-ai-success',
@@ -586,6 +616,7 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'AI extract\nsucceeded?',
       style: { borderStyle: 'dashed' },
       position: { x: 1615, y: 1405 },
+      layout: { lane: 'sidecar', order: 72, branch: { anchorId: 'extract-ai', track: 'primary', rank: 0 } },
     },
     {
       id: 'extract-fail-1',
@@ -594,6 +625,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1905, y: 1455 },
       size: { width: 215 },
+      layout: { lane: 'branch', order: 73, branch: { anchorId: 'extract-ai-success', track: 'right', rank: 0, domain: 'extract', column: 1 } },
     },
     {
       id: 'upsert-contacts',
@@ -602,6 +634,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1535, y: 1605 },
       size: { width: 220 },
+      layout: { lane: 'sidecar', order: 74, branch: { anchorId: 'extract-ai-success', track: 'primary', rank: 0 } },
     },
     {
       id: 'extract-upsert-note',
@@ -609,6 +642,7 @@ export const mailPipelineFlow: FlowConfig = {
       label:
         '- normalize emails\n- dedupe per thread\n- prefer higher-confidence / richer non-empty fields\n- never overwrite non-empty stored fields with empty',
       position: { x: 1790, y: 1585 },
+      layout: { anchor: { targetId: 'upsert-contacts', dx: 250, dy: -20 } },
     },
     {
       id: 'postgres-extract',
@@ -616,6 +650,7 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'postgres',
 
       position: { x: 2050, y: 1635 },
+      layout: { lane: 'resource', order: 75 },
       handles: [{ id: 'in-left', position: 'left', type: 'target' }],
     },
     {
@@ -624,6 +659,7 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'contact\nupsert\nsuccessful?',
       style: { borderStyle: 'dashed' },
       position: { x: 1615, y: 1795 },
+      layout: { lane: 'sidecar', order: 76, branch: { anchorId: 'upsert-contacts', track: 'primary', rank: 0 } },
     },
     {
       id: 'extract-fail-2',
@@ -632,6 +668,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1905, y: 1850 },
       size: { width: 215 },
+      layout: { lane: 'branch', order: 77, branch: { anchorId: 'contact-upsert-success', track: 'right', rank: 0, domain: 'extract', column: 1 } },
     },
     {
       id: 'extract-record-success',
@@ -640,6 +677,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1535, y: 1995 },
       size: { width: 260 },
+      layout: { lane: 'sidecar', order: 78, branch: { anchorId: 'contact-upsert-success', track: 'primary', rank: 0 } },
     },
     {
       id: 'recompute-enqueue',
@@ -648,6 +686,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1825, y: 1965 },
       size: { width: 320 },
+      layout: { lane: 'branch', order: 79, branch: { anchorId: 'contact-upsert-success', track: 'right', rank: 1, domain: 'extract', column: 1, dx: -10 } },
       handles: [
         { position: 'top', type: 'target' },
         { position: 'left', type: 'source' },
@@ -661,6 +700,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 1845, y: 1180 },
       size: { width: 240 },
+      layout: { lane: 'branch', order: 69, branch: { anchorId: 'extract-worker', track: 'right', rank: 0, domain: 'extract', column: 1, dx: -20, dy: -12 } },
     },
     {
       id: 'recompute-note',
@@ -668,6 +708,7 @@ export const mailPipelineFlow: FlowConfig = {
       label:
         '- scan mail_extracted_contacts for mailbox\n- upsert/delete follow_up_opportunities',
       position: { x: 2125, y: 1210 },
+      layout: { anchor: { targetId: 'recompute-process', dx: 280, dy: 20 } },
     },
     {
       id: 'send-queue',
@@ -708,7 +749,7 @@ export const mailPipelineFlow: FlowConfig = {
 
       position: { x: 615, y: 3580 },
       size: { width: 820, height: 430 },
-      handles: [{ id: 'in-top', position: 'top', type: 'target' }],
+      handles: [],
     },
     {
       id: 'send-prechecks',
@@ -746,24 +787,6 @@ export const mailPipelineFlow: FlowConfig = {
       position: { x: 580, y: 170 },
       size: { width: 250 },
       parentId: 'send-process-group',
-    },
-    {
-      id: 'send-success-label',
-      type: 'annotation',
-      label: 'success',
-      position: { x: 330, y: 3765 },
-    },
-    {
-      id: 'send-retry-label',
-      type: 'annotation',
-      label: 'retryable failure',
-      position: { x: 1035, y: 3765 },
-    },
-    {
-      id: 'send-nonretry-label',
-      type: 'annotation',
-      label: 'non-retryable failure',
-      position: { x: 770, y: 3820 },
     },
   ]),
 
@@ -923,11 +946,13 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'Yes',
     },
     { id: 'e-pause-manual-api', source: 'pause-manual-approval', target: 'manual-approval-api' },
-    { id: 'e-autosend-actions', source: 'autosend-decision', target: 'actions-queue', targetHandle: 'actions-queue-in-top', type: 'dashed' },
+    { id: 'e-autosend-actions', source: 'autosend-approved', target: 'actions-queue', targetHandle: 'actions-queue-in-top', type: 'dashed' },
     { id: 'e-manual-actions', source: 'manual-approval-api', target: 'actions-queue', targetHandle: 'actions-queue-in-top', type: 'dashed' },
     { id: 'e-actions-q-worker', source: 'actions-queue', sourceHandle: 'actions-queue-out-bottom', target: 'actions-worker' },
-    { id: 'e-actions-worker-process', source: 'actions-worker', target: 'actions-process-group', targetHandle: 'actions-process-group-in-top' },
-    { id: 'e-actions-send', source: 'actions-worker', target: 'send-queue', targetHandle: 'send-queue-in-top' },
+    { id: 'e-actions-worker-process', source: 'actions-worker', target: 'process-approved-action' },
+    { id: 'e-actions-mark-review', source: 'process-approved-action', target: 'mark-draft-needs-review' },
+    { id: 'e-actions-enqueue-send', source: 'mark-draft-needs-review', target: 'enqueue-send-reply' },
+    { id: 'e-actions-send', source: 'enqueue-send-reply', target: 'send-queue', targetHandle: 'send-queue-in-top' },
 
     { id: 'e-extract-q-worker', source: 'extract-queue', sourceHandle: 'extract-queue-out-bottom', target: 'extract-worker' },
     { id: 'e-extract-worker-ai', source: 'extract-worker', target: 'extract-ai' },
@@ -971,7 +996,6 @@ export const mailPipelineFlow: FlowConfig = {
       target: 'recompute-enqueue',
       type: 'dashed',
     },
-    { id: 'e-extract-next-job', source: 'extract-record-success', target: 'extract-queue', label: 'Get next job', type: 'dashed' },
     {
       id: 'e-recompute-enqueue-queue',
       source: 'recompute-enqueue',
@@ -989,7 +1013,28 @@ export const mailPipelineFlow: FlowConfig = {
 
     { id: 'e-send-q-worker', source: 'send-queue', sourceHandle: 'send-queue-out-bottom', target: 'send-worker' },
     { id: 'e-send-worker-process', source: 'send-worker', target: 'send-process' },
-    { id: 'e-send-process-group', source: 'send-process', target: 'send-process-group', targetHandle: 'send-process-group-in-top' },
+    { id: 'e-send-process-prechecks', source: 'send-process', target: 'send-prechecks' },
+    {
+      id: 'e-send-success-branch',
+      source: 'send-prechecks',
+      target: 'send-success',
+      label: 'success',
+      type: 'dashed',
+    },
+    {
+      id: 'e-send-retry-branch',
+      source: 'send-prechecks',
+      target: 'send-retry',
+      label: 'retryable failure',
+      type: 'dashed',
+    },
+    {
+      id: 'e-send-nonretry-branch',
+      source: 'send-prechecks',
+      target: 'send-nonretry',
+      label: 'non-retryable failure',
+      type: 'dashed',
+    },
   ],
   producerMapping,
   spanMapping,

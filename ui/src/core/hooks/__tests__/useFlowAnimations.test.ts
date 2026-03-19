@@ -397,7 +397,6 @@ describe('useFlowAnimations', () => {
     await waitFor(() => {
       expect(result.current.nodeStatuses.get('send-queue')?.status).toBe('active')
       expect(result.current.activeEdges.has('e-draft-autosend')).toBe(true)
-      expect(result.current.activeEdges.has('e-autosend-actions')).toBe(true)
       expect(result.current.activeEdges.has('e-actions-send')).toBe(true)
     })
   })
