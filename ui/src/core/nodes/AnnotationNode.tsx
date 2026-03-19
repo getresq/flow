@@ -4,7 +4,7 @@ import type { FlowNode } from './types'
 
 export function AnnotationNode({ data }: NodeProps<FlowNode>) {
   return (
-    <div className="max-w-sm whitespace-pre-wrap text-[11px] leading-relaxed text-slate-300/85">
+    <div className="max-w-sm whitespace-pre-wrap text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-90">
       {data.label}
     </div>
   )

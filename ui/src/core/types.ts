@@ -21,6 +21,18 @@ export interface NodeStyle {
   borderStyle?: 'solid' | 'dashed'
 }
 
+export type NodeSemanticRole =
+  | 'trigger'
+  | 'queue'
+  | 'worker'
+  | 'scheduler'
+  | 'process'
+  | 'decision'
+  | 'resource'
+  | 'detail'
+  | 'group'
+  | 'note'
+
 export type HandlePosition = 'top' | 'right' | 'bottom' | 'left'
 
 export interface NodeHandleConfig {
@@ -32,6 +44,7 @@ export interface NodeHandleConfig {
 export interface FlowNodeConfig {
   id: string
   type: NodeShape
+  semanticRole?: NodeSemanticRole
   label: string
   sublabel?: string
   description?: string

@@ -174,6 +174,84 @@ Status transitions should use Motion's `animate` over 300ms — never abrupt cla
 
 ---
 
+## Canvas Shape Language
+
+Source of truth:
+- `jrodocs/resq-flow-visual-taxonomy.md`
+
+Default mapping:
+
+| Semantic role | Default shape |
+|---|---|
+| Trigger | Pill |
+| Queue | Rounded rectangle |
+| Worker | Rounded rectangle |
+| Scheduler / process | Rounded rectangle |
+| Decision | Diamond |
+| Resource | Cylinder |
+| Visible detail | Rounded rectangle inside a group when possible |
+| Note | Annotation |
+
+Rules:
+
+- Option D remains the base palette for all node families.
+- Queue, worker, and process nodes should feel like one rounded-rectangle
+  family, not unrelated widget types.
+- Use pills only for external starting conditions.
+- Avoid badges in the main graph unless a tiny inline callout is clearly the
+  best choice.
+
+---
+
+## Node Color Roles
+
+Colors are assigned **by semantic role**, not per-node. The factory in `ui/src/flows/nodeFactory.ts` derives `style.color` from `semanticRole` automatically — flow files should never set `color` manually.
+
+### Role → Color Token Mapping
+
+| Semantic Role | Color Token | Visual Intent |
+|---|---|---|
+| `trigger` | `trigger` | Green — external starting condition |
+| `queue` | `execution` | Ocean blue — runtime execution family |
+| `worker` | `execution` | Ocean blue — runtime execution family |
+| `scheduler` | `execution` | Ocean blue — runtime execution family |
+| `process` | `execution` | Ocean blue — runtime execution family |
+| `decision` | `decision` | Amber — branching / conditional |
+| `resource` | `resource` | Neutral slate — external storage |
+| `detail` | `detail` | Muted slate — supporting info |
+| `group` | `group` | Muted container |
+| `note` | `detail` | Muted slate — annotations |
+
+### CSS Token Groups
+
+Each color token maps to 3 CSS variables: `--node-{token}-border`, `--node-{token}-bg`, `--node-{token}-text`.
+
+**Dark mode (`:root`)**
+
+| Token | Border | Background | Text |
+|---|---|---|---|
+| `execution` | `rgba(66,165,245,0.3)` | `rgba(6,18,40,0.9)` | `#f1f5f9` |
+| `detail` | `rgba(30,58,95,0.7)` | `rgba(6,18,40,0.6)` | `#cbd5e1` |
+| `trigger` | `rgba(34,197,94,0.3)` | `rgba(6,78,59,0.4)` | `#a7f3d0` |
+| `decision` | `rgba(245,158,11,0.35)` | `rgba(69,26,3,0.4)` | `#fde68a` |
+| `resource` | `rgba(30,58,95,0.5)` | `rgba(6,18,40,0.7)` | `#94a3b8` |
+| `group` | `rgba(30,58,95,0.4)` | `rgba(6,18,40,0.3)` | `#64748b` |
+
+**Light mode (`:root[data-theme='light']`)**
+
+All `--node-*-bg` values are `#ffffff` (white backgrounds), except `group` which uses `rgba(248,250,252,0.5)`.
+
+| Token | Border | Text |
+|---|---|---|
+| `execution` | `rgba(21,101,192,0.28)` | `#0a1929` |
+| `detail` | `rgba(148,163,184,0.5)` | `#334155` |
+| `trigger` | `rgba(22,163,74,0.3)` | `#14532d` |
+| `decision` | `rgba(245,124,0,0.28)` | `#7c2d12` |
+| `resource` | `rgba(148,163,184,0.4)` | `#334155` |
+| `group` | `rgba(148,163,184,0.3)` | `#64748b` |
+
+---
+
 ## Semantic Zoom Breakpoints
 
 Pass zoom from React Flow's `useViewport()` via context to node components.

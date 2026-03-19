@@ -10,7 +10,7 @@ export function GroupNode({ id, data, selected }: NodeProps<FlowNode>) {
 
   return (
     <div
-      className={`h-full w-full rounded-xl border-2 border-dashed ${tone.border} ${tone.bg} px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] ${tone.text}`}
+      className={`h-full w-full rounded-[20px] border-2 border-dashed ${tone.border} ${tone.bg} px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] ${tone.text}`}
     >
       {renderHandles(id, data.handles, [...defaultHandles])}
       {data.resizable ? (
@@ -18,8 +18,8 @@ export function GroupNode({ id, data, selected }: NodeProps<FlowNode>) {
           isVisible={selected}
           minWidth={data.minSize?.width ?? 480}
           minHeight={data.minSize?.height ?? 360}
-          lineClassName="!border-sky-500/70"
-          handleClassName="!h-2.5 !w-2.5 !rounded !border !border-sky-200 !bg-sky-500"
+          lineClassName="!border-[var(--accent-primary)]/70"
+          handleClassName="!h-2.5 !w-2.5 !rounded-md !border !border-[var(--border-default)] !bg-[var(--accent-primary)]"
         />
       ) : null}
       {data.label ? data.label : null}

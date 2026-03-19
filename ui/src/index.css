@@ -54,34 +54,97 @@
   --canvas-bg: #020617;
   --canvas-dot: rgba(30, 58, 95, 0.6);
 
-  /* Node colors (canvas shapes) */
-  --node-gray-border: rgba(71, 85, 105, 0.5);
-  --node-gray-bg: rgba(30, 41, 59, 0.6);
-  --node-gray-text: #cbd5e1;
+  /* ── Node semantic color roles — Design Contract v1.0 ── */
 
-  --node-blue-border: rgba(2, 132, 199, 0.4);
-  --node-blue-bg: rgba(8, 47, 73, 0.4);
-  --node-blue-text: #bae6fd;
+  /* Queue — Pure warm amber */
+  --node-queue-border: rgba(255, 168, 0, 0.40);
+  --node-queue-border-selected: #FFA800;
+  --node-queue-bg: #150c00;
+  --node-queue-text: #fde68a;
+  --node-queue-accent: #FFA800;
 
-  --node-green-border: rgba(5, 150, 105, 0.4);
-  --node-green-bg: rgba(6, 78, 59, 0.4);
-  --node-green-text: #a7f3d0;
+  /* Worker — Ocean blue, dominant execution hue */
+  --node-worker-border: rgba(56, 182, 255, 0.40);
+  --node-worker-border-selected: #38B6FF;
+  --node-worker-bg: #000d18;
+  --node-worker-text: #bfdbfe;
+  --node-worker-accent: #38B6FF;
 
-  --node-yellow-border: rgba(245, 158, 11, 0.4);
-  --node-yellow-bg: rgba(69, 26, 3, 0.4);
-  --node-yellow-text: #fde68a;
+  /* Cron / Scheduler — Mint green, temporal triggers */
+  --node-cron-border: rgba(0, 220, 130, 0.40);
+  --node-cron-border-selected: #00DC82;
+  --node-cron-bg: #001810;
+  --node-cron-text: #a7f3d0;
+  --node-cron-accent: #00DC82;
 
-  --node-orange-border: rgba(234, 88, 12, 0.4);
-  --node-orange-bg: rgba(67, 20, 7, 0.4);
-  --node-orange-text: #fed7aa;
+  /* Process — Same hue as worker, quieter */
+  --node-process-border: rgba(56, 182, 255, 0.20);
+  --node-process-border-selected: #60a5fa;
+  --node-process-bg: #000d18;
+  --node-process-text: #93c5fd;
+  --node-process-accent: #60a5fa;
 
-  --node-red-border: rgba(225, 29, 72, 0.4);
-  --node-red-bg: rgba(76, 5, 25, 0.4);
-  --node-red-text: #fecdd3;
+  /* Decision — Violet / purple, ~260° hue */
+  --node-decision-border: rgba(160, 100, 255, 0.40);
+  --node-decision-border-selected: #A064FF;
+  --node-decision-bg: #0d0018;
+  --node-decision-text: #d8b4fe;
+  --node-decision-accent: #A064FF;
 
-  --node-purple-border: rgba(139, 92, 246, 0.4);
-  --node-purple-bg: rgba(46, 16, 101, 0.4);
-  --node-purple-text: #ddd6fe;
+  /* Resource — Slate-teal, infrastructural */
+  --node-resource-border: rgba(0, 180, 180, 0.35);
+  --node-resource-border-selected: #00B4B4;
+  --node-resource-bg: #001414;
+  --node-resource-text: #67e8f9;
+  --node-resource-accent: #00B4B4;
+
+  /* Trigger / External — Coral rose */
+  --node-trigger-border: rgba(255, 100, 120, 0.40);
+  --node-trigger-border-selected: #FF6478;
+  --node-trigger-bg: #180008;
+  --node-trigger-text: #fca5a5;
+  --node-trigger-accent: #FF6478;
+
+  /* Detail — Muted, non-first-class */
+  --node-detail-border: rgba(255, 255, 255, 0.10);
+  --node-detail-bg: #0a0e18;
+  --node-detail-text: #94a3b8;
+  --node-detail-accent: #64748b;
+
+  /* Group — Transparent container */
+  --node-group-border: rgba(255, 255, 255, 0.12);
+  --node-group-bg: transparent;
+  --node-group-text: #64748b;
+  --node-group-accent: #64748b;
+
+  /* ── Per-family glow tokens (rest / hover / selected) ── */
+  --glow-queue-rest:     0 0 14px rgba(255, 168, 0, 0.15);
+  --glow-queue-hover:    0 0 24px rgba(255, 168, 0, 0.30);
+  --glow-queue-selected: 0 0 36px rgba(255, 168, 0, 0.45);
+
+  --glow-worker-rest:     0 0 14px rgba(56, 182, 255, 0.15);
+  --glow-worker-hover:    0 0 24px rgba(56, 182, 255, 0.30);
+  --glow-worker-selected: 0 0 36px rgba(56, 182, 255, 0.45);
+
+  --glow-cron-rest:     0 0 14px rgba(0, 220, 130, 0.15);
+  --glow-cron-hover:    0 0 24px rgba(0, 220, 130, 0.30);
+  --glow-cron-selected: 0 0 36px rgba(0, 220, 130, 0.45);
+
+  --glow-process-rest:     0 0 10px rgba(56, 182, 255, 0.08);
+  --glow-process-hover:    0 0 18px rgba(56, 182, 255, 0.18);
+  --glow-process-selected: 0 0 28px rgba(56, 182, 255, 0.30);
+
+  --glow-decision-rest:     0 0 14px rgba(160, 100, 255, 0.15);
+  --glow-decision-hover:    0 0 24px rgba(160, 100, 255, 0.30);
+  --glow-decision-selected: 0 0 36px rgba(160, 100, 255, 0.45);
+
+  --glow-resource-rest:     0 0 12px rgba(0, 180, 180, 0.12);
+  --glow-resource-hover:    0 0 20px rgba(0, 180, 180, 0.25);
+  --glow-resource-selected: 0 0 30px rgba(0, 180, 180, 0.38);
+
+  --glow-trigger-rest:     0 0 14px rgba(255, 100, 120, 0.15);
+  --glow-trigger-hover:    0 0 24px rgba(255, 100, 120, 0.30);
+  --glow-trigger-selected: 0 0 36px rgba(255, 100, 120, 0.45);
 
   --node-handle-border: rgba(255, 255, 255, 0.3);
   --node-handle-bg: #334155;
@@ -111,7 +174,7 @@
 
   /* ── Palette: Slate Refined · Ocean Blue (light) ── */
 
-  /* Surfaces */
+  /* Surfaces — Current · Sky Blue / Slate base */
   --surface-primary: #f8fafc;
   --surface-raised: #ffffff;
   --surface-overlay: #f8fafc;
@@ -147,34 +210,97 @@
   --glow-idle: oklch(75% 0.04 210 / 0.4);
   --ping-border: oklch(42% 0.18 210 / 0.5);
 
-  /* Node colors (canvas shapes) */
-  --node-gray-border: rgba(148, 163, 184, 0.5);
-  --node-gray-bg: #ffffff;
-  --node-gray-text: #334155;
+  /* ── Node semantic color roles — Design Contract v1.0 (light) ── */
 
-  --node-blue-border: rgba(21, 101, 192, 0.28);
-  --node-blue-bg: #ffffff;
-  --node-blue-text: #0c4a6e;
+  /* Queue — Amber */
+  --node-queue-border: rgba(220, 130, 0, 0.45);
+  --node-queue-border-selected: #DC8200;
+  --node-queue-bg: #ffffff;
+  --node-queue-text: #92400e;
+  --node-queue-accent: #DC8200;
 
-  --node-green-border: rgba(22, 163, 74, 0.3);
-  --node-green-bg: #ffffff;
-  --node-green-text: #14532d;
+  /* Worker — Ocean blue */
+  --node-worker-border: rgba(0, 140, 240, 0.45);
+  --node-worker-border-selected: #008CF0;
+  --node-worker-bg: #ffffff;
+  --node-worker-text: #1e3a5f;
+  --node-worker-accent: #008CF0;
 
-  --node-yellow-border: rgba(245, 158, 11, 0.35);
-  --node-yellow-bg: #ffffff;
-  --node-yellow-text: #713f12;
+  /* Cron / Scheduler — Mint green */
+  --node-cron-border: rgba(0, 180, 100, 0.45);
+  --node-cron-border-selected: #00B464;
+  --node-cron-bg: #ffffff;
+  --node-cron-text: #14532d;
+  --node-cron-accent: #00B464;
 
-  --node-orange-border: rgba(234, 88, 12, 0.35);
-  --node-orange-bg: #ffffff;
-  --node-orange-text: #7c2d12;
+  /* Process — Muted blue */
+  --node-process-border: rgba(0, 140, 240, 0.20);
+  --node-process-border-selected: #4d7fa8;
+  --node-process-bg: #ffffff;
+  --node-process-text: #334155;
+  --node-process-accent: #4d7fa8;
 
-  --node-red-border: rgba(198, 40, 40, 0.3);
-  --node-red-bg: #ffffff;
-  --node-red-text: #7f1d1d;
+  /* Decision — Violet */
+  --node-decision-border: rgba(130, 70, 220, 0.45);
+  --node-decision-border-selected: #8246DC;
+  --node-decision-bg: #ffffff;
+  --node-decision-text: #4c1d95;
+  --node-decision-accent: #8246DC;
 
-  --node-purple-border: rgba(124, 58, 237, 0.3);
-  --node-purple-bg: #ffffff;
-  --node-purple-text: #3b0764;
+  /* Resource — Slate-teal */
+  --node-resource-border: rgba(0, 150, 150, 0.40);
+  --node-resource-border-selected: #009696;
+  --node-resource-bg: #ffffff;
+  --node-resource-text: #155e75;
+  --node-resource-accent: #009696;
+
+  /* Trigger — Coral rose */
+  --node-trigger-border: rgba(220, 60, 90, 0.45);
+  --node-trigger-border-selected: #DC3C5A;
+  --node-trigger-bg: #ffffff;
+  --node-trigger-text: #7c1d2d;
+  --node-trigger-accent: #DC3C5A;
+
+  /* Detail — Muted */
+  --node-detail-border: rgba(0, 0, 0, 0.10);
+  --node-detail-bg: #ffffff;
+  --node-detail-text: #475569;
+  --node-detail-accent: #94a3b8;
+
+  /* Group — Transparent container */
+  --node-group-border: rgba(0, 0, 0, 0.12);
+  --node-group-bg: transparent;
+  --node-group-text: #64748b;
+  --node-group-accent: #94a3b8;
+
+  /* ── Per-family glow tokens (light) ── */
+  --glow-queue-rest:     0 0 10px rgba(220, 130, 0, 0.10);
+  --glow-queue-hover:    0 0 18px rgba(220, 130, 0, 0.18);
+  --glow-queue-selected: 0 0 26px rgba(220, 130, 0, 0.25);
+
+  --glow-worker-rest:     0 0 10px rgba(0, 140, 240, 0.10);
+  --glow-worker-hover:    0 0 18px rgba(0, 140, 240, 0.18);
+  --glow-worker-selected: 0 0 26px rgba(0, 140, 240, 0.25);
+
+  --glow-cron-rest:     0 0 10px rgba(0, 180, 100, 0.10);
+  --glow-cron-hover:    0 0 18px rgba(0, 180, 100, 0.18);
+  --glow-cron-selected: 0 0 26px rgba(0, 180, 100, 0.25);
+
+  --glow-process-rest:     0 0 8px rgba(0, 140, 240, 0.06);
+  --glow-process-hover:    0 0 14px rgba(0, 140, 240, 0.12);
+  --glow-process-selected: 0 0 22px rgba(0, 140, 240, 0.20);
+
+  --glow-decision-rest:     0 0 10px rgba(130, 70, 220, 0.10);
+  --glow-decision-hover:    0 0 18px rgba(130, 70, 220, 0.18);
+  --glow-decision-selected: 0 0 26px rgba(130, 70, 220, 0.25);
+
+  --glow-resource-rest:     0 0 8px rgba(0, 150, 150, 0.08);
+  --glow-resource-hover:    0 0 16px rgba(0, 150, 150, 0.15);
+  --glow-resource-selected: 0 0 22px rgba(0, 150, 150, 0.22);
+
+  --glow-trigger-rest:     0 0 10px rgba(220, 60, 90, 0.10);
+  --glow-trigger-hover:    0 0 18px rgba(220, 60, 90, 0.18);
+  --glow-trigger-selected: 0 0 26px rgba(220, 60, 90, 0.25);
 
   --node-handle-border: rgba(0, 0, 0, 0.15);
   --node-handle-bg: #90caf9;
@@ -281,71 +407,525 @@ body[data-theme='light'] {
   }
 }
 
+/* ── Node transition — covers only shadow/border/background, never transform ── */
+
+.node-transition {
+  transition: box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+/* ── Node family classes — full depth stack per Design Contract v1.1 ── */
+/*
+ * Each family sets:
+ *   --node-accent           full-opacity family color (for SVG glow / selection)
+ *   --node-border-color     resting border (state-driven below)
+ *   --node-glow-rest        4-layer box-shadow: color glow + elevation + contact + rim
+ *   --node-glow-hover       same stack, deeper
+ *   --node-glow-selected    full stack + focus ring
+ *   background              linear-gradient surface (overrides flat bg-* Tailwind class)
+ */
+
+/* ── Queue — Amber ── */
+.node-family-queue {
+  --node-accent:       var(--node-queue-accent);
+  --node-border-color: var(--node-queue-border);
+  --node-glow-rest:
+    0 0 16px rgba(255, 168, 0, 0.18),
+    0 6px 20px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 168, 0, 0.12);
+  --node-glow-hover:
+    0 0 26px rgba(255, 168, 0, 0.32),
+    0 10px 28px rgba(0, 0, 0, 0.65),
+    0 3px 8px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(255, 168, 0, 0.20);
+  --node-glow-selected:
+    0 0 0 3px rgba(255, 168, 0, 0.22),
+    0 0 38px rgba(255, 168, 0, 0.48),
+    0 12px 32px rgba(0, 0, 0, 0.70),
+    0 3px 10px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 168, 0, 0.30);
+  background: linear-gradient(160deg, #1a0e00 0%, #110900 100%);
+}
+.react-flow__node:hover .node-family-queue { --node-border-color: rgba(255, 168, 0, 0.70); }
+.react-flow__node.selected .node-family-queue {
+  --node-border-color: #FFA800;
+  background: linear-gradient(160deg, #241200 0%, #180d00 100%);
+}
+
+/* ── Worker — Ocean Blue ── */
+.node-family-worker {
+  --node-accent:       var(--node-worker-accent);
+  --node-border-color: var(--node-worker-border);
+  --node-glow-rest:
+    0 0 16px rgba(56, 182, 255, 0.18),
+    0 6px 20px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(56, 182, 255, 0.12);
+  --node-glow-hover:
+    0 0 26px rgba(56, 182, 255, 0.32),
+    0 10px 28px rgba(0, 0, 0, 0.65),
+    0 3px 8px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(56, 182, 255, 0.20);
+  --node-glow-selected:
+    0 0 0 3px rgba(56, 182, 255, 0.22),
+    0 0 38px rgba(56, 182, 255, 0.48),
+    0 12px 32px rgba(0, 0, 0, 0.70),
+    0 3px 10px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(56, 182, 255, 0.30);
+  background: linear-gradient(160deg, #001428 0%, #000c1c 100%);
+}
+.react-flow__node:hover .node-family-worker { --node-border-color: rgba(56, 182, 255, 0.70); }
+.react-flow__node.selected .node-family-worker {
+  --node-border-color: #38B6FF;
+  background: linear-gradient(160deg, #001c38 0%, #001020 100%);
+}
+
+/* ── Cron / Scheduler — Mint Green ── */
+.node-family-cron {
+  --node-accent:       var(--node-cron-accent);
+  --node-border-color: var(--node-cron-border);
+  --node-glow-rest:
+    0 0 16px rgba(0, 220, 130, 0.18),
+    0 6px 20px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(0, 220, 130, 0.12);
+  --node-glow-hover:
+    0 0 26px rgba(0, 220, 130, 0.32),
+    0 10px 28px rgba(0, 0, 0, 0.65),
+    0 3px 8px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(0, 220, 130, 0.20);
+  --node-glow-selected:
+    0 0 0 3px rgba(0, 220, 130, 0.22),
+    0 0 38px rgba(0, 220, 130, 0.48),
+    0 12px 32px rgba(0, 0, 0, 0.70),
+    0 3px 10px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(0, 220, 130, 0.30);
+  background: linear-gradient(160deg, #001c10 0%, #001008 100%);
+}
+.react-flow__node:hover .node-family-cron { --node-border-color: rgba(0, 220, 130, 0.70); }
+.react-flow__node.selected .node-family-cron {
+  --node-border-color: #00DC82;
+  background: linear-gradient(160deg, #002818 0%, #001c10 100%);
+}
+
+/* ── Process — Muted Blue (same hue as worker, quieter) ── */
+.node-family-process {
+  --node-accent:       var(--node-process-accent);
+  --node-border-color: var(--node-process-border);
+  --node-glow-rest:
+    0 0 12px rgba(56, 182, 255, 0.10),
+    0 5px 16px rgba(0, 0, 0, 0.48),
+    0 2px 5px rgba(0, 0, 0, 0.30),
+    inset 0 1px 0 rgba(56, 182, 255, 0.07);
+  --node-glow-hover:
+    0 0 20px rgba(56, 182, 255, 0.22),
+    0 8px 22px rgba(0, 0, 0, 0.58),
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(56, 182, 255, 0.13);
+  --node-glow-selected:
+    0 0 0 3px rgba(56, 182, 255, 0.14),
+    0 0 30px rgba(56, 182, 255, 0.36),
+    0 10px 28px rgba(0, 0, 0, 0.65),
+    0 3px 8px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(56, 182, 255, 0.20);
+  background: linear-gradient(160deg, #001020 0%, #000a18 100%);
+}
+.react-flow__node:hover .node-family-process { --node-border-color: rgba(56, 182, 255, 0.45); }
+.react-flow__node.selected .node-family-process {
+  --node-border-color: #60a5fa;
+  background: linear-gradient(160deg, #001830 0%, #001020 100%);
+}
+
+/* ── Decision — Violet ── */
+.node-family-decision {
+  --node-accent:       var(--node-decision-accent);
+  --node-border-color: var(--node-decision-border);
+  --node-glow-rest:
+    0 0 16px rgba(160, 100, 255, 0.18),
+    0 6px 20px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(160, 100, 255, 0.12);
+  --node-glow-hover:
+    0 0 26px rgba(160, 100, 255, 0.32),
+    0 10px 28px rgba(0, 0, 0, 0.65),
+    0 3px 8px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(160, 100, 255, 0.20);
+  --node-glow-selected:
+    0 0 0 3px rgba(160, 100, 255, 0.22),
+    0 0 38px rgba(160, 100, 255, 0.48),
+    0 12px 32px rgba(0, 0, 0, 0.70),
+    0 3px 10px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(160, 100, 255, 0.30);
+  background: linear-gradient(160deg, #150028 0%, #0e001e 100%);
+}
+.react-flow__node:hover .node-family-decision { --node-border-color: rgba(160, 100, 255, 0.70); }
+.react-flow__node.selected .node-family-decision {
+  --node-border-color: #A064FF;
+  background: linear-gradient(160deg, #1e0038 0%, #140028 100%);
+}
+
+/* ── Resource — Slate-Teal (70% glow — context, not action) ── */
+.node-family-resource {
+  --node-accent:       var(--node-resource-accent);
+  --node-border-color: var(--node-resource-border);
+  --node-glow-rest:
+    0 0 16px rgba(0, 180, 180, 0.13),
+    0 6px 20px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(0, 180, 180, 0.08);
+  --node-glow-hover:
+    0 0 26px rgba(0, 180, 180, 0.22),
+    0 10px 28px rgba(0, 0, 0, 0.65),
+    0 3px 8px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(0, 180, 180, 0.14);
+  --node-glow-selected:
+    0 0 0 3px rgba(0, 180, 180, 0.15),
+    0 0 38px rgba(0, 180, 180, 0.34),
+    0 12px 32px rgba(0, 0, 0, 0.70),
+    0 3px 10px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(0, 180, 180, 0.21);
+  background: linear-gradient(160deg, #001c1c 0%, #001010 100%);
+}
+.react-flow__node:hover .node-family-resource { --node-border-color: rgba(0, 180, 180, 0.60); }
+.react-flow__node.selected .node-family-resource {
+  --node-border-color: #00B4B4;
+  background: linear-gradient(160deg, #002828 0%, #001c1c 100%);
+}
+
+/* ── Trigger — Coral Rose ── */
+.node-family-trigger {
+  --node-accent:       var(--node-trigger-accent);
+  --node-border-color: var(--node-trigger-border);
+  --node-glow-rest:
+    0 0 16px rgba(255, 100, 120, 0.18),
+    0 6px 20px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 100, 120, 0.12);
+  --node-glow-hover:
+    0 0 26px rgba(255, 100, 120, 0.32),
+    0 10px 28px rgba(0, 0, 0, 0.65),
+    0 3px 8px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(255, 100, 120, 0.20);
+  --node-glow-selected:
+    0 0 0 3px rgba(255, 100, 120, 0.22),
+    0 0 38px rgba(255, 100, 120, 0.48),
+    0 12px 32px rgba(0, 0, 0, 0.70),
+    0 3px 10px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 100, 120, 0.30);
+  background: linear-gradient(160deg, #220010 0%, #180008 100%);
+}
+.react-flow__node:hover .node-family-trigger { --node-border-color: rgba(255, 100, 120, 0.70); }
+.react-flow__node.selected .node-family-trigger {
+  --node-border-color: #FF6478;
+  background: linear-gradient(160deg, #2e0018 0%, #220010 100%);
+}
+
+/* ── Detail / Group — no glow, no gradient, no shadow ── */
+.node-family-detail {
+  --node-accent:       var(--node-detail-accent);
+  --node-border-color: var(--node-detail-border);
+  --node-glow-rest:    none;
+  --node-glow-hover:   none;
+  --node-glow-selected: none;
+}
+.node-family-group {
+  --node-accent:        var(--node-group-accent);
+  --node-border-color:  var(--node-group-border);
+  --node-glow-rest:     none;
+  --node-glow-hover:    none;
+  --node-glow-selected: none;
+}
+
+/* ── Light mode overrides for first-class families ── */
+
+:root[data-theme='light'] .node-family-queue {
+  --node-border-color: var(--node-queue-border);
+  --node-glow-rest:
+    0 0 0 3px rgba(220, 130, 0, 0.07),
+    0 0 14px rgba(220, 130, 0, 0.16),
+    0 6px 18px rgba(0, 0, 0, 0.10),
+    0 2px 5px rgba(0, 0, 0, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-hover:
+    0 0 0 3px rgba(220, 130, 0, 0.12),
+    0 0 22px rgba(220, 130, 0, 0.26),
+    0 10px 24px rgba(0, 0, 0, 0.13),
+    0 3px 7px rgba(0, 0, 0, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-selected:
+    0 0 0 4px rgba(220, 130, 0, 0.18),
+    0 0 30px rgba(220, 130, 0, 0.28),
+    0 12px 28px rgba(0, 0, 0, 0.15),
+    0 3px 8px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  background: linear-gradient(160deg, #fffdf7 0%, #fffbf0 100%);
+}
+:root[data-theme='light'] .react-flow__node:hover .node-family-queue { --node-border-color: rgba(220, 130, 0, 0.75); }
+:root[data-theme='light'] .react-flow__node.selected .node-family-queue {
+  --node-border-color: #DC8200;
+  background: linear-gradient(160deg, #fff8e8 0%, #fff3d4 100%);
+}
+
+:root[data-theme='light'] .node-family-worker {
+  --node-border-color: var(--node-worker-border);
+  --node-glow-rest:
+    0 0 0 3px rgba(0, 140, 240, 0.07),
+    0 0 14px rgba(0, 140, 240, 0.16),
+    0 6px 18px rgba(0, 0, 0, 0.10),
+    0 2px 5px rgba(0, 0, 0, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-hover:
+    0 0 0 3px rgba(0, 140, 240, 0.12),
+    0 0 22px rgba(0, 140, 240, 0.26),
+    0 10px 24px rgba(0, 0, 0, 0.13),
+    0 3px 7px rgba(0, 0, 0, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-selected:
+    0 0 0 4px rgba(0, 140, 240, 0.18),
+    0 0 30px rgba(0, 140, 240, 0.28),
+    0 12px 28px rgba(0, 0, 0, 0.15),
+    0 3px 8px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  background: linear-gradient(160deg, #f8fbff 0%, #f0f7ff 100%);
+}
+:root[data-theme='light'] .react-flow__node:hover .node-family-worker { --node-border-color: rgba(0, 140, 240, 0.75); }
+:root[data-theme='light'] .react-flow__node.selected .node-family-worker {
+  --node-border-color: #008CF0;
+  background: linear-gradient(160deg, #eef6ff 0%, #ddeeff 100%);
+}
+
+:root[data-theme='light'] .node-family-cron {
+  --node-border-color: var(--node-cron-border);
+  --node-glow-rest:
+    0 0 0 3px rgba(0, 180, 100, 0.07),
+    0 0 14px rgba(0, 180, 100, 0.16),
+    0 6px 18px rgba(0, 0, 0, 0.10),
+    0 2px 5px rgba(0, 0, 0, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-hover:
+    0 0 0 3px rgba(0, 180, 100, 0.12),
+    0 0 22px rgba(0, 180, 100, 0.26),
+    0 10px 24px rgba(0, 0, 0, 0.13),
+    0 3px 7px rgba(0, 0, 0, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-selected:
+    0 0 0 4px rgba(0, 180, 100, 0.18),
+    0 0 30px rgba(0, 180, 100, 0.28),
+    0 12px 28px rgba(0, 0, 0, 0.15),
+    0 3px 8px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  background: linear-gradient(160deg, #f5fff9 0%, #edfff4 100%);
+}
+:root[data-theme='light'] .react-flow__node:hover .node-family-cron { --node-border-color: rgba(0, 180, 100, 0.75); }
+:root[data-theme='light'] .react-flow__node.selected .node-family-cron {
+  --node-border-color: #00B464;
+  background: linear-gradient(160deg, #eafff3 0%, #d5ffe9 100%);
+}
+
+:root[data-theme='light'] .node-family-process {
+  --node-border-color: var(--node-process-border);
+  --node-glow-rest:
+    0 0 0 2px rgba(0, 140, 240, 0.05),
+    0 0 10px rgba(0, 140, 240, 0.10),
+    0 5px 14px rgba(0, 0, 0, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-hover:
+    0 0 0 2px rgba(0, 140, 240, 0.08),
+    0 0 16px rgba(0, 140, 240, 0.18),
+    0 8px 20px rgba(0, 0, 0, 0.11),
+    0 2px 6px rgba(0, 0, 0, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-selected:
+    0 0 0 3px rgba(0, 140, 240, 0.12),
+    0 0 22px rgba(0, 140, 240, 0.20),
+    0 10px 24px rgba(0, 0, 0, 0.13),
+    0 3px 7px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  background: linear-gradient(160deg, #f7fbff 0%, #f0f6ff 100%);
+}
+:root[data-theme='light'] .react-flow__node:hover .node-family-process { --node-border-color: rgba(0, 140, 240, 0.35); }
+:root[data-theme='light'] .react-flow__node.selected .node-family-process {
+  --node-border-color: #4d7fa8;
+  background: linear-gradient(160deg, #e8f4ff 0%, #d5eaff 100%);
+}
+
+:root[data-theme='light'] .node-family-decision {
+  --node-border-color: var(--node-decision-border);
+  --node-glow-rest:
+    0 0 0 3px rgba(130, 70, 220, 0.07),
+    0 0 14px rgba(130, 70, 220, 0.16),
+    0 6px 18px rgba(0, 0, 0, 0.10),
+    0 2px 5px rgba(0, 0, 0, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-hover:
+    0 0 0 3px rgba(130, 70, 220, 0.12),
+    0 0 22px rgba(130, 70, 220, 0.26),
+    0 10px 24px rgba(0, 0, 0, 0.13),
+    0 3px 7px rgba(0, 0, 0, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-selected:
+    0 0 0 4px rgba(130, 70, 220, 0.18),
+    0 0 30px rgba(130, 70, 220, 0.28),
+    0 12px 28px rgba(0, 0, 0, 0.15),
+    0 3px 8px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  background: linear-gradient(160deg, #faf7ff 0%, #f4eeff 100%);
+}
+:root[data-theme='light'] .react-flow__node:hover .node-family-decision { --node-border-color: rgba(130, 70, 220, 0.75); }
+:root[data-theme='light'] .react-flow__node.selected .node-family-decision {
+  --node-border-color: #8246DC;
+  background: linear-gradient(160deg, #f2e8ff 0%, #e8d5ff 100%);
+}
+
+:root[data-theme='light'] .node-family-resource {
+  --node-border-color: var(--node-resource-border);
+  --node-glow-rest:
+    0 0 0 2px rgba(0, 150, 150, 0.05),
+    0 0 10px rgba(0, 150, 150, 0.11),
+    0 6px 18px rgba(0, 0, 0, 0.10),
+    0 2px 5px rgba(0, 0, 0, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-hover:
+    0 0 0 2px rgba(0, 150, 150, 0.08),
+    0 0 15px rgba(0, 150, 150, 0.18),
+    0 10px 24px rgba(0, 0, 0, 0.13),
+    0 3px 7px rgba(0, 0, 0, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-selected:
+    0 0 0 3px rgba(0, 150, 150, 0.13),
+    0 0 21px rgba(0, 150, 150, 0.20),
+    0 12px 28px rgba(0, 0, 0, 0.15),
+    0 3px 8px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  background: linear-gradient(160deg, #f5fffe 0%, #edfcfc 100%);
+}
+:root[data-theme='light'] .react-flow__node:hover .node-family-resource { --node-border-color: rgba(0, 150, 150, 0.65); }
+:root[data-theme='light'] .react-flow__node.selected .node-family-resource {
+  --node-border-color: #009696;
+  background: linear-gradient(160deg, #e5ffff 0%, #d0fefe 100%);
+}
+
+:root[data-theme='light'] .node-family-trigger {
+  --node-border-color: var(--node-trigger-border);
+  --node-glow-rest:
+    0 0 0 3px rgba(220, 60, 90, 0.07),
+    0 0 14px rgba(220, 60, 90, 0.16),
+    0 6px 18px rgba(0, 0, 0, 0.10),
+    0 2px 5px rgba(0, 0, 0, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-hover:
+    0 0 0 3px rgba(220, 60, 90, 0.12),
+    0 0 22px rgba(220, 60, 90, 0.26),
+    0 10px 24px rgba(0, 0, 0, 0.13),
+    0 3px 7px rgba(0, 0, 0, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --node-glow-selected:
+    0 0 0 4px rgba(220, 60, 90, 0.18),
+    0 0 30px rgba(220, 60, 90, 0.28),
+    0 12px 28px rgba(0, 0, 0, 0.15),
+    0 3px 8px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  background: linear-gradient(160deg, #fff5f7 0%, #ffecef 100%);
+}
+:root[data-theme='light'] .react-flow__node:hover .node-family-trigger { --node-border-color: rgba(220, 60, 90, 0.75); }
+:root[data-theme='light'] .react-flow__node.selected .node-family-trigger {
+  --node-border-color: #DC3C5A;
+  background: linear-gradient(160deg, #ffe8ec 0%, #ffd5db 100%);
+}
+
+:root[data-theme='light'] .node-family-detail { --node-border-color: var(--node-detail-border); }
+:root[data-theme='light'] .node-family-group  { --node-border-color: var(--node-group-border); }
+
+/* ── Node glow classes ── */
+
 .node-glow-idle {
-  box-shadow: 0 0 0 1px var(--glow-idle);
-  transition: box-shadow 600ms ease-out;
+  box-shadow: var(--node-glow-rest, none);
+  transition: box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
+.react-flow__node:hover .node-glow-idle {
+  box-shadow: var(--node-glow-hover, none);
+}
+
+/* Active/running: selected-intensity glow */
 .node-glow-active {
-  box-shadow:
-    0 0 0 1.5px var(--glow-active),
-    0 0 10px 2px color-mix(in oklch, var(--glow-active), transparent 50%),
-    0 0 24px 6px color-mix(in oklch, var(--glow-active), transparent 75%);
-  transition: box-shadow 300ms ease-out;
+  box-shadow: var(--node-glow-selected, none);
+  transition: box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
+/* Success: transient green bloom with elevation */
 .node-glow-success {
   box-shadow:
-    0 0 0 1.5px var(--glow-success),
-    0 0 10px 2px color-mix(in oklch, var(--glow-success), transparent 50%),
-    0 0 24px 6px color-mix(in oklch, var(--glow-success), transparent 75%);
+    0 0 24px rgba(0, 220, 130, 0.35),
+    0 6px 20px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(0, 220, 130, 0.18);
   transition: box-shadow 300ms ease-out;
 }
 
+/* Error: full red override — semantic color suppressed, elevation preserved */
 .node-glow-error {
   box-shadow:
-    0 0 0 1.5px var(--glow-error),
-    0 0 10px 2px color-mix(in oklch, var(--glow-error), transparent 50%),
-    0 0 24px 6px color-mix(in oklch, var(--glow-error), transparent 75%);
-  transition: box-shadow 300ms ease-out;
+    0 0 0 2px rgba(255, 68, 68, 0.30),
+    0 0 28px rgba(255, 68, 68, 0.45),
+    0 6px 20px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 68, 68, 0.15);
+  transition: box-shadow 160ms ease;
+}
+:root[data-theme='light'] .node-glow-error {
+  box-shadow:
+    0 0 0 2px rgba(204, 34, 34, 0.15),
+    0 0 20px rgba(204, 34, 34, 0.25),
+    0 6px 18px rgba(0, 0, 0, 0.10),
+    0 2px 5px rgba(0, 0, 0, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
-.node-ping-active {
-  position: relative;
-}
-
-.node-ping-active::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  border: 1.5px solid var(--ping-border);
-  animation: nodePing 600ms ease-out forwards;
-  pointer-events: none;
-}
-
-/* Suppress React Flow's default rectangular selection box-shadow on the wrapper */
+/* Suppress React Flow's default selection box-shadow */
 .react-flow__node.selected {
   --xy-node-boxshadow-selected-default: none;
 }
 
-/* Apply selection glow to the inner shaped element instead */
-.react-flow__node.selected [class*='node-glow']:not(.node-glow-svg) {
-  box-shadow:
-    0 0 0 1.5px var(--color-active),
-    0 0 8px 1px color-mix(in oklch, var(--color-active), transparent 55%),
-    0 0 20px 4px color-mix(in oklch, var(--color-active), transparent 80%) !important;
+/* Selected: full depth stack from --node-glow-selected (includes focus ring) */
+.react-flow__node.selected .node-glow-idle:not(.node-glow-svg),
+.react-flow__node.selected .node-glow-active:not(.node-glow-svg) {
+  box-shadow: var(--node-glow-selected) !important;
   transition: box-shadow 0ms !important;
 }
 
-/* SVG nodes: box-shadow is always rectangular, so suppress it and use drop-shadow */
-.node-glow-svg {
-  box-shadow: none !important;
+/* Role tag: 100% opacity when node is selected */
+.react-flow__node.selected .node-role-tag {
+  opacity: 1 !important;
 }
 
+/* SVG nodes: box-shadow is always rectangular — use drop-shadow filter instead */
+.node-glow-svg {
+  box-shadow: none !important;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--node-accent, #38B6FF), transparent 78%));
+  transition: filter 160ms ease;
+}
+.react-flow__node:hover .node-glow-svg {
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--node-accent, #38B6FF), transparent 60%));
+}
 .react-flow__node.selected .node-glow-svg {
-  filter: drop-shadow(0 0 3px var(--color-active)) drop-shadow(0 0 8px var(--color-active)) !important;
+  filter:
+    drop-shadow(0 0 3px var(--node-accent, #38B6FF))
+    drop-shadow(0 0 10px var(--node-accent, #38B6FF)) !important;
   transition: filter 0ms !important;
+}
+
+/* Active pulse: dot only, gate on prefers-reduced-motion */
+@media (prefers-reduced-motion: no-preference) {
+  .node-dot-pulse {
+    animation: nodeDotPulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes nodeDotPulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1.0; }
 }
 
 .react-flow.pointer-mode .react-flow__pane,

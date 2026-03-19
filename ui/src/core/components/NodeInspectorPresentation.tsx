@@ -1,10 +1,27 @@
 import type { ReactNode } from 'react'
 
 import { NodeStatusBadge } from './NodeStatusBadge'
-import type { FlowNodeConfig } from '../types'
+import type { FlowNodeConfig, NodeSemanticRole } from '../types'
 import type { NodeDetailStatus } from './NodeDetailPanel'
 
+const semanticRoleLabels: Record<NodeSemanticRole, string | null> = {
+  trigger: 'Trigger',
+  queue: 'Queue',
+  worker: 'Worker',
+  scheduler: 'Scheduler',
+  process: 'Process',
+  decision: 'Decision',
+  resource: 'Store',
+  detail: 'Detail',
+  group: null,
+  note: null,
+}
+
 function resolveNodeRole(node: FlowNodeConfig): string | null {
+  if (node.semanticRole) {
+    return semanticRoleLabels[node.semanticRole]
+  }
+
   if (node.style?.icon === 'worker') {
     return 'Worker'
   }
@@ -20,10 +37,6 @@ function resolveNodeRole(node: FlowNodeConfig): string | null {
   if (node.type === 'cylinder') {
     return 'Store'
   }
-  if (node.type === 'badge') {
-    return 'Step'
-  }
-
   const sublabel = node.sublabel?.trim()
   if (!sublabel) {
     return null

@@ -1,9 +1,10 @@
 import type { Edge, Node } from '@xyflow/react'
 
-import type { LogEntry, NodeHandleConfig, NodeRuntimeStatus, NodeStyle } from '../types'
+import type { LogEntry, NodeHandleConfig, NodeRuntimeStatus, NodeSemanticRole, NodeStyle } from '../types'
 
 export interface FlowNodeData extends Record<string, unknown> {
   label: string
+  semanticRole?: NodeSemanticRole
   sublabel?: string
   bullets?: string[]
   style?: NodeStyle

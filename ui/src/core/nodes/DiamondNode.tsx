@@ -1,6 +1,5 @@
 import type { NodeProps } from '@xyflow/react'
 
-import { NodeStatusBadge } from '../components/NodeStatusBadge'
 import { nodeContainerClass, renderHandles } from './nodePrimitives'
 import type { FlowNode } from './types'
 
@@ -19,18 +18,13 @@ export function DiamondNode({ id, data }: NodeProps<FlowNode>) {
       {renderHandles(id, data.handles, [...defaultHandles])}
       <div
         className={`${nodeContainerClass({
-          color: data.style?.color,
+          color: data.style?.color ?? 'decision',
           status,
           borderStyle: data.style?.borderStyle,
         })} flex h-full w-full rotate-45 items-center justify-center`}
       >
-        <div className="flex -rotate-45 flex-col items-center gap-1 px-2 text-center">
-          <NodeStatusBadge
-            status={status}
-            durationMs={data.status?.durationMs}
-            durationVisibleUntil={data.status?.durationVisibleUntil}
-          />
-          <p className="text-[11px] font-semibold leading-tight">{data.label}</p>
+        <div className="-rotate-45 px-2 text-center">
+          <p className="text-[11px] font-medium leading-tight">{data.label}</p>
         </div>
       </div>
     </div>

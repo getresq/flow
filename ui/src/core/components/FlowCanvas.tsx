@@ -160,6 +160,7 @@ function mapFlowNodes(
       draggable: node.draggable ?? defaultDraggable,
       data: {
         label: node.label,
+        semanticRole: node.semanticRole,
         sublabel: node.sublabel,
         bullets: node.bullets,
         style: node.style,

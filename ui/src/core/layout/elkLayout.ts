@@ -7,13 +7,13 @@ const elk = new ELK()
 const EXCLUDED_SHAPES = new Set<string>(['annotation', 'group'])
 
 const shapeDimensions: Record<string, { width: number; height: number }> = {
-  rectangle: { width: 200, height: 50 },
-  roundedRect: { width: 200, height: 50 },
-  diamond: { width: 128, height: 128 },
+  rectangle: { width: 248, height: 64 },
+  roundedRect: { width: 248, height: 64 },
+  diamond: { width: 144, height: 144 },
   circle: { width: 112, height: 112 },
-  cylinder: { width: 96, height: 112 },
-  pill: { width: 180, height: 36 },
-  badge: { width: 160, height: 32 },
+  cylinder: { width: 112, height: 128 },
+  pill: { width: 240, height: 44 },
+  badge: { width: 220, height: 52 },
   octagon: { width: 160, height: 70 },
 }
 
