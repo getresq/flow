@@ -34,6 +34,7 @@ interface LogRowData {
   executionId?: string
   timestamp: string
   nodeLabel: string
+  nodeId?: string
   message: string
   entry: LogEntry
 }
@@ -63,7 +64,8 @@ export function LogsTable({
         executionId: entry.runId ?? entry.traceId,
         timestamp: entry.timestamp,
         nodeLabel: entry.nodeId ? nodeLabels.get(entry.nodeId) ?? entry.nodeId : '—',
-        message: entry.stageId ? `${entry.stageId}: ${entry.message}` : entry.message,
+        nodeId: entry.nodeId,
+        message: (entry.stageName ?? entry.stageId) ? `${entry.stageName ?? entry.stageId}: ${entry.message}` : entry.message,
         entry,
       })),
     [logs, nodeLabels],
@@ -95,7 +97,12 @@ export function LogsTable({
         accessorKey: 'nodeLabel',
         header: 'Node',
         cell: ({ row }) => (
-          <span className="truncate text-[var(--text-secondary)]">{row.original.nodeLabel}</span>
+          <div className="min-w-0">
+            <div className="truncate text-[var(--text-secondary)]">{row.original.nodeLabel}</div>
+            {row.original.nodeId && row.original.nodeId !== row.original.nodeLabel ? (
+              <div className="truncate font-mono text-[11px] text-[var(--text-muted)]">{row.original.nodeId}</div>
+            ) : null}
+          </div>
         ),
       },
       {

@@ -181,6 +181,74 @@ describe('useFlowAnimations', () => {
     })
   })
 
+  it('animates recompute stages on the shared extract-worker lane', async () => {
+    const start: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-03T12:00:00.000Z',
+      trace_id: 'trace-recompute-1',
+      span_id: 'log-r1',
+      attributes: {
+        component_id: 'recompute-worker',
+        function_name: 'handle_mail_recompute_opportunities',
+        stage_id: 'recompute.started',
+      },
+    }
+
+    const end: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-03T12:00:00.500Z',
+      trace_id: 'trace-recompute-1',
+      span_id: 'log-r2',
+      duration_ms: 500,
+      attributes: {
+        component_id: 'recompute-worker',
+        function_name: 'handle_mail_recompute_opportunities',
+        stage_id: 'recompute.final_result',
+        status: 'ok',
+      },
+    }
+
+    const { result, rerender } = renderHook(
+      ({ events }) =>
+        useFlowAnimations({
+          events,
+          spanMapping: mailPipelineFlow.spanMapping,
+          producerMapping: mailPipelineFlow.producerMapping,
+          edges: mailPipelineFlow.edges,
+          timings: {
+            nodeSuccessResetMs: 30,
+            nodePulseResetMs: 30,
+            durationVisibleMs: 50,
+            edgeActiveMs: 30,
+          },
+        }),
+      {
+        initialProps: { events: [] as FlowEvent[] },
+      },
+    )
+
+    act(() => {
+      rerender({ events: [start] })
+    })
+
+    expect(result.current.nodeStatuses.get('extract-worker')?.status).toBe('active')
+
+    act(() => {
+      rerender({ events: [start, end] })
+    })
+
+    const status = result.current.nodeStatuses.get('extract-worker')
+    expect(status?.status).toBe('active')
+
+    await act(async () => {
+      await sleep(50)
+    })
+
+    await waitFor(() => {
+      expect(result.current.nodeStatuses.get('extract-worker')?.status).toBe('idle')
+    })
+  })
+
   it('increments queue counter on enqueue and decrements on worker pickup', async () => {
     const enqueueEvent: FlowEvent = {
       type: 'log',
@@ -329,7 +397,6 @@ describe('useFlowAnimations', () => {
     await waitFor(() => {
       expect(result.current.nodeStatuses.get('send-queue')?.status).toBe('active')
       expect(result.current.activeEdges.has('e-draft-autosend')).toBe(true)
-      expect(result.current.activeEdges.has('e-autosend-actions')).toBe(true)
       expect(result.current.activeEdges.has('e-actions-send')).toBe(true)
     })
   })

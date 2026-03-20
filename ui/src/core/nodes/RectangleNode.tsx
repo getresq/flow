@@ -13,7 +13,13 @@ export function RectangleNode({ id, data }: NodeProps<FlowNode>) {
   const status = data.status?.status
 
   return (
-    <div className={nodeContainerClass({ color: data.style?.color, status, borderStyle: data.style?.borderStyle })}>
+    <div
+      className={`${nodeContainerClass({
+        color: data.style?.color,
+        status,
+        borderStyle: data.style?.borderStyle,
+      })} rounded-xl`}
+    >
       {renderHandles(id, data.handles, [...defaultHandles])}
       <StandardNodeContent data={data} />
     </div>

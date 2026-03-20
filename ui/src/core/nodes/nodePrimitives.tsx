@@ -11,47 +11,59 @@ const positionMap: Record<HandlePosition, Position> = {
 }
 
 const colorMap: Record<string, { border: string; bg: string; text: string; glow: string }> = {
-  gray: {
-    border: 'border-[var(--node-gray-border)]',
-    bg: 'bg-[var(--node-gray-bg)]',
-    text: 'text-[var(--node-gray-text)]',
-    glow: '',
+  queue: {
+    border: 'border-[var(--node-border-color)]',
+    bg: 'bg-[var(--node-queue-bg)]',
+    text: 'text-[var(--node-queue-text)]',
+    glow: 'node-family-queue',
   },
-  blue: {
-    border: 'border-[var(--node-blue-border)]',
-    bg: 'bg-[var(--node-blue-bg)]',
-    text: 'text-[var(--node-blue-text)]',
-    glow: '',
+  worker: {
+    border: 'border-[var(--node-border-color)]',
+    bg: 'bg-[var(--node-worker-bg)]',
+    text: 'text-[var(--node-worker-text)]',
+    glow: 'node-family-worker',
   },
-  green: {
-    border: 'border-[var(--node-green-border)]',
-    bg: 'bg-[var(--node-green-bg)]',
-    text: 'text-[var(--node-green-text)]',
-    glow: '',
+  cron: {
+    border: 'border-[var(--node-border-color)]',
+    bg: 'bg-[var(--node-cron-bg)]',
+    text: 'text-[var(--node-cron-text)]',
+    glow: 'node-family-cron',
   },
-  yellow: {
-    border: 'border-[var(--node-yellow-border)]',
-    bg: 'bg-[var(--node-yellow-bg)]',
-    text: 'text-[var(--node-yellow-text)]',
-    glow: '',
+  process: {
+    border: 'border-[var(--node-border-color)]',
+    bg: 'bg-[var(--node-process-bg)]',
+    text: 'text-[var(--node-process-text)]',
+    glow: 'node-family-process',
   },
-  orange: {
-    border: 'border-[var(--node-orange-border)]',
-    bg: 'bg-[var(--node-orange-bg)]',
-    text: 'text-[var(--node-orange-text)]',
-    glow: '',
+  decision: {
+    border: 'border-[var(--node-border-color)]',
+    bg: 'bg-[var(--node-decision-bg)]',
+    text: 'text-[var(--node-decision-text)]',
+    glow: 'node-family-decision',
   },
-  red: {
-    border: 'border-[var(--node-red-border)]',
-    bg: 'bg-[var(--node-red-bg)]',
-    text: 'text-[var(--node-red-text)]',
-    glow: '',
+  resource: {
+    border: 'border-[var(--node-border-color)]',
+    bg: 'bg-[var(--node-resource-bg)]',
+    text: 'text-[var(--node-resource-text)]',
+    glow: 'node-family-resource',
   },
-  purple: {
-    border: 'border-[var(--node-purple-border)]',
-    bg: 'bg-[var(--node-purple-bg)]',
-    text: 'text-[var(--node-purple-text)]',
-    glow: '',
+  trigger: {
+    border: 'border-[var(--node-border-color)]',
+    bg: 'bg-[var(--node-trigger-bg)]',
+    text: 'text-[var(--node-trigger-text)]',
+    glow: 'node-family-trigger',
+  },
+  detail: {
+    border: 'border-[var(--node-detail-border)]',
+    bg: 'bg-[var(--node-detail-bg)]',
+    text: 'text-[var(--node-detail-text)]',
+    glow: 'node-family-detail',
+  },
+  group: {
+    border: 'border-[var(--node-group-border)]',
+    bg: 'bg-[var(--node-group-bg)]',
+    text: 'text-[var(--node-group-text)]',
+    glow: 'node-family-group',
   },
 }
 
@@ -68,10 +80,30 @@ const iconMap: Record<string, string> = {
 
 export function resolveTone(color: string | undefined) {
   if (!color) {
-    return colorMap.gray
+    return colorMap.detail
   }
 
-  return colorMap[color] ?? colorMap.gray
+  return colorMap[color] ?? colorMap.detail
+}
+
+const svgColorMap: Record<string, { fill: string; stroke: string; accent: string }> = {
+  queue:    { fill: 'var(--node-queue-bg)',    stroke: 'var(--node-queue-text)',    accent: 'var(--node-queue-accent)' },
+  worker:   { fill: 'var(--node-worker-bg)',   stroke: 'var(--node-worker-text)',   accent: 'var(--node-worker-accent)' },
+  cron:     { fill: 'var(--node-cron-bg)',     stroke: 'var(--node-cron-text)',     accent: 'var(--node-cron-accent)' },
+  process:  { fill: 'var(--node-process-bg)',  stroke: 'var(--node-process-text)',  accent: 'var(--node-process-accent)' },
+  decision: { fill: 'var(--node-decision-bg)', stroke: 'var(--node-decision-text)', accent: 'var(--node-decision-accent)' },
+  resource: { fill: 'var(--node-resource-bg)', stroke: 'var(--node-resource-text)', accent: 'var(--node-resource-accent)' },
+  trigger:  { fill: 'var(--node-trigger-bg)',  stroke: 'var(--node-trigger-text)',  accent: 'var(--node-trigger-accent)' },
+  detail:   { fill: 'var(--node-detail-bg)',   stroke: 'var(--node-detail-text)',   accent: 'var(--node-detail-accent)' },
+  group:    { fill: 'var(--node-group-bg)',     stroke: 'var(--node-group-text)',    accent: 'var(--node-group-accent)' },
+}
+
+export function resolveSvgTone(color: string | undefined) {
+  if (!color) {
+    return svgColorMap.detail
+  }
+
+  return svgColorMap[color] ?? svgColorMap.detail
 }
 
 export function resolveIcon(icon: string | undefined): string | null {
@@ -149,6 +181,8 @@ export function renderHandles(
   })
 }
 
+const firstClassColors = new Set(['queue', 'worker', 'cron', 'process', 'trigger', 'decision', 'resource'])
+
 export function nodeContainerClass({
   color,
   status,
@@ -159,9 +193,11 @@ export function nodeContainerClass({
   borderStyle?: 'solid' | 'dashed'
 }) {
   const tone = resolveTone(color)
+  const isFirstClass = color ? firstClassColors.has(color) : false
 
   return clsx(
-    'border text-[11px] transition-all duration-300',
+    isFirstClass ? 'border-[1.5px]' : 'border-[0.5px]',
+    'text-[11px] node-transition',
     tone.border,
     tone.bg,
     tone.text,

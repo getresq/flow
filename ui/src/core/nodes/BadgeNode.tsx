@@ -1,6 +1,5 @@
 import type { NodeProps } from '@xyflow/react'
 
-import { NodeStatusBadge } from '../components/NodeStatusBadge'
 import { nodeContainerClass, renderHandles } from './nodePrimitives'
 import type { FlowNode } from './types'
 
@@ -15,16 +14,13 @@ export function BadgeNode({ id, data }: NodeProps<FlowNode>) {
   return (
     <div
       className={`${nodeContainerClass({
-        color: data.style?.color,
+        color: data.style?.color ?? 'detail',
         status,
         borderStyle: data.style?.borderStyle,
       })} relative rounded-md px-2.5 py-1.5`}
     >
       {renderHandles(id, data.handles, [...defaultHandles])}
-      <div className="flex items-center gap-2">
-        <p className="text-[10px] font-semibold leading-tight">{data.label}</p>
-        <NodeStatusBadge status={status} />
-      </div>
+      <p className="truncate text-[11px] leading-tight opacity-80">{data.label}</p>
     </div>
   )
 }

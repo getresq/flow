@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react'
 
 import {
+  Badge,
   Card,
   CardContent,
   CardDescription,
@@ -15,7 +16,8 @@ import {
 
 import { DurationBadge } from './DurationBadge'
 import { PanelSkeleton } from './PanelSkeleton'
-import type { LogEntry, NodeStatus, SpanEntry } from '../types'
+import { isDefaultVisibleLogEntry } from '../telemetryClassification'
+import type { FlowNodeConfig, LogEntry, NodeStatus, SpanEntry } from '../types'
 
 export interface NodeDetailStatus {
   status: NodeStatus
@@ -24,6 +26,7 @@ export interface NodeDetailStatus {
 }
 
 interface NodeDetailContentProps {
+  node: FlowNodeConfig
   status?: NodeDetailStatus
   logs: LogEntry[]
   spans: SpanEntry[]
@@ -137,12 +140,18 @@ function insightIcon(tone: InsightTone) {
   return <Info className="mt-0.5 size-4 shrink-0 text-[var(--text-muted)]" />
 }
 
-export function NodeDetailContent({ status, logs, spans }: NodeDetailContentProps) {
+export function NodeDetailContent({ node, status, logs, spans }: NodeDetailContentProps) {
   const [tab, setTab] = useState<TabKey>('overview')
+  const showTimingTab = new Set(['queue', 'worker', 'scheduler', 'process', 'decision']).has(node.semanticRole ?? '')
+  const showRuntimeCards = new Set(['queue', 'worker', 'scheduler', 'process', 'decision']).has(node.semanticRole ?? '')
 
   const sortedLogs = useMemo(
     () => [...logs].sort((left, right) => parseIsoTime(right.timestamp) - parseIsoTime(left.timestamp)),
     [logs],
+  )
+  const defaultVisibleLogs = useMemo(
+    () => sortedLogs.filter((entry) => isDefaultVisibleLogEntry(entry)),
+    [sortedLogs],
   )
 
   const sortedSpans = useMemo(
@@ -183,6 +192,15 @@ export function NodeDetailContent({ status, logs, spans }: NodeDetailContentProp
     latestSpan ? spanSortTime(latestSpan) : 0,
   )
   const lastSeenLabel = formatRelativeTime(lastSeenTimestamp)
+  const latestExecutionId = latestSpan?.runId ?? latestSpan?.traceId ?? latestLog?.runId ?? latestLog?.traceId
+  const recentActivity = useMemo(() => {
+    const runScoped = latestExecutionId
+      ? defaultVisibleLogs.filter((entry) => (entry.runId ?? entry.traceId) === latestExecutionId)
+      : defaultVisibleLogs
+
+    const source = runScoped.length > 0 ? runScoped : defaultVisibleLogs
+    return source.slice(0, 5)
+  }, [defaultVisibleLogs, latestExecutionId])
 
   const insights = useMemo(() => {
     const items: InsightItem[] = []
@@ -253,33 +271,35 @@ export function NodeDetailContent({ status, logs, spans }: NodeDetailContentProp
       <div className="border-b border-[var(--border-default)] px-4 py-3">
         <TabsList className="border-0">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="timing">Timing</TabsTrigger>
+          {showTimingTab ? <TabsTrigger value="timing">Timing</TabsTrigger> : null}
         </TabsList>
       </div>
 
       <TabsContent value="overview" className="mt-0 min-h-0 flex-1 pt-0">
         <ScrollArea className="h-full">
           <div className="space-y-4 px-4 py-3">
-            <section className="grid grid-cols-2 gap-3">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Latest Run</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-semibold text-[var(--text-primary)]">
-                    {formatDurationText(latestSpan?.durationMs) ?? 'None yet'}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Last Seen</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-semibold text-[var(--text-primary)]">{lastSeenLabel ?? 'Waiting'}</p>
-                </CardContent>
-              </Card>
-            </section>
+            {showRuntimeCards ? (
+              <section className="grid grid-cols-2 gap-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Latest Run</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-semibold text-[var(--text-primary)]">
+                      {formatDurationText(latestSpan?.durationMs) ?? 'None yet'}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Last Seen</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-semibold text-[var(--text-primary)]">{lastSeenLabel ?? 'Waiting'}</p>
+                  </CardContent>
+                </Card>
+              </section>
+            ) : null}
 
             {insights.length > 0 ? (
               <section className="space-y-2">
@@ -295,11 +315,44 @@ export function NodeDetailContent({ status, logs, spans }: NodeDetailContentProp
                 ))}
               </section>
             ) : null}
+
+            <section className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Recent Activity</h3>
+                {latestExecutionId ? (
+                  <span className="truncate text-xs text-[var(--text-muted)]">latest run {latestExecutionId.slice(0, 12)}…</span>
+                ) : null}
+              </div>
+              {recentActivity.length === 0 ? (
+                <Card>
+                  <CardContent className="p-3">
+                    <p className="text-sm leading-6 text-[var(--text-secondary)]">
+                      No meaningful activity has been surfaced for this node yet.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                recentActivity.map((entry, index) => (
+                  <Card key={`${entry.timestamp}-${entry.message}-${index}`}>
+                    <CardContent className="space-y-2 p-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant={entry.signal === 'critical' ? 'warning' : 'secondary'}>
+                          {entry.signal}
+                        </Badge>
+                        <span className="text-xs text-[var(--text-muted)]">{formatRelativeTime(parseIsoTime(entry.timestamp)) ?? 'just now'}</span>
+                        <DurationBadge className="ml-auto" durationMs={entry.durationMs} />
+                      </div>
+                      <p className="text-sm leading-6 text-[var(--text-primary)]">{entry.stageId ? `${entry.stageId}: ${entry.message}` : entry.message}</p>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </section>
           </div>
         </ScrollArea>
       </TabsContent>
 
-      <TabsContent value="timing" className="mt-0 min-h-0 flex-1 pt-0">
+      <TabsContent value="timing" className="mt-0 min-h-0 flex-1 pt-0" hidden={!showTimingTab}>
         <ScrollArea className="h-full">
           <div className="space-y-4 px-4 py-3">
             <Card>

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { AnnotationNode } from '../AnnotationNode'
 import { BadgeNode } from '../BadgeNode'
 import { CircleNode } from '../CircleNode'
+import { CylinderNode } from '../CylinderNode'
 import { DiamondNode } from '../DiamondNode'
 import { GroupNode } from '../GroupNode'
 import { OctagonNode } from '../OctagonNode'
@@ -51,13 +52,11 @@ function renderNode(component: ReactElement) {
 
 describe('shape nodes', () => {
   it('renders rectangle node content and status badge', () => {
-    renderNode(<RectangleNode {...baseNodeProps()} />)
+    renderNode(<RectangleNode {...baseNodeProps({ style: { color: 'worker' } })} />)
 
     expect(screen.getByText('Node Label')).toBeInTheDocument()
     expect(screen.getByText('Node sublabel')).toBeInTheDocument()
-    expect(screen.getByText('one')).toBeInTheDocument()
     expect(screen.getByTestId('status-badge-active')).toBeInTheDocument()
-    expect(screen.getByTestId('duration-badge')).toBeInTheDocument()
   })
 
   it('renders rounded rectangle, diamond, circle, pill, badge, octagon, group, and annotation nodes', () => {
@@ -85,16 +84,45 @@ describe('shape nodes', () => {
   })
 
   it('renders badge classes for each status', () => {
+    const withWorker = (status: Parameters<typeof baseNodeProps>[0]) =>
+      baseNodeProps({ style: { color: 'worker' }, ...status })
+
     renderNode(
       <>
-        <RectangleNode {...baseNodeProps({ status: { status: 'idle', updatedAt: Date.now() } })} />
-        <RectangleNode {...baseNodeProps({ status: { status: 'success', updatedAt: Date.now() } })} />
-        <RectangleNode {...baseNodeProps({ status: { status: 'error', updatedAt: Date.now() } })} />
+        <RectangleNode {...withWorker({ status: { status: 'idle', updatedAt: Date.now() } })} />
+        <RectangleNode {...withWorker({ status: { status: 'success', updatedAt: Date.now() } })} />
+        <RectangleNode {...withWorker({ status: { status: 'error', updatedAt: Date.now() } })} />
       </>,
     )
 
     expect(screen.getByTestId('status-badge-idle')).toBeInTheDocument()
     expect(screen.getByTestId('status-badge-success')).toBeInTheDocument()
     expect(screen.getByTestId('status-badge-error')).toBeInTheDocument()
+  })
+
+  it('renders cylinders with concrete resource tags and hides duplicate titles', () => {
+    renderNode(
+      <>
+        <CylinderNode
+          {...baseNodeProps({
+            label: 'S3',
+            style: { color: 'resource', icon: 's3' },
+            status: { status: 'idle', updatedAt: Date.now() },
+          })}
+        />
+        <CylinderNode
+          {...baseNodeProps({
+            id: 'node-2',
+            label: 'postgres',
+            style: { color: 'resource', icon: 'postgres' },
+            status: { status: 'idle', updatedAt: Date.now() },
+          })}
+        />
+      </>,
+    )
+
+    expect(screen.getByText('S3')).toBeInTheDocument()
+    expect(screen.queryByText(/^postgres$/i)).toBeInTheDocument()
+    expect(screen.getByText('PG')).toBeInTheDocument()
   })
 })

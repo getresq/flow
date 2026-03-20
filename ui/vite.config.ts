@@ -9,6 +9,7 @@ export default defineConfig(({ command }) => ({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      'web-worker': fileURLToPath(new URL('./src/vendor/web-worker.ts', import.meta.url)),
     },
   },
   server: {

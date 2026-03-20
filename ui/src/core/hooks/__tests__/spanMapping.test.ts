@@ -139,6 +139,43 @@ describe('span mapping resolution', () => {
     expect(resolveMappedNodeId(event, spanMapping)).toBe('extract-worker')
   })
 
+  it('maps recompute stage detail onto the shared extract-worker lane', () => {
+    const event: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-03T12:00:00.000Z',
+      attributes: {
+        stage_id: 'recompute.started',
+      },
+    }
+
+    expect(resolveMappedNodeId(event, spanMapping)).toBe('extract-worker')
+  })
+
+  it('maps explicit recompute-worker component_id onto extract-worker', () => {
+    const event: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-03T12:00:00.000Z',
+      attributes: {
+        component_id: 'recompute-worker',
+        function_name: 'handle_mail_recompute_opportunities',
+      },
+    }
+
+    expect(resolveMappedNodeId(event, spanMapping)).toBe('extract-worker')
+  })
+
+  it('maps handle_mail_recompute_opportunities function_name onto extract-worker', () => {
+    const event: FlowEvent = {
+      type: 'span_start',
+      timestamp: '2026-03-03T12:00:00.000Z',
+      attributes: {
+        function_name: 'handle_mail_recompute_opportunities',
+      },
+    }
+
+    expect(resolveMappedNodeId(event, spanMapping)).toBe('extract-worker')
+  })
+
   it('maps autosend decision stage_id to decision node', () => {
     const event: FlowEvent = {
       type: 'log',

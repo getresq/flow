@@ -18,7 +18,7 @@ export function OctagonNode({ id, data }: NodeProps<FlowNode>) {
       {renderHandles(id, data.handles, [...defaultHandles])}
       <div
         className={`${nodeContainerClass({
-          color: data.style?.color ?? 'red',
+          color: data.style?.color ?? 'detail',
           status,
           borderStyle: data.style?.borderStyle,
         })} flex h-full w-full items-center justify-center px-4 text-center`}

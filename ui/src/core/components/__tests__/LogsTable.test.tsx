@@ -17,6 +17,8 @@ const logs: LogEntry[] = [
     nodeId: 'node-a',
     message: 'Analyzed message',
     durationMs: 120,
+    signal: 'meaningful',
+    defaultVisible: true,
     eventType: 'log',
     traceId: 'run-1',
   },
@@ -26,6 +28,8 @@ const logs: LogEntry[] = [
     nodeId: 'node-b',
     message: 'Provider timeout',
     durationMs: 980,
+    signal: 'critical',
+    defaultVisible: true,
     eventType: 'log',
     traceId: 'run-2',
   },
@@ -35,6 +39,8 @@ const logs: LogEntry[] = [
     nodeId: 'node-b',
     message: 'Send complete',
     durationMs: 430,
+    signal: 'meaningful',
+    defaultVisible: true,
     eventType: 'log',
     traceId: 'run-3',
   },
@@ -74,5 +80,6 @@ describe('LogsTable', () => {
     expect(screen.getByText('ERR')).toBeInTheDocument()
     const selectedRow = screen.getAllByRole('row').find((row) => row.getAttribute('data-state') === 'selected')
     expect(selectedRow).toBeDefined()
+    expect(within(selectedRow!).getByText('node-b')).toBeInTheDocument()
   })
 })

@@ -9,7 +9,6 @@ import { eventMatchesFlow } from '../events'
 import { FlowCanvas } from './FlowCanvas'
 import { InspectorPanel } from './InspectorPanel'
 import { LogsView } from './LogsView'
-import { MetricsView } from './MetricsView'
 import { getNodeInspectorPresentation } from './NodeInspectorPresentation'
 import { FlowSelector } from './FlowSelector'
 import { getTraceInspectorPresentation } from './TraceInspectorPresentation'
@@ -23,7 +22,7 @@ import { formatEasternTime } from '../time'
 import { useTraceJourney } from '../hooks/useTraceJourney'
 import { useTraceTimeline } from '../hooks/useTraceTimeline'
 import { useUrlState } from '../hooks/useUrlState'
-import type { FlowEvent } from '../types'
+import type { FlowEvent, FlowViewMode } from '../types'
 import { flows } from '../../flows'
 import { useCommandPaletteStore } from '../../stores/commandPalette'
 import {
@@ -135,15 +134,15 @@ export function FlowView() {
     () => flows.find((flow) => flow.id === flowIdParam) ?? flows[0],
     [flowIdParam],
   )
-  const availableViewModes = useMemo<('canvas' | 'metrics' | 'logs')[]>(
-    () => (currentFlow.hasGraph ? ['canvas', 'logs', 'metrics'] : ['logs', 'metrics']),
+  const availableViewModes = useMemo<FlowViewMode[]>(
+    () => (currentFlow.hasGraph ? ['canvas', 'logs'] : ['logs']),
     [currentFlow.hasGraph],
   )
   const activeViewMode = viewMode && availableViewModes.includes(viewMode)
     ? viewMode
     : currentFlow.hasGraph
       ? 'canvas'
-      : 'metrics'
+      : 'logs'
 
   const previousFlowIdRef = useRef(currentFlow.id)
   const previousSessionKeyRef = useRef<string | undefined>(undefined)
@@ -339,7 +338,7 @@ export function FlowView() {
 
   const setActiveFlowViewMode = useCallback(
     (nextViewMode: 'canvas' | 'metrics' | 'logs') => {
-      const resolvedViewMode = !currentFlow.hasGraph && nextViewMode === 'canvas' ? 'metrics' : nextViewMode
+      const resolvedViewMode = !currentFlow.hasGraph && nextViewMode === 'canvas' ? 'logs' : nextViewMode
 
       if (focusMode && resolvedViewMode !== 'canvas') {
         toggleFocusModeWithLayout()
@@ -521,14 +520,6 @@ export function FlowView() {
           />
         ) : null}
 
-        {activeViewMode === 'metrics' ? (
-          <MetricsView
-            flow={currentFlow}
-            selectedTraceId={selectedTraceId}
-            onSelectTrace={handleSelectTrace}
-          />
-        ) : null}
-
         {activeViewMode === 'logs' ? (
           <LogsView
             flow={currentFlow}
@@ -610,6 +601,7 @@ export function FlowView() {
               >
                 <NodeDetailContent
                   key={selectedNode.id}
+                  node={selectedNode}
                   status={selectedNodeStatus}
                   logs={selectedNodeLogs}
                   spans={selectedNodeSpans}

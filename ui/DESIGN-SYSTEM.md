@@ -174,6 +174,80 @@ Status transitions should use Motion's `animate` over 300ms — never abrupt cla
 
 ---
 
+## Canvas Shape Language
+
+Source of truth:
+- `jrodocs/resq-flow-visual-taxonomy.md`
+
+Default mapping:
+
+| Semantic role | Default shape |
+|---|---|
+| Trigger | Pill |
+| Queue | Rounded rectangle |
+| Worker | Rounded rectangle |
+| Scheduler / process | Rounded rectangle |
+| Decision | Diamond |
+| Resource | Cylinder |
+| Visible detail | Rounded rectangle inside a group when possible |
+| Note | Annotation |
+
+Rules:
+
+- Option D remains the base palette for all node families.
+- Queue, worker, and process nodes should feel like one rounded-rectangle
+  family, not unrelated widget types.
+- Use pills only for external starting conditions.
+- Avoid badges in the main graph unless a tiny inline callout is clearly the
+  best choice.
+
+---
+
+## Node Color Roles
+
+Colors are assigned **by semantic role**, not per-node. The factory in `ui/src/flows/nodeFactory.ts` derives `style.color` from `semanticRole` automatically — flow files should never set `color` manually.
+
+### Role → Color Token Mapping
+
+| Semantic Role | Color Token | Visual Intent |
+|---|---|---|
+| `trigger` | `trigger` | Green — external starting condition |
+| `queue` | `queue` | Amber — queue boundary / backlog visibility |
+| `worker` | `worker` | Ocean blue — worker execution family |
+| `scheduler` | `cron` | Neutral slate — temporal scheduler boundary |
+| `process` | `process` | Quieter blue — first-class business process |
+| `decision` | `decision` | Violet — branching / conditional |
+| `resource` | `resource` | Slate-teal — concrete storage/resource boundary |
+| `detail` | `detail` | Muted subordinate row / child detail |
+| `group` | `group` | Muted container |
+| `note` | `detail` | Muted slate — annotations |
+
+### Notes And Inspector Rules
+
+- Notes default to the sidebar, not the canvas.
+- Canvas annotations should be rare and reserved for graph-critical context.
+- Process inspectors should be meaning-first:
+  - purpose
+  - notes / caveats
+  - related resources / side effects
+  - logs and timing after that
+- Detail nodes should stay visually and semantically subordinate to process
+  nodes.
+
+### Resource Label Rules
+
+Resource cylinders should use concrete resource type labels.
+
+Preferred examples:
+
+- `PG` + `postgres`
+- `S3`
+- `REDIS`
+
+Avoid generic visible labels like `RES`, `Store`, or `Data`.
+
+---
+
 ## Semantic Zoom Breakpoints
 
 Pass zoom from React Flow's `useViewport()` via context to node components.

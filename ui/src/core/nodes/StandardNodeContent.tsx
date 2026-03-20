@@ -1,101 +1,112 @@
-import { useViewport } from '@xyflow/react'
 import clsx from 'clsx'
 
-import { NodeStatusBadge } from '../components/NodeStatusBadge'
-import { resolveZoomLevel } from '../hooks/useCanvasZoom'
+import type { NodeStatus } from '../types'
 import type { FlowNodeData } from './types'
-import { resolveIcon } from './nodePrimitives'
 
 interface StandardNodeContentProps {
   data: FlowNodeData
-  showBullets?: boolean
   compact?: boolean
 }
 
-export function StandardNodeContent({
-  data,
-  showBullets = true,
-  compact = false,
-}: StandardNodeContentProps) {
-  const status = data.status?.status ?? 'idle'
-  const icon = resolveIcon(data.style?.icon)
-  const isQueueNode = data.style?.icon === 'queue'
-  const { zoom } = useViewport()
-  const zoomLevel = resolveZoomLevel(zoom)
+// Maps semantic role to role tag text shown top-left of card
+const roleTagLabels: Record<string, string> = {
+  trigger:   'TRIGGER',
+  queue:     'QUEUE',
+  worker:    'WORKER',
+  scheduler: 'CRON',
+  process:   'PROCESS',
+}
 
-  // Far zoom: shape + status color only
-  if (zoomLevel === 'far') {
-    return (
-      <div className={clsx('relative flex h-full items-center justify-center p-1.5', compact && 'p-1')}>
-        <div
-          className={clsx(
-            'h-2.5 w-2.5 rounded-full transition-colors duration-300',
-            status === 'active' && 'bg-[var(--status-active)]',
-            status === 'success' && 'bg-[var(--status-success)]',
-            status === 'error' && 'bg-[var(--status-error)]',
-            status === 'idle' && 'bg-[var(--status-idle)]',
-          )}
-        />
-      </div>
-    )
+const firstClassRoles = new Set(['trigger', 'queue', 'worker', 'scheduler', 'process', 'resource', 'decision'])
+const firstClassColors = new Set(['queue', 'worker', 'cron', 'process', 'trigger', 'decision', 'resource'])
+const resourceRoleTags: Record<string, string> = {
+  s3: 'S3',
+  postgres: 'PG',
+  redis: 'REDIS',
+}
+
+function resolveRoleTag(semanticRole: string | undefined, color: string | undefined, icon: string | undefined): string | null {
+  // Use semanticRole when available — it's the authoritative source
+  if (semanticRole) {
+    if (semanticRole === 'resource') return icon ? (resourceRoleTags[icon] ?? icon.toUpperCase()) : 'STORE'
+    return roleTagLabels[semanticRole] ?? null
   }
+  // Fallback: derive from color
+  if (!color) return null
+  if (color === 'resource') return icon ? (resourceRoleTags[icon] ?? icon.toUpperCase()) : 'STORE'
+  if (color === 'cron') return 'CRON'
+  const entry = Object.entries(roleTagLabels).find(([, v]) => v.toLowerCase() === color)
+  return entry ? entry[1] : null
+}
 
-  // Medium zoom: label + status badge (no sublabel, no bullets)
-  if (zoomLevel === 'medium') {
-    return (
-      <div className={clsx('relative flex h-full flex-col gap-2 p-3', compact && 'gap-1.5 p-2')}>
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-xs font-semibold leading-tight">{data.label}</p>
-          </div>
-          <NodeStatusBadge
-            status={status}
-            durationMs={data.status?.durationMs}
-            durationVisibleUntil={data.status?.durationVisibleUntil}
-          />
-        </div>
-      </div>
-    )
-  }
+function StatusDot({ status }: { status: NodeStatus }) {
+  const dotColor = {
+    idle:    'bg-[var(--status-idle)]',
+    active:  'bg-[var(--status-active)]',
+    success: 'bg-[var(--status-success)]',
+    error:   'bg-[var(--status-error)]',
+  }[status]
 
-  // Close zoom: everything visible
   return (
-    <div className={clsx('relative flex h-full flex-col gap-2 p-3', compact && 'gap-1.5 p-2')}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            {icon ? (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded bg-white/12 px-1 text-[9px] font-bold text-white/95">
-                {icon}
-              </span>
-            ) : null}
-            <p className="truncate text-xs font-semibold leading-tight">{data.label}</p>
-          </div>
-          {data.sublabel ? <p className="mt-0.5 text-[10px] text-white/65">{data.sublabel}</p> : null}
-        </div>
+    <div className="flex shrink-0 items-center gap-1" data-testid={`status-badge-${status}`}>
+      <span
+        className={clsx(
+          'size-1.5 rounded-full',
+          dotColor,
+          status === 'active' && 'node-dot-pulse',
+        )}
+      />
+      <span className="text-[9px] leading-none opacity-60">{status}</span>
+    </div>
+  )
+}
 
-        <NodeStatusBadge
-          status={status}
-          durationMs={data.status?.durationMs}
-          durationVisibleUntil={data.status?.durationVisibleUntil}
-        />
+export function StandardNodeContent({ data, compact = false }: StandardNodeContentProps) {
+  const status = data.status?.status ?? 'idle'
+  const color = data.style?.color
+  // semanticRole is authoritative; color is a fallback for nodes without factory wiring
+  const isFirstClass = data.semanticRole
+    ? firstClassRoles.has(data.semanticRole)
+    : color ? firstClassColors.has(color) : false
+  const roleTag = resolveRoleTag(data.semanticRole, color, data.style?.icon)
+
+  // Detail / non-first-class: minimal — label only, no role tag, no status
+  if (!isFirstClass) {
+    return (
+      <div className={clsx('px-2.5 py-1.5')}>
+        <p className="truncate text-[11px] leading-tight opacity-80">{data.label}</p>
+      </div>
+    )
+  }
+
+  // First-class: role tag + title + optional subtitle + status
+  return (
+    <div className={clsx('flex flex-col gap-1', compact ? 'px-3 py-2' : 'px-3.5 py-2.5')}>
+      {/* Header row: role tag left, status right */}
+      <div className="flex items-center justify-between gap-2">
+        {roleTag ? (
+          <span
+            className="node-role-tag text-[9px] font-semibold uppercase tracking-[0.12em] opacity-55"
+            style={{ color: 'var(--node-accent)' }}
+          >
+            {roleTag}
+          </span>
+        ) : (
+          <span />
+        )}
+        <StatusDot status={status} />
       </div>
 
-      {showBullets && data.bullets && data.bullets.length > 0 ? (
-        <ul className="space-y-1 pl-4 text-[10px] text-white/80">
-          {data.bullets.map((bullet) => (
-            <li key={bullet} className="list-disc leading-tight">
-              {bullet}
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      {/* Title */}
+      <p className="truncate text-[12px] font-medium leading-snug text-[var(--text-primary)]">
+        {data.label}
+      </p>
 
-      {isQueueNode && typeof data.counter === 'number' ? (
-        <div className="inline-flex w-fit items-center gap-1 rounded border border-amber-400/35 bg-amber-900/25 px-2 py-0.5 text-[10px] font-semibold text-amber-100">
-          <span className="rounded bg-amber-400/20 px-1 py-[1px] text-[9px] leading-none">Q</span>
-          <span>{data.counter}</span>
-        </div>
+      {/* Optional subtitle */}
+      {data.sublabel ? (
+        <p className="truncate text-[10px] leading-tight text-[var(--text-secondary)] opacity-60">
+          {data.sublabel}
+        </p>
       ) : null}
     </div>
   )

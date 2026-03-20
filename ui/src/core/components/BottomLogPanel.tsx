@@ -11,9 +11,11 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  Toggle,
 } from '@/components/ui'
 
 import type { FlowConfig, LogEntry, TraceJourney } from '../types'
+import { isDefaultVisibleLogEntry } from '../telemetryClassification'
 import {
   DEFAULT_BOTTOM_PANEL_HEIGHT,
   MIN_BOTTOM_PANEL_HEIGHT,
@@ -55,6 +57,7 @@ export function BottomLogPanel({
   const [activeNodeFilters, setActiveNodeFilters] = useState<Set<string>>(new Set())
   const [pinnedTraceIds, setPinnedTraceIds] = useState<Set<string>>(new Set())
   const [liveTail, setLiveTail] = useState(true)
+  const [showAll, setShowAll] = useState(false)
   const logsScrollAreaRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null)
   const previousExpandedHeightRef = useRef(Math.max(panelHeight, DEFAULT_BOTTOM_PANEL_HEIGHT))
@@ -79,6 +82,9 @@ export function BottomLogPanel({
     const query = search.trim().toLowerCase()
     return [...globalLogs]
       .filter((entry) => {
+        if (!showAll && !isDefaultVisibleLogEntry(entry)) {
+          return false
+        }
         const executionId = entry.runId ?? entry.traceId
         if (selectedTraceId && executionId !== selectedTraceId) {
           return false
@@ -93,12 +99,15 @@ export function BottomLogPanel({
         return (
           entry.message.toLowerCase().includes(query) ||
           (nodeLabel ? nodeLabel.toLowerCase().includes(query) : false) ||
+          (entry.nodeId ? entry.nodeId.toLowerCase().includes(query) : false) ||
+          (entry.stageName ? entry.stageName.toLowerCase().includes(query) : false) ||
+          (entry.componentId ? entry.componentId.toLowerCase().includes(query) : false) ||
           (entry.runId ? entry.runId.toLowerCase().includes(query) : false) ||
           (entry.traceId ? entry.traceId.toLowerCase().includes(query) : false) ||
           (entry.stageId ? entry.stageId.toLowerCase().includes(query) : false)
         )
       })
-  }, [activeNodeFilters, globalLogs, nodeLabels, search, selectedTraceId])
+  }, [activeNodeFilters, globalLogs, nodeLabels, search, selectedTraceId, showAll])
 
   const filteredJourneys = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -310,6 +319,11 @@ export function BottomLogPanel({
           ) : null}
 
           <div className="ml-auto flex shrink-0 items-center gap-2">
+            {tab === 'logs' ? (
+              <Toggle pressed={showAll} size="sm" onPressedChange={setShowAll} aria-label="Show all telemetry">
+                Show all
+              </Toggle>
+            ) : null}
             <Input
               placeholder={tab === 'logs' ? 'Search logs…' : 'Search runs…'}
               value={search}

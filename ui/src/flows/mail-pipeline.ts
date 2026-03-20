@@ -1,5 +1,6 @@
 import mailPipelineContractJson from '../flow-contracts/mail-pipeline.json'
 import type { FlowConfig, FlowContract, SpanMapping } from '../core/types'
+import { withNodeVisualDefaultsForFlow } from './nodeFactory'
 
 const mailPipelineContract = mailPipelineContractJson as FlowContract
 
@@ -17,6 +18,7 @@ export const spanMapping: SpanMapping = {
   'incoming-worker': 'incoming-worker',
   'analyze-worker': 'analyze-worker',
   'extract-worker': 'extract-worker',
+  'recompute-worker': 'extract-worker',
   'actions-worker': 'actions-worker',
   'send-worker': 'send-worker',
   'incoming-schedule-process': 'incoming-schedule-process',
@@ -54,8 +56,11 @@ export const spanMapping: SpanMapping = {
   'actions.execute_result': 'actions-worker',
   'actions.send_enqueue': 'actions-worker',
   'extract.upsert_contacts': 'extract-worker',
+  'extract.recompute_enqueue': 'extract-worker',
   'extract.final_result': 'extract-worker',
   'extract.state_write': 'extract-worker',
+  'recompute.started': 'extract-worker',
+  'recompute.final_result': 'extract-worker',
   'send.precheck': 'send-process',
   'send.provider_call': 'send-process',
   'send.finalize': 'send-process',
@@ -66,6 +71,7 @@ export const spanMapping: SpanMapping = {
   handle_mail_incoming_check: 'incoming-worker',
   handle_mail_analyze_reply: 'analyze-worker',
   handle_mail_extract: 'extract-worker',
+  handle_mail_recompute_opportunities: 'extract-worker',
   handle_mail_execute_approved_actions: 'actions-worker',
   handle_mail_send_reply: 'send-worker',
   handle_mail_cron_tick: 'cron-scheduler',
@@ -80,6 +86,7 @@ export const spanMapping: SpanMapping = {
 
 export const producerMapping: SpanMapping = {
   handle_mail_backfill_start: 'trigger-oauth',
+  handle_mail_send_reply: 'enqueue-send-reply',
 }
 
 export const mailPipelineFlow: FlowConfig = {
@@ -88,13 +95,13 @@ export const mailPipelineFlow: FlowConfig = {
   description: 'Real-time view of queue, worker, decision, and persistence steps for mail processing.',
   contract: mailPipelineContract,
   hasGraph: true,
-  nodes: [
+  nodes: withNodeVisualDefaultsForFlow([
     {
       id: 'trigger-oauth',
       type: 'pill',
       label: 'vendor email account connected',
       sublabel: '(triggered by Fullstack -> integrations -> oauth flow)',
-      style: { color: 'green' },
+      description: 'External mailbox connection trigger that starts the mail pipeline.',
       position: { x: -270, y: -40 },
     },
     {
@@ -102,16 +109,14 @@ export const mailPipelineFlow: FlowConfig = {
       type: 'roundedRect',
       label: 'rrq:queue:mail-backfill',
       sublabel: '(read batches of email)',
-      style: { color: 'yellow', icon: 'queue' },
+      notes: [
+        'Uses mail_cursors.backfill_page_token to control paging.',
+        'An empty token starts from the first page; a saved token resumes from that page.',
+        'A done marker skips future fetch/enqueue for the mailbox.',
+      ],
+      style: { icon: 'queue' },
       position: { x: 110, y: -70 },
       size: { width: 340 },
-    },
-    {
-      id: 'backfill-note',
-      type: 'annotation',
-      label:
-        '* uses mail_cursors.backfill_page_token to control paging\n- empty=start from first page\n- token=resume from that page\n- done marker=skip fetch/enqueue',
-      position: { x: 485, y: -25 },
     },
     {
       id: 'backfill-worker',
@@ -119,7 +124,7 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'mail_backfill',
       sublabel: 'workers',
       description: 'Backfills historical mail for newly connected accounts.',
-      style: { color: 'blue', icon: 'worker' },
+      style: { icon: 'worker' },
       position: { x: 185, y: 60 },
       bullets: workerBullets,
       size: { width: 210 },
@@ -129,7 +134,8 @@ export const mailPipelineFlow: FlowConfig = {
       type: 'roundedRect',
       label: 'rrq cron (scheduler)',
       sublabel: 'function: handle_mail_cron_tick',
-      style: { color: 'gray', icon: 'cron' },
+      description: 'Recurring scheduler boundary that decides when mailbox checks should run.',
+      style: { icon: 'cron' },
       position: { x: 175, y: 220 },
       size: { width: 250 },
     },
@@ -137,7 +143,6 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'cron-enqueue',
       type: 'badge',
       label: 'enqueue handle_mail_cron_tick (every 1 minute)',
-      style: { color: 'orange' },
       position: { x: 150, y: 320 },
       size: { width: 290 },
       handles: [
@@ -149,7 +154,11 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'incoming-queue',
       type: 'roundedRect',
       label: 'rrq:queue:mail-incoming',
-      style: { color: 'yellow', icon: 'queue' },
+      notes: [
+        'Contains both handle_mail_cron_tick and handle_mail_incoming_check jobs.',
+        'Jobs can arrive from multiple vendors and mailboxes.',
+      ],
+      style: { icon: 'queue' },
       position: { x: 145, y: 405 },
       size: { width: 315 },
       handles: [
@@ -159,19 +168,15 @@ export const mailPipelineFlow: FlowConfig = {
       ],
     },
     {
-      id: 'incoming-queue-note',
-      type: 'annotation',
-      label:
-        'contains both job types:\n- handle_mail_cron_tick\n- handle_mail_incoming_check\n* jobs can be from multiple vendors/mailboxes',
-      position: { x: 490, y: 420 },
-    },
-    {
       id: 'incoming-worker',
       type: 'rectangle',
       label: 'mail_incoming',
       sublabel: 'workers',
       description: 'Checks connected inboxes for new mail and hands off downstream work.',
-      style: { color: 'blue', icon: 'worker' },
+      notes: [
+        'If no incoming_history_id exists yet, incoming processing writes the baseline cursor and stops.',
+      ],
+      style: { icon: 'worker' },
       position: { x: 205, y: 535 },
       bullets: workerBullets,
       size: { width: 210 },
@@ -186,15 +191,16 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'incoming-schedule-group',
       type: 'group',
       label: '',
-      style: { color: 'gray' },
+
       position: { x: -420, y: 670 },
       size: { width: 520, height: 320 },
     },
     {
       id: 'incoming-schedule-process',
+      semanticRole: 'process',
       type: 'rectangle',
       label: 'schedule incoming checks',
-      style: { color: 'gray' },
+
       position: { x: 115, y: 32 },
       size: { width: 300 },
       parentId: 'incoming-schedule-group',
@@ -210,7 +216,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'incoming-check-enqueue',
       type: 'badge',
       label: 'enqueue handle_mail_incoming_check (unread mail)',
-      style: { color: 'orange' },
+
       position: { x: 55, y: 145 },
       parentId: 'incoming-schedule-group',
       size: { width: 270 },
@@ -223,7 +229,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'incoming-scheduled-at',
       type: 'rectangle',
       label: 'write mail_cursors.incoming_check_scheduled_at = now',
-      style: { color: 'gray' },
+
       position: { x: 60, y: 235 },
       parentId: 'incoming-schedule-group',
       size: { width: 360 },
@@ -233,7 +239,9 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'postgres-main',
       type: 'cylinder',
       label: 'postgres',
-      style: { color: 'blue' },
+      style: { icon: 'postgres' },
+      description: 'Primary relational store for mail cursors and mailbox metadata.',
+
       position: { x: 250, y: 715 },
       handles: [
         { id: 'in-left', position: 'left', type: 'target' },
@@ -244,7 +252,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'persistence-group',
       type: 'group',
       label: '',
-      style: { color: 'blue' },
+
       position: { x: 470, y: 650 },
       size: { width: 430, height: 280 },
       handles: [
@@ -257,7 +265,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'thread-store-write',
       type: 'rectangle',
       label: 'write raw mail threads to thread store',
-      style: { color: 'blue' },
+
       position: { x: 55, y: 35 },
       parentId: 'persistence-group',
       size: { width: 320 },
@@ -266,35 +274,28 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'metadata-write',
       type: 'rectangle',
       label: 'write mail threads metadata',
-      style: { color: 'blue' },
+
       position: { x: 55, y: 135 },
       parentId: 'persistence-group',
       size: { width: 320 },
     },
     {
-      id: 'baseline-note',
-      type: 'annotation',
-      label: 'if no incoming_history_id:\nwrite mail_cursors.incoming_history_id\nand stop',
-      position: { x: 600, y: 560 },
-    },
-    {
-      id: 'thread-store-note',
-      type: 'annotation',
-      label: '- 1 job corresponds to 1 mailbox\n- 1 mailbox can have 1..n mail threads',
-      position: { x: 930, y: 700 },
-    },
-    {
       id: 's3',
       type: 'cylinder',
       label: 'S3',
-      style: { color: 'blue', icon: 's3' },
+      style: { icon: 's3' },
+      description: 'Thread artifact store for raw mailbox thread data.',
+      notes: [
+        'One job corresponds to one mailbox.',
+        'A single mailbox can contain 1..n mail threads.',
+      ],
       position: { x: 950, y: 650 },
     },
     {
       id: 'incoming-normal-group',
       type: 'group',
       label: '',
-      style: { color: 'purple' },
+
       position: { x: 500, y: 970 },
       size: { width: 345, height: 240 },
       handles: [{ id: 'in-top', position: 'top', type: 'target' }],
@@ -303,7 +304,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'extract-enqueue',
       type: 'badge',
       label: 'enqueue handle_mail_extract',
-      style: { color: 'orange' },
+
       position: { x: 58, y: 28 },
       size: { width: 225 },
       parentId: 'incoming-normal-group',
@@ -316,7 +317,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'analyze-enqueue',
       type: 'badge',
       label: 'enqueue handle_mail_analyze_reply',
-      style: { color: 'orange' },
+
       position: { x: 40, y: 90 },
       size: { width: 260 },
       parentId: 'incoming-normal-group',
@@ -329,7 +330,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'update-history',
       type: 'rectangle',
       label: 'update incoming_history_id in mail_cursors',
-      style: { color: 'gray' },
+
       position: { x: 35, y: 152 },
       size: { width: 270 },
       parentId: 'incoming-normal-group',
@@ -339,9 +340,10 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'analyze-queue',
       type: 'roundedRect',
       label: 'rrq:queue:mail-analyze',
-      style: { color: 'yellow', icon: 'queue' },
+      style: { icon: 'queue' },
       position: { x: 980, y: 1010 },
       size: { width: 250 },
+      layout: { order: 56 },
       handles: [
         { id: 'in-left', position: 'left', type: 'target' },
         { id: 'out-bottom', position: 'bottom', type: 'source' },
@@ -353,137 +355,152 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'mail_analyze',
       sublabel: 'workers',
       description: 'Analyzes extracted mail and decides whether to draft a reply.',
-      style: { color: 'blue', icon: 'worker' },
+      style: { icon: 'worker' },
       position: { x: 1005, y: 1160 },
       bullets: workerBullets,
       size: { width: 210 },
+      layout: { lane: 'main', order: 58 },
     },
     {
       id: 'analyze-decision',
       type: 'diamond',
       label: 'analyze reply decision\n(propose mode)',
-      style: { color: 'orange', borderStyle: 'dashed' },
+      notes: [
+        'Prechecks run before the LLM branch.',
+        'The LLM can return skip, needs_review, or draft_reply.',
+      ],
+      style: { borderStyle: 'dashed' },
       position: { x: 1035, y: 1355 },
-    },
-    {
-      id: 'analyze-note',
-      type: 'annotation',
-      label: '- prechecks before LLM\n- LLM can return skip / needs_review / draft_reply',
-      position: { x: 1275, y: 1285 },
+      layout: { lane: 'main', order: 60 },
     },
     {
       id: 'skip-owner-stop',
       type: 'rectangle',
       label: 'if latest sender is mailbox owner:\nskip and stop',
-      style: { color: 'gray' },
+
       position: { x: 1275, y: 1370 },
       size: { width: 280 },
+      layout: { lane: 'branch', order: 61, branch: { anchorId: 'analyze-decision', track: 'right', rank: 0, domain: 'analyze', column: 0 } },
     },
     {
       id: 'reuse-batch-stop',
       type: 'rectangle',
       label: 'if existing active action batch:\nreuse batch and stop',
-      style: { color: 'gray' },
+
       position: { x: 1300, y: 1470 },
       size: { width: 280 },
+      layout: { lane: 'branch', order: 62, branch: { anchorId: 'analyze-decision', track: 'right', rank: 1, domain: 'analyze', column: 0 } },
     },
     {
       id: 'skip-thread-status',
       type: 'rectangle',
       label: 'set thread status = skipped',
-      style: { color: 'gray' },
+
       position: { x: 1310, y: 1570 },
       size: { width: 220 },
+      layout: { lane: 'branch', order: 63, branch: { anchorId: 'analyze-decision', track: 'right', rank: 2, domain: 'analyze', column: 0 } },
     },
     {
       id: 'analyze-error',
       type: 'rectangle',
       label: 'decision error or malformed output\n-> set thread status = needs_review',
-      style: { color: 'gray' },
+
       position: { x: 1210, y: 1665 },
       size: { width: 310 },
+      layout: { lane: 'branch', order: 66, branch: { anchorId: 'analyze-decision', track: 'right', rank: 3, domain: 'analyze', column: 0, dx: 0, dy: 8 } },
     },
     {
       id: 'supported-actions',
       type: 'diamond',
       label: 'Any supported\nproposed\nactions?',
-      style: { color: 'orange', borderStyle: 'dashed' },
+      style: { borderStyle: 'dashed' },
       position: { x: 1035, y: 1595 },
+      layout: { lane: 'main', order: 64, branch: { anchorId: 'analyze-decision', track: 'primary', rank: 0 } },
     },
     {
       id: 'draft-reply',
+      semanticRole: 'process',
       type: 'rectangle',
       label: 'draft reply',
       sublabel: 'mail_reply_drafts',
-      style: { color: 'orange' },
+
       position: { x: 930, y: 1780 },
       size: { width: 190 },
+      layout: { lane: 'main', order: 68, branch: { anchorId: 'supported-actions-outcome', track: 'primary', rank: 0 } },
     },
     {
       id: 'unsupported-actions-outcome',
       type: 'rectangle',
       label:
         '- insert reply draft\n- set draft status = needs_review\n- set initial thread status = needs_review',
-      style: { color: 'gray' },
+
       position: { x: 1270, y: 1780 },
       size: { width: 360 },
+      layout: { lane: 'branch', order: 65, branch: { anchorId: 'supported-actions', track: 'right', rank: 0, domain: 'analyze', column: 0, dx: 10 } },
     },
     {
       id: 'pause-manual-review',
       type: 'rectangle',
       label: 'PAUSE\nawait manual review',
-      style: { color: 'gray' },
+
       position: { x: 1335, y: 1940 },
       size: { width: 200, height: 96 },
+      layout: { lane: 'branch', order: 67, branch: { anchorId: 'unsupported-actions-outcome', track: 'primary', rank: 0, dy: 4 } },
     },
     {
       id: 'supported-actions-outcome',
       type: 'rectangle',
       label:
         '- insert reply draft\n- set draft status = approval_pending\n- create action batch\n- set initial thread status = pending_action_approval',
-      style: { color: 'gray' },
+
       position: { x: 875, y: 1945 },
       size: { width: 420 },
+      layout: { lane: 'main', order: 70, branch: { anchorId: 'supported-actions', track: 'primary', rank: 0, dy: 10 } },
     },
     {
       id: 'autosend-decision',
       type: 'diamond',
       label: 'Autosend\nenabled and\nbatch auto-\napprovable?',
-      style: { color: 'orange', borderStyle: 'dashed' },
+      style: { borderStyle: 'dashed' },
       position: { x: 1035, y: 2145 },
+      layout: { lane: 'main', order: 72, branch: { anchorId: 'draft-reply', track: 'primary', rank: 0 } },
     },
     {
       id: 'pause-manual-approval',
       type: 'rectangle',
       label: 'PAUSE\nawait manual approval',
-      style: { color: 'gray' },
+
       position: { x: 1290, y: 2195 },
       size: { width: 210, height: 96 },
+      layout: { lane: 'branch', order: 73, branch: { anchorId: 'autosend-decision', track: 'right', rank: 0, domain: 'approval', column: 0, dx: 10 } },
     },
     {
       id: 'manual-approval-api',
       type: 'rectangle',
       label: 'manual approval API\napprove batch + enqueue\nExecuteApprovedActionsJob',
-      style: { color: 'gray' },
+
       position: { x: 1280, y: 2335 },
       size: { width: 245 },
+      layout: { lane: 'branch', order: 74, branch: { anchorId: 'pause-manual-approval', track: 'primary', rank: 0 } },
     },
     {
       id: 'autosend-approved',
       type: 'rectangle',
       label:
         '- approve action batch\n- set thread status = executing_actions\n- enqueue ExecuteApprovedActionsJob',
-      style: { color: 'gray' },
+
       position: { x: 835, y: 2325 },
       size: { width: 360 },
+      layout: { lane: 'main', order: 76, branch: { anchorId: 'autosend-decision', track: 'primary', rank: 0, dy: 6 } },
     },
     {
       id: 'actions-queue',
       type: 'roundedRect',
       label: 'rrq:queue:mail-actions',
-      style: { color: 'yellow', icon: 'queue' },
+      style: { icon: 'queue' },
       position: { x: 985, y: 2525 },
       size: { width: 250 },
+      layout: { lane: 'main', order: 77 },
       handles: [
         { id: 'in-top', position: 'top', type: 'target' },
         { id: 'out-bottom', position: 'bottom', type: 'source' },
@@ -495,25 +512,25 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'mail_actions',
       sublabel: 'workers',
       description: 'Executes approved actions and hands off send jobs.',
-      style: { color: 'blue', icon: 'worker' },
+      style: { icon: 'worker' },
       position: { x: 1005, y: 2670 },
       bullets: workerBullets,
       size: { width: 210 },
+      layout: { lane: 'main', order: 78 },
     },
     {
       id: 'actions-process-group',
       type: 'group',
       label: '',
-      style: { color: 'gray' },
+
       position: { x: 895, y: 2820 },
       size: { width: 430, height: 255 },
-      handles: [{ id: 'in-top', position: 'top', type: 'target' }],
     },
     {
       id: 'process-approved-action',
       type: 'rectangle',
       label: 'process approved send action',
-      style: { color: 'gray' },
+
       position: { x: 82, y: 24 },
       size: { width: 260 },
       parentId: 'actions-process-group',
@@ -522,7 +539,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'mark-draft-needs-review',
       type: 'rectangle',
       label: 'set draft status = needs_review',
-      style: { color: 'gray' },
+
       position: { x: 82, y: 103 },
       size: { width: 260 },
       parentId: 'actions-process-group',
@@ -531,7 +548,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'enqueue-send-reply',
       type: 'rectangle',
       label: 'enqueue handle_mail_send_reply ->\nset thread status = sending',
-      style: { color: 'gray' },
+
       position: { x: 82, y: 177 },
       size: { width: 260 },
       parentId: 'actions-process-group',
@@ -540,19 +557,18 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'extract-queue',
       type: 'roundedRect',
       label: 'rrq:queue:mail-extract',
-      style: { color: 'yellow', icon: 'queue' },
+      notes: [
+        'Contains both handle_mail_extract and handle_mail_recompute_opportunities.',
+        'AI provider credentials are required only for handle_mail_extract.',
+      ],
+      style: { icon: 'queue' },
       position: { x: 1565, y: 900 },
       size: { width: 250 },
+      layout: { lane: 'sidecar', order: 64 },
       handles: [
         { id: 'in-left', position: 'left', type: 'target' },
         { id: 'out-bottom', position: 'bottom', type: 'source' },
       ],
-    },
-    {
-      id: 'extract-creds-note',
-      type: 'annotation',
-      label: '* need configured AI provider creds for extract job execution',
-      position: { x: 1825, y: 915 },
     },
     {
       id: 'extract-worker',
@@ -560,85 +576,126 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'mail_extract',
       sublabel: 'workers',
       description: 'Extracts structured contact and thread details from stored mail.',
-      style: { color: 'blue', icon: 'worker' },
+      style: { icon: 'worker' },
       position: { x: 1580, y: 1035 },
       bullets: workerBullets,
       size: { width: 210 },
+      layout: { lane: 'sidecar', order: 68 },
     },
     {
       id: 'extract-ai',
       type: 'rectangle',
       label: 'fetch thread from thread store (S3 or local)\nAI extraction',
-      style: { color: 'orange', borderStyle: 'dashed' },
+      style: { borderStyle: 'dashed' },
       position: { x: 1545, y: 1215 },
       size: { width: 300 },
+      layout: { lane: 'sidecar', order: 70 },
     },
     {
       id: 'extract-ai-success',
       type: 'diamond',
       label: 'AI extract\nsucceeded?',
-      style: { color: 'orange', borderStyle: 'dashed' },
+      style: { borderStyle: 'dashed' },
       position: { x: 1615, y: 1405 },
+      layout: { lane: 'sidecar', order: 72, branch: { anchorId: 'extract-ai', track: 'primary', rank: 0 } },
     },
     {
       id: 'extract-fail-1',
       type: 'rectangle',
       label: '- record_extract_state(error)\n- return Err (job retry)',
-      style: { color: 'gray' },
+
       position: { x: 1905, y: 1455 },
       size: { width: 215 },
+      layout: { lane: 'branch', order: 73, branch: { anchorId: 'extract-ai-success', track: 'right', rank: 0, domain: 'extract', column: 1 } },
     },
     {
       id: 'upsert-contacts',
       type: 'badge',
       label: 'upsert_contacts() to\nmail_extracted_contacts',
-      style: { color: 'blue' },
+      notes: [
+        'Normalize emails.',
+        'Dedupe per thread.',
+        'Prefer higher-confidence and richer non-empty fields.',
+        'Never overwrite non-empty stored fields with empty values.',
+      ],
+
       position: { x: 1535, y: 1605 },
       size: { width: 220 },
-    },
-    {
-      id: 'extract-upsert-note',
-      type: 'annotation',
-      label:
-        '- normalize emails\n- dedupe per thread\n- prefer higher-confidence / richer non-empty fields\n- never overwrite non-empty stored fields with empty',
-      position: { x: 1790, y: 1585 },
+      layout: { lane: 'sidecar', order: 74, branch: { anchorId: 'extract-ai-success', track: 'primary', rank: 0 } },
     },
     {
       id: 'postgres-extract',
       type: 'cylinder',
       label: 'postgres',
-      style: { color: 'blue' },
+      style: { icon: 'postgres' },
+
       position: { x: 2050, y: 1635 },
+      layout: { lane: 'resource', order: 75 },
       handles: [{ id: 'in-left', position: 'left', type: 'target' }],
     },
     {
       id: 'contact-upsert-success',
       type: 'diamond',
       label: 'contact\nupsert\nsuccessful?',
-      style: { color: 'orange', borderStyle: 'dashed' },
+      style: { borderStyle: 'dashed' },
       position: { x: 1615, y: 1795 },
+      layout: { lane: 'sidecar', order: 76, branch: { anchorId: 'upsert-contacts', track: 'primary', rank: 0 } },
     },
     {
       id: 'extract-fail-2',
       type: 'rectangle',
       label: '- record_extract_state(error)\n- return Err (job retry)',
-      style: { color: 'gray' },
+
       position: { x: 1905, y: 1850 },
       size: { width: 215 },
+      layout: { lane: 'branch', order: 77, branch: { anchorId: 'contact-upsert-success', track: 'right', rank: 0, domain: 'extract', column: 1 } },
     },
     {
       id: 'extract-record-success',
       type: 'rectangle',
       label: 'record_extract_state(customers_count)',
-      style: { color: 'gray' },
+
       position: { x: 1535, y: 1995 },
       size: { width: 260 },
+      layout: { lane: 'sidecar', order: 78, branch: { anchorId: 'contact-upsert-success', track: 'primary', rank: 0 } },
+      handles: [
+        { id: 'in-top', position: 'top', type: 'target' },
+        { id: 'out-bottom', position: 'bottom', type: 'source' },
+        { id: 'out-right', position: 'right', type: 'source' },
+      ],
+    },
+    {
+      id: 'recompute-enqueue',
+      type: 'badge',
+      label: 'enqueue\nhandle_mail_recompute_opportunities\n(debounced per mailbox)',
+
+      position: { x: 1825, y: 1965 },
+      size: { width: 320 },
+      layout: { lane: 'branch', order: 79, branch: { anchorId: 'extract-record-success', track: 'right', rank: 0, domain: 'extract', column: 0, dx: -80, dy: -8 } },
+      handles: [
+        { id: 'in-left', position: 'left', type: 'target' },
+        { id: 'out-left', position: 'left', type: 'source' },
+      ],
+    },
+    {
+      id: 'recompute-process',
+      semanticRole: 'process',
+      type: 'rectangle',
+      label: 'recompute\nfollow_up_opportunities',
+      notes: [
+        'Scans mail_extracted_contacts for the mailbox.',
+        'Upserts or deletes follow_up_opportunities.',
+      ],
+
+      position: { x: 1845, y: 1180 },
+      size: { width: 240 },
+      layout: { lane: 'branch', order: 69, branch: { anchorId: 'extract-worker', track: 'right', rank: 0, domain: 'extract', column: 1, dx: -20, dy: -12 } },
     },
     {
       id: 'send-queue',
       type: 'roundedRect',
       label: 'rrq:queue:mail-send',
-      style: { color: 'yellow', icon: 'queue' },
+      style: { icon: 'queue' },
       position: { x: 985, y: 3135 },
       size: { width: 250 },
       handles: [
@@ -652,16 +709,17 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'mail_send',
       sublabel: 'workers',
       description: 'Validates and sends reply drafts through the provider.',
-      style: { color: 'blue', icon: 'worker' },
+      style: { icon: 'worker' },
       position: { x: 1005, y: 3280 },
       bullets: workerBullets,
       size: { width: 210 },
     },
     {
       id: 'send-process',
+      semanticRole: 'process',
       type: 'rectangle',
       label: 'handle_mail_send_reply',
-      style: { color: 'blue' },
+
       position: { x: 1005, y: 3450 },
       size: { width: 210 },
     },
@@ -669,17 +727,17 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'send-process-group',
       type: 'group',
       label: '',
-      style: { color: 'blue' },
+
       position: { x: 615, y: 3580 },
       size: { width: 820, height: 430 },
-      handles: [{ id: 'in-top', position: 'top', type: 'target' }],
+      handles: [],
     },
     {
       id: 'send-prechecks',
       type: 'rectangle',
       label:
         'Pre-send checks: idempotency, freshness,\nGmail send scope, recipient, token, body ->\nGmail API send',
-      style: { color: 'blue' },
+
       position: { x: 210, y: 40 },
       size: { width: 400 },
       parentId: 'send-process-group',
@@ -688,7 +746,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'send-success',
       type: 'rectangle',
       label: 'set draft status = sent;\nset thread status = sent',
-      style: { color: 'blue' },
+
       position: { x: 30, y: 170 },
       size: { width: 250 },
       parentId: 'send-process-group',
@@ -697,7 +755,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'send-nonretry',
       type: 'rectangle',
       label: 'set draft status = send_failed;\nset thread status = send_failed or stale',
-      style: { color: 'blue' },
+
       position: { x: 260, y: 300 },
       size: { width: 300 },
       parentId: 'send-process-group',
@@ -706,30 +764,12 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'send-retry',
       type: 'rectangle',
       label: 'set draft status = needs_review;\nset thread status = needs_review',
-      style: { color: 'blue' },
+
       position: { x: 580, y: 170 },
       size: { width: 250 },
       parentId: 'send-process-group',
     },
-    {
-      id: 'send-success-label',
-      type: 'annotation',
-      label: 'success',
-      position: { x: 330, y: 3765 },
-    },
-    {
-      id: 'send-retry-label',
-      type: 'annotation',
-      label: 'retryable failure',
-      position: { x: 1035, y: 3765 },
-    },
-    {
-      id: 'send-nonretry-label',
-      type: 'annotation',
-      label: 'non-retryable failure',
-      position: { x: 770, y: 3820 },
-    },
-  ],
+  ]),
 
   edges: [
     { id: 'e-trigger-backfill', source: 'trigger-oauth', target: 'backfill-queue', type: 'dashed' },
@@ -887,11 +927,13 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'Yes',
     },
     { id: 'e-pause-manual-api', source: 'pause-manual-approval', target: 'manual-approval-api' },
-    { id: 'e-autosend-actions', source: 'autosend-decision', target: 'actions-queue', targetHandle: 'actions-queue-in-top', type: 'dashed' },
+    { id: 'e-autosend-actions', source: 'autosend-approved', target: 'actions-queue', targetHandle: 'actions-queue-in-top', type: 'dashed' },
     { id: 'e-manual-actions', source: 'manual-approval-api', target: 'actions-queue', targetHandle: 'actions-queue-in-top', type: 'dashed' },
     { id: 'e-actions-q-worker', source: 'actions-queue', sourceHandle: 'actions-queue-out-bottom', target: 'actions-worker' },
-    { id: 'e-actions-worker-process', source: 'actions-worker', target: 'actions-process-group', targetHandle: 'actions-process-group-in-top' },
-    { id: 'e-actions-send', source: 'actions-worker', target: 'send-queue', targetHandle: 'send-queue-in-top' },
+    { id: 'e-actions-worker-process', source: 'actions-worker', target: 'process-approved-action' },
+    { id: 'e-actions-mark-review', source: 'process-approved-action', target: 'mark-draft-needs-review' },
+    { id: 'e-actions-enqueue-send', source: 'mark-draft-needs-review', target: 'enqueue-send-reply' },
+    { id: 'e-actions-send', source: 'enqueue-send-reply', target: 'send-queue', targetHandle: 'send-queue-in-top' },
 
     { id: 'e-extract-q-worker', source: 'extract-queue', sourceHandle: 'extract-queue-out-bottom', target: 'extract-worker' },
     { id: 'e-extract-worker-ai', source: 'extract-worker', target: 'extract-ai' },
@@ -928,11 +970,54 @@ export const mailPipelineFlow: FlowConfig = {
       target: 'extract-record-success',
       label: 'Yes',
     },
-    { id: 'e-extract-next-job', source: 'extract-record-success', target: 'extract-queue', label: 'Get next job', type: 'dashed' },
+    {
+      id: 'e-extract-recompute-enqueue',
+      source: 'extract-record-success',
+      sourceHandle: 'extract-record-success-out-right',
+      target: 'recompute-enqueue',
+      targetHandle: 'recompute-enqueue-in-left',
+      type: 'dashed',
+    },
+    {
+      id: 'e-recompute-enqueue-queue',
+      source: 'recompute-enqueue',
+      sourceHandle: 'recompute-enqueue-out-left',
+      target: 'extract-queue',
+      targetHandle: 'extract-queue-in-left',
+      type: 'dashed',
+    },
+    {
+      id: 'e-extract-worker-recompute',
+      source: 'extract-worker',
+      target: 'recompute-process',
+      label: 'execute handle_mail_recompute_opportunities',
+      type: 'dashed',
+    },
 
     { id: 'e-send-q-worker', source: 'send-queue', sourceHandle: 'send-queue-out-bottom', target: 'send-worker' },
     { id: 'e-send-worker-process', source: 'send-worker', target: 'send-process' },
-    { id: 'e-send-process-group', source: 'send-process', target: 'send-process-group', targetHandle: 'send-process-group-in-top' },
+    { id: 'e-send-process-prechecks', source: 'send-process', target: 'send-prechecks' },
+    {
+      id: 'e-send-success-branch',
+      source: 'send-prechecks',
+      target: 'send-success',
+      label: 'success',
+      type: 'dashed',
+    },
+    {
+      id: 'e-send-retry-branch',
+      source: 'send-prechecks',
+      target: 'send-retry',
+      label: 'retryable failure',
+      type: 'dashed',
+    },
+    {
+      id: 'e-send-nonretry-branch',
+      source: 'send-prechecks',
+      target: 'send-nonretry',
+      label: 'non-retryable failure',
+      type: 'dashed',
+    },
   ],
   producerMapping,
   spanMapping,

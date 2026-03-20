@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { eventExecutionKey } from '../events'
 import { inferErrorState, readStringAttribute, resolveMappedNodeId } from '../mapping'
+import { classifyFlowEvent, isDefaultVisibleSignal } from '../telemetryClassification'
 import type { FlowEvent, LogEntry, LogStreamState, SpanMapping } from '../types'
 
 function compareTimestamp(left: string, right: string): number {
@@ -20,6 +21,7 @@ function toLogEntry(event: FlowEvent, nodeId?: string): LogEntry {
   const stageId = readStringAttribute(event.attributes, 'stage_id')
   const stageName = readStringAttribute(event.attributes, 'stage_name')
   const retryable = readStringAttribute(event.attributes, 'retryable')
+  const signal = classifyFlowEvent(event)
 
   return {
     timestamp: event.timestamp,
@@ -37,6 +39,8 @@ function toLogEntry(event: FlowEvent, nodeId?: string): LogEntry {
     level: isError ? 'error' : 'info',
     status: isError ? 'error' : 'ok',
     durationMs: event.duration_ms,
+    signal,
+    defaultVisible: isDefaultVisibleSignal(signal),
     message:
       event.message ??
       event.span_name ??

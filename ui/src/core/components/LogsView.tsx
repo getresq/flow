@@ -11,11 +11,13 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Toggle,
 } from '@/components/ui'
 
 import { LogsTable } from './LogsTable'
 import type { FlowConfig, LogEntry } from '../types'
 import type { SourceMode } from '../hooks/useUrlState'
+import { isDefaultVisibleLogEntry } from '../telemetryClassification'
 
 interface LogsViewProps {
   flow: FlowConfig
@@ -42,6 +44,7 @@ export function LogsView({
   const [statusFilter, setStatusFilter] = useState<'all' | 'info' | 'error'>('all')
   const [nodeFilter, setNodeFilter] = useState<string>('all')
   const [liveTail, setLiveTail] = useState(true)
+  const [showAll, setShowAll] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement | null>(null)
 
   const nodeLabels = useMemo(() => {
@@ -56,6 +59,9 @@ export function LogsView({
     const query = search.trim().toLowerCase()
 
     return logs.filter((entry) => {
+      if (!showAll && !isDefaultVisibleLogEntry(entry)) {
+        return false
+      }
       if (selectedTraceId && (entry.runId ?? entry.traceId) !== selectedTraceId) {
         return false
       }
@@ -70,14 +76,20 @@ export function LogsView({
       }
 
       const nodeLabel = entry.nodeId ? nodeLabels.get(entry.nodeId)?.toLowerCase() : ''
+      const nodeId = entry.nodeId?.toLowerCase()
+      const stageName = entry.stageName?.toLowerCase()
+      const componentId = entry.componentId?.toLowerCase()
       return (
         entry.message.toLowerCase().includes(query) ||
         nodeLabel?.includes(query) ||
+        nodeId?.includes(query) ||
+        stageName?.includes(query) ||
+        componentId?.includes(query) ||
         entry.traceId?.toLowerCase().includes(query) ||
         entry.runId?.toLowerCase().includes(query)
       )
     })
-  }, [logs, nodeFilter, nodeLabels, search, selectedTraceId, statusFilter])
+  }, [logs, nodeFilter, nodeLabels, search, selectedTraceId, showAll, statusFilter])
 
   useEffect(() => {
     if (!liveTail || sourceMode !== 'live') {
@@ -137,6 +149,10 @@ export function LogsView({
         >
           Live tail {liveTail ? 'on' : 'off'}
         </Button>
+
+        <Toggle pressed={showAll} size="sm" onPressedChange={setShowAll} aria-label="Show all telemetry">
+          Show all
+        </Toggle>
       </div>
 
       <Card className="min-h-0 flex-1 overflow-hidden">

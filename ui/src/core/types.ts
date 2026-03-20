@@ -21,6 +21,18 @@ export interface NodeStyle {
   borderStyle?: 'solid' | 'dashed'
 }
 
+export type NodeSemanticRole =
+  | 'trigger'
+  | 'queue'
+  | 'worker'
+  | 'scheduler'
+  | 'process'
+  | 'decision'
+  | 'resource'
+  | 'detail'
+  | 'group'
+  | 'note'
+
 export type HandlePosition = 'top' | 'right' | 'bottom' | 'left'
 
 export interface NodeHandleConfig {
@@ -29,17 +41,48 @@ export interface NodeHandleConfig {
   id?: string
 }
 
+export type LayoutLane = 'main' | 'branch' | 'sidecar' | 'resource' | 'note'
+export type GroupLayoutMode = 'stack' | 'decision-tree'
+export type BranchTrack = 'primary' | 'right' | 'left'
+
+export interface AnnotationAnchorConfig {
+  targetId: string
+  dx?: number
+  dy?: number
+}
+
+export interface BranchPlacementConfig {
+  anchorId: string
+  track: BranchTrack
+  rank: number
+  domain?: string
+  column?: number
+  dx?: number
+  dy?: number
+}
+
+export interface FlowNodeLayoutHints {
+  lane?: LayoutLane
+  order?: number
+  groupMode?: GroupLayoutMode
+  anchor?: AnnotationAnchorConfig
+  branch?: BranchPlacementConfig
+}
+
 export interface FlowNodeConfig {
   id: string
   type: NodeShape
+  semanticRole?: NodeSemanticRole
   label: string
   sublabel?: string
   description?: string
+  notes?: string[]
   bullets?: string[]
   style?: NodeStyle
   position: { x: number; y: number }
   size?: { width: number; height?: number }
   minSize?: { width: number; height: number }
+  layout?: FlowNodeLayoutHints
   parentId?: string
   handles?: NodeHandleConfig[]
   draggable?: boolean
@@ -135,6 +178,7 @@ export interface NodeRuntimeStatus {
 }
 
 export type LogLevel = 'info' | 'error'
+export type TelemetrySignal = 'critical' | 'meaningful' | 'operational' | 'raw'
 
 export interface LogEntry {
   timestamp: string
@@ -153,6 +197,8 @@ export interface LogEntry {
   message: string
   status?: 'ok' | 'error'
   durationMs?: number
+  signal: TelemetrySignal
+  defaultVisible: boolean
   attributes?: Record<string, unknown>
   eventType: FlowEvent['type']
 }

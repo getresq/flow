@@ -40,6 +40,10 @@ describe('useLogStream', () => {
     expect(result.current.globalLogs[0].timestamp).toBe('2026-03-03T12:00:00.500Z')
     expect(result.current.globalLogs[1].timestamp).toBe('2026-03-03T12:00:01.000Z')
     expect(result.current.globalLogs[0].runId).toBe('run-1')
+    expect(result.current.globalLogs[0].signal).toBe('raw')
+    expect(result.current.globalLogs[0].defaultVisible).toBe(false)
+    expect(result.current.globalLogs[1].signal).toBe('meaningful')
+    expect(result.current.globalLogs[1].defaultVisible).toBe(true)
 
     expect(result.current.nodeLogMap.get('extract-worker')).toHaveLength(1)
     expect(result.current.nodeLogMap.get('analyze-queue')).toHaveLength(1)
