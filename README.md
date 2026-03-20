@@ -1,6 +1,6 @@
 # resq-flow
 
-`resq-flow` is a local development-only flow visualizer for ResQ telemetry.
+`resq-flow` is a flow visualizer and log viewer for ResQ telemetry.
 
 It sits on top of the shared observability stack and turns raw traces and logs into a flow-shaped product experience:
 
@@ -41,7 +41,7 @@ Traditional observability tools are still necessary, but they often make a busin
 - which boundary actually failed
 - which details matter, and which ones are just exhaust
 
-The goal is not to replace logs or traces. The goal is to make the execution spine visible while keeping drill-down rich.
+`resq-flow` makes the execution spine visible and keeps the underlying detail accessible.
 
 ## Core principles
 
@@ -125,8 +125,8 @@ The `resq-flow` fanout sinks should be intentionally best-effort:
 
 Direct-to-relay mode still exists for isolated debugging:
 
-- traces: `http://localhost:4200/v1/traces`
-- logs: `http://localhost:4200/v1/logs`
+- relay traces ingest: `http://localhost:4200/v1/traces`
+- relay logs ingest: `http://localhost:4200/v1/logs`
 
 Use it only when you intentionally want to bypass the shared Vector path.
 
