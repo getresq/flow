@@ -104,13 +104,15 @@ Use `resq-flow` behind the shared Vector stack by default:
 
 ### Vector coarse-filter policy
 
-For v1, the Vector layer stays coarse and cheap:
+For the current mail example, the Vector layer stays coarse and cheap:
 
 - do not fan out metrics to `resq-flow`
 - fan out logs only when they include the explicit mail telemetry event contract such as `mail_e2e_event`
 - fan out traces when the OTLP batch clearly contains stable mail markers such as `rrq:queue:mail-`, `handle_mail_`, `mail_` worker names, or mail stage IDs like `incoming.*`, `analyze.*`, `extract.*`, and `send.*`
 - treat `service.name` as a helpful secondary signal, not the only gate
 - keep exact flow membership out of Vector; the relay owns exact contract matching and `matched_flow_ids`
+
+These filters describe the current mail-oriented coarse fanout example, not a permanent naming contract for every future flow.
 
 ### Best-effort fanout
 
@@ -123,12 +125,13 @@ The `resq-flow` fanout sinks should be intentionally best-effort:
 
 ## Direct mode
 
-Direct-to-relay mode still exists for isolated debugging:
+Direct-to-relay OTLP ingest mode still exists for isolated debugging:
 
 - relay traces ingest: `http://localhost:4200/v1/traces`
 - relay logs ingest: `http://localhost:4200/v1/logs`
 
 Use it only when you intentionally want to bypass the shared Vector path.
+These endpoints are for sending traces and logs to the relay, not for viewing stored data.
 
 ## Design and docs
 
