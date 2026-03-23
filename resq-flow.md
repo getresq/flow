@@ -116,6 +116,13 @@ This keeps reconnect behavior predictable and avoids replay-style lag in live mo
 
 The client ingests those envelopes append-only, keeps a bounded buffer, and ignores duplicate snapshot events on reconnect by sequence number.
 
+## CLI
+
+The CLI is the headless `resq-flow` surface for relay status checks plus `logs list` and `logs tail`.
+It lives in `cli/` and uses the same relay APIs and WebSocket envelopes as the UI.
+Use it when you want quick terminal inspection or agent-friendly JSON/JSONL output without opening the browser.
+See the main `README.md` for build steps, command examples, and supported arguments.
+
 ## Vector Contract
 
 The applied runtime config lives in the `fullstack` repo at:

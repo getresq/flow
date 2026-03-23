@@ -1,4 +1,4 @@
-.PHONY: dev dev-relay dev-ui test test-relay test-ui replay replay-direct verify-ingest print-endpoints smoke-relay-ingest smoke-vector-fanout
+.PHONY: dev dev-relay dev-ui test test-relay test-ui build-cli test-cli replay replay-direct verify-ingest print-endpoints smoke-relay-ingest smoke-vector-fanout
 
 RESQ_FLOW_BASE_URL ?= http://localhost:4200
 RESQ_FLOW_VECTOR_LOGS_URL ?= http://localhost:4318/v1/logs
@@ -20,6 +20,12 @@ test-relay: ## Run Rust relay tests
 
 test-ui: ## Run frontend tests
 	cd ui && bun test
+
+build-cli: ## Build the CLI package
+	cd cli && bun run build
+
+test-cli: ## Run CLI tests
+	cd cli && bun test
 
 replay: ## Run mock event replay (start relay + ui first)
 	cd ui && bun run replay

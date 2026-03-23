@@ -163,6 +163,51 @@ make replay
 make replay-direct
 ```
 
+## CLI
+
+The MVP CLI is the headless interface for relay status checks and flow log inspection. It lives in `cli/` and builds to `cli/dist/`.
+
+Build and test it locally from the repo root:
+
+```bash
+make build-cli
+make test-cli
+```
+
+Run the built entrypoint directly:
+
+```bash
+node cli/dist/index.js --help
+node cli/dist/index.js status
+node cli/dist/index.js logs list --flow mail-pipeline
+node cli/dist/index.js logs tail --flow mail-pipeline
+```
+
+Available MVP commands:
+
+- `node cli/dist/index.js status`
+- `node cli/dist/index.js logs list --flow <flow-id>`
+- `node cli/dist/index.js logs tail --flow <flow-id>`
+
+`logs list` supports:
+
+- `--flow <flow-id>` required
+- `--window <duration>` where duration is `<number><unit>` and unit is `s`, `m`, or `h`
+- `--attr <key=value>` repeatable
+- `--query <text>`
+- `--limit <n>`
+- `--json`
+- `--jsonl`
+- `--url <base-url>`
+
+`logs tail` supports:
+
+- `--flow <flow-id>` required
+- `--attr <key=value>` repeatable
+- `--query <text>`
+- `--jsonl`
+- `--url <base-url>`
+
 ## Validation
 
 Standard checks:
