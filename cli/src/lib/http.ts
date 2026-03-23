@@ -6,7 +6,7 @@ export interface RequestJsonOptions {
   path: string;
   query?: Record<string, string | number | boolean | undefined>;
   timeoutMs?: number;
-  fetchImpl?: typeof fetch;
+  fetchImpl?: typeof fetch | undefined;
 }
 
 interface BuildRelayUrlOptions {
@@ -44,16 +44,27 @@ export async function requestJson<T>({
 }: RequestJsonOptions): Promise<T> {
   const url = buildRelayUrl({ baseUrl, path, query });
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutError = new DOMException("The operation was aborted.", "AbortError");
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   try {
-    const response = await fetchImpl(url, {
-      method: "GET",
-      signal: controller.signal,
-      headers: {
-        accept: "application/json",
-      },
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        controller.abort();
+        reject(timeoutError);
+      }, timeoutMs);
     });
+
+    const response = await Promise.race([
+      fetchImpl(url, {
+        method: "GET",
+        signal: controller.signal,
+        headers: {
+          accept: "application/json",
+        },
+      }),
+      timeoutPromise,
+    ]);
 
     if (!response.ok) {
       throw new CliError(
@@ -61,10 +72,16 @@ export async function requestJson<T>({
       );
     }
 
-    return (await response.json()) as T;
+    try {
+      return (await response.json()) as T;
+    } catch {
+      throw new CliError(`invalid JSON response: ${url}`);
+    }
   } catch (error) {
     throw normalizeNetworkError(error, url);
   } finally {
-    clearTimeout(timeoutId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 }

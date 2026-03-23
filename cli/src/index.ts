@@ -46,9 +46,14 @@ const MAIN_HELP = renderHelp({
   ],
 });
 
+export interface CliRuntime {
+  fetchImpl?: typeof fetch | undefined;
+}
+
 export async function runCli(
   argv: string[],
   io: CliIo = createDefaultIo(),
+  runtime: CliRuntime = {},
 ): Promise<number> {
   try {
     const firstArg = argv[0];
@@ -71,7 +76,9 @@ export async function runCli(
 
     switch (command) {
       case "status":
-        return await runStatusCommand(rest, io);
+        return await runStatusCommand(rest, io, {
+          fetchImpl: runtime.fetchImpl,
+        });
       case "logs":
         return runLogsCommand(rest, io);
       default:

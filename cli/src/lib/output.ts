@@ -34,6 +34,10 @@ export function printJsonl(io: CliIo, values: unknown[]): void {
   }
 }
 
+export function formatEnabled(value: boolean): string {
+  return value ? "yes" : "no";
+}
+
 export function formatJsonValue(value: JsonValue | undefined): string {
   if (value === undefined) {
     return "";
