@@ -71,6 +71,11 @@ export interface RelayHistoryPayload {
   warnings?: string[];
 }
 
+export interface RelayWsEnvelope {
+  type: "snapshot" | "batch";
+  events: RelayFlowEvent[];
+}
+
 export interface CliLogRow {
   seq?: number | undefined;
   timestamp: string;

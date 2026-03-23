@@ -41,6 +41,7 @@ const MAIN_HELP = renderHelp({
 
 export interface CliRuntime {
   fetchImpl?: typeof fetch | undefined;
+  websocketFactory?: import("./lib/ws.js").WebSocketFactory | undefined;
 }
 
 export async function runCli(
@@ -75,6 +76,7 @@ export async function runCli(
       case "logs":
         return runLogsCommand(rest, io, {
           fetchImpl: runtime.fetchImpl,
+          websocketFactory: runtime.websocketFactory,
         });
       default:
         throw new BadArgumentError(`unknown command: ${command}`);

@@ -8,6 +8,7 @@ import {
 import { parseAttributeFilter, matchesLogFilters } from "../lib/filters.js";
 import { preferredStageLabel, fetchHistoryRows } from "../lib/history.js";
 import { BadArgumentError, EXIT_CODES } from "../lib/errors.js";
+import { streamLogRows, type WebSocketFactory } from "../lib/ws.js";
 import {
   printJson,
   printJsonl,
@@ -65,8 +66,18 @@ interface LogsListOptions {
   timeout?: string;
 }
 
+interface LogsTailOptions {
+  help: boolean;
+  flow?: string;
+  attrs: string[];
+  query?: string;
+  jsonl: boolean;
+  url?: string;
+}
+
 export interface LogsCommandDependencies {
   fetchImpl?: typeof fetch | undefined;
+  websocketFactory?: WebSocketFactory | undefined;
 }
 
 export async function runLogsCommand(
@@ -84,11 +95,7 @@ export async function runLogsCommand(
     case "list":
       return runLogsListCommand(rest, io, dependencies);
     case "tail":
-      if (rest.length === 0 || (rest.length === 1 && rest[0] === "--help")) {
-        writeStdout(io, LOGS_TAIL_HELP.trimEnd());
-        return EXIT_CODES.OK;
-      }
-      throw new Error("logs tail is not implemented yet");
+      return runLogsTailCommand(rest, io, dependencies);
     default:
       throw new BadArgumentError(`unknown logs command: ${subcommand}`);
   }
@@ -152,6 +159,56 @@ async function runLogsListCommand(
   return EXIT_CODES.OK;
 }
 
+async function runLogsTailCommand(
+  args: string[],
+  io: CliIo,
+  dependencies: LogsCommandDependencies,
+): Promise<number> {
+  const options = parseLogsTailArgs(args);
+  if (options.help) {
+    writeStdout(io, LOGS_TAIL_HELP.trimEnd());
+    return EXIT_CODES.OK;
+  }
+
+  if (!options.flow) {
+    throw new BadArgumentError("--flow is required");
+  }
+
+  const baseUrl = resolveBaseUrl(options.url);
+  const filters = {
+    attrs: options.attrs.map(parseAttributeFilter),
+    query: options.query,
+  };
+  const controller = new AbortController();
+  const handleSignal = () => controller.abort();
+
+  process.once("SIGINT", handleSignal);
+  process.once("SIGTERM", handleSignal);
+
+  try {
+    await streamLogRows({
+      baseUrl,
+      flowId: options.flow,
+      filters,
+      signal: controller.signal,
+      websocketFactory: dependencies.websocketFactory,
+      onRow: (row) => {
+        if (options.jsonl) {
+          printJsonl(io, [row]);
+          return;
+        }
+
+        writeStdout(io, renderTailRow(row));
+      },
+    });
+  } finally {
+    process.removeListener("SIGINT", handleSignal);
+    process.removeListener("SIGTERM", handleSignal);
+  }
+
+  return EXIT_CODES.OK;
+}
+
 export function renderLogsListRows(rows: CliLogRow[]): string[] {
   return renderAlignedRows(
     rows.map((row) => [
@@ -163,6 +220,14 @@ export function renderLogsListRows(rows: CliLogRow[]): string[] {
       row.message,
     ]),
   );
+}
+
+export function renderTailRow(row: CliLogRow): string {
+  const time = row.timestamp.length >= 19 ? row.timestamp.slice(11, 19) : row.timestamp;
+  const stage = preferredStageLabel(row).padEnd(22);
+  const run = (row.runId ?? "-").padEnd(12);
+  const status = (row.status ?? "-").padEnd(5);
+  return `[${time}] ${stage}  ${run}  ${status}  ${row.message}`;
 }
 
 function parseLogsListArgs(args: string[]): LogsListOptions {
@@ -235,6 +300,77 @@ function parseLogsListArgs(args: string[]): LogsListOptions {
           break;
         case "--timeout":
           options.timeout = value;
+          break;
+        default:
+          break;
+      }
+
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("-")) {
+      throw new BadArgumentError(`unknown flag: ${arg}`);
+    }
+
+    throw new BadArgumentError(`unexpected argument: ${arg}`);
+  }
+
+  return options;
+}
+
+function parseLogsTailArgs(args: string[]): LogsTailOptions {
+  const options: LogsTailOptions = {
+    help: false,
+    attrs: [],
+    jsonl: false,
+  };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === undefined) {
+      break;
+    }
+
+    if (arg === "--help") {
+      options.help = true;
+      continue;
+    }
+
+    if (arg === "--jsonl") {
+      options.jsonl = true;
+      continue;
+    }
+
+    if (arg === "--json") {
+      throw new BadArgumentError("--json is not supported for logs tail");
+    }
+
+    if (arg === "--attr") {
+      const value = args[index + 1];
+      if (!value) {
+        throw new BadArgumentError("missing value for --attr");
+      }
+      options.attrs.push(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--flow" || arg === "--query" || arg === "--url") {
+      const value = args[index + 1];
+      if (!value) {
+        throw new BadArgumentError(`missing value for ${arg}`);
+      }
+
+      switch (arg) {
+        case "--flow":
+          options.flow = value;
+          break;
+        case "--query":
+          options.query = value;
+          break;
+        case "--url":
+          options.url = value;
           break;
         default:
           break;
