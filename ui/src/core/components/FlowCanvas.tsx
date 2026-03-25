@@ -7,15 +7,18 @@ import {
   ReactFlow,
   SelectionMode,
   useEdgesState,
+  type OnMove,
   type NodeChange,
   type NodeMouseHandler,
+  type Viewport,
 } from '@xyflow/react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { edgeTypes } from '../edges'
 import { applyBranchTemplatePositions } from '../layout/branchPlacement'
 import { applyLaneTemplatePositions } from '../layout/lanePlacement'
 import { computeElkLayout, type LayoutGeometry } from '../layout/elkLayout'
+import { clearPersistedLayout, loadPersistedLayout, savePersistedLayout } from '../layout/persistedLayout'
 import { nodeTypes } from '../nodes'
 import type { FlowEdge, FlowNode } from '../nodes/types'
 import type { FlowConfig, LogEntry, NodeRuntimeStatus, SpanEntry, ThemeMode } from '../types'
@@ -389,12 +392,16 @@ export function FlowCanvas({
   const [elkLayout, setElkLayout] = useState<Map<string, LayoutGeometry> | null>(null)
   const [layoutReady, setLayoutReady] = useState(false)
   const [interactionMode, setInteractionMode] = useState<CanvasInteractionMode>('pan')
-  const [runtimePositions, setRuntimePositions] = useState<Map<string, { x: number; y: number }>>(new Map())
-  const [saveState, setSaveState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const [runtimePositions, setRuntimePositions] = useState<Map<string, { x: number; y: number }>>(
+    () => loadPersistedLayout(flow).positions,
+  )
+  const [savedViewport, setSavedViewport] = useState<Viewport | null>(
+    () => loadPersistedLayout(flow).viewport,
+  )
+  const [entering, setEntering] = useState(true)
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(
     () => new Set(selectedNodeId ? [selectedNodeId] : []),
   )
-  const entranceRef = useRef(true)
   const annotationAnchors = useMemo(() => inferAnnotationAnchors(flow), [flow])
   const nonGroupNodeCount = useMemo(
     () => flow.nodes.filter((node) => node.type !== 'group').length,
@@ -402,23 +409,31 @@ export function FlowCanvas({
   )
 
   useEffect(() => {
+    const persisted = loadPersistedLayout(flow)
     setElkLayout(null)
     setLayoutReady(false)
-    setRuntimePositions(new Map())
+    setRuntimePositions(persisted.positions)
+    setSavedViewport(persisted.viewport)
+    setEntering(true)
     setSelectedNodeIds(new Set())
-    setSaveState('idle')
 
     // CSS animation handles the stagger via @keyframes nodeEntrance + animation-delay.
     // We only track the entering flag so mapFlowNodes applies the animation class.
-    entranceRef.current = true
     const entranceTimer = window.setTimeout(() => {
-      entranceRef.current = false
+      setEntering(false)
     }, nonGroupNodeCount * 30 + 350)
 
     return () => {
       window.clearTimeout(entranceTimer)
     }
-  }, [flow.id, nonGroupNodeCount])
+  }, [flow, nonGroupNodeCount])
+
+  useEffect(() => {
+    savePersistedLayout(flow, {
+      positions: runtimePositions,
+      viewport: savedViewport,
+    })
+  }, [flow, runtimePositions, savedViewport])
 
   useEffect(() => {
     let cancelled = false
@@ -441,18 +456,6 @@ export function FlowCanvas({
       cancelled = true
     }
   }, [flow])
-
-  useEffect(() => {
-    if (saveState === 'idle') {
-      return
-    }
-
-    const timer = window.setTimeout(() => {
-      setSaveState('idle')
-    }, 1_500)
-
-    return () => window.clearTimeout(timer)
-  }, [saveState])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -525,10 +528,10 @@ export function FlowCanvas({
         runtimePositions,
         annotationAnchors,
         elkLayout ?? undefined,
-        entranceRef.current,
+        entering,
         layoutReady,
       ),
-    [flow, nodeStatuses, nodeLogMap, focusState.nodeIds, selectedNodeIds, runtimePositions, annotationAnchors, elkLayout, layoutReady],
+    [flow, nodeStatuses, nodeLogMap, focusState.nodeIds, selectedNodeIds, runtimePositions, annotationAnchors, elkLayout, entering, layoutReady],
   )
   const initialEdges = useMemo(
     () => mapFlowEdges(flow, activeEdges, focusState.edgeIds),
@@ -549,7 +552,7 @@ export function FlowCanvas({
         runtimePositions,
         annotationAnchors,
         elkLayout ?? undefined,
-        entranceRef.current,
+        entering,
         layoutReady,
       ),
     )
@@ -563,6 +566,7 @@ export function FlowCanvas({
     annotationAnchors,
     setNodes,
     elkLayout,
+    entering,
     layoutReady,
   ])
 
@@ -655,27 +659,24 @@ export function FlowCanvas({
     [setNodes],
   )
 
-  const handleSavePositions = useCallback(async () => {
-    const payload = nodes.reduce<Record<string, { x: number; y: number }>>((acc, node) => {
-      acc[node.id] = node.position
-      return acc
-    }, {})
-
-    const serialized = JSON.stringify(payload, null, 2)
-
-    try {
-      if (!navigator.clipboard?.writeText) {
-        throw new Error('Clipboard API unavailable')
+  const handleViewportChange = useCallback<OnMove>((_, viewport) => {
+    setSavedViewport((previous) => {
+      if (
+        previous &&
+        previous.x === viewport.x &&
+        previous.y === viewport.y &&
+        previous.zoom === viewport.zoom
+      ) {
+        return previous
       }
 
-      await navigator.clipboard.writeText(serialized)
-      setSaveState('copied')
-    } catch {
-      setSaveState('failed')
-      // Fallback for environments where clipboard is blocked.
-      console.log('save positions', payload)
-    }
-  }, [nodes])
+      return {
+        x: viewport.x,
+        y: viewport.y,
+        zoom: viewport.zoom,
+      }
+    })
+  }, [])
 
   if (!flow.hasGraph || flow.nodes.length === 0) {
     return (
@@ -697,26 +698,12 @@ export function FlowCanvas({
       <div className="absolute left-3 top-3 z-20 flex gap-2">
         <button
           type="button"
-          title="Copy current positions JSON to clipboard"
-          className={`rounded border px-2 py-1 text-[10px] ${
-            saveState === 'copied'
-              ? 'border-emerald-500/70 bg-emerald-900/35 text-emerald-200'
-              : saveState === 'failed'
-                ? 'border-rose-500/70 bg-rose-900/35 text-rose-200'
-                : 'border-slate-700 bg-slate-900/95 text-slate-200'
-          }`}
-          onClick={() => {
-            void handleSavePositions()
-          }}
-        >
-          {saveState === 'copied' ? 'Copied' : saveState === 'failed' ? 'Copy failed' : 'Save positions'}
-        </button>
-
-        <button
-          type="button"
+          title="Reset the canvas to the authored flow layout"
           className="rounded border border-slate-700 bg-slate-900/95 px-2 py-1 text-[10px] text-slate-200"
           onClick={() => {
+            clearPersistedLayout(flow)
             setRuntimePositions(new Map())
+            setSavedViewport(null)
             setLayoutReady(false)
             computeElkLayout(flow.nodes, flow.edges)
               .then((layout) => {
@@ -729,7 +716,7 @@ export function FlowCanvas({
               })
           }}
         >
-          Re-layout
+          Reset layout
         </button>
 
         <div className="ml-1 flex items-center rounded border border-slate-700 bg-slate-900/95 p-0.5">
@@ -770,7 +757,8 @@ export function FlowCanvas({
 
       <ReactFlow
         colorMode={theme}
-        fitView
+        defaultViewport={savedViewport ?? undefined}
+        fitView={!savedViewport}
         fitViewOptions={{
           maxZoom: 1.1,
           padding: 0.12,
@@ -782,6 +770,7 @@ export function FlowCanvas({
         edges={edges}
         onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
+        onMove={handleViewportChange}
         onPaneClick={handlePaneClick}
         onNodeClick={handleNodeClick}
         onSelectionChange={handleSelectionChange}
