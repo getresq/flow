@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui'
 
 import { formatEasternTime } from '../time'
 import type { TraceJourney, TraceStatus } from '../types'
-import { formatRunLabel } from '../runPresentation'
+import { formatRunLabel, getOverviewStages } from '../runPresentation'
 import { DurationBadge } from './DurationBadge'
 
 function journeyStatusVariant(status: TraceStatus): 'default' | 'destructive' | 'success' | 'warning' {
@@ -25,6 +25,8 @@ export function getTraceInspectorPresentation(journey: TraceJourney): {
   description: string
   headerContent: ReactNode
 } {
+  const overviewStages = getOverviewStages(journey.stages)
+  const lifecycleStepCount = overviewStages.length
   const identifierEntries = [
     ['mailbox_owner', journey.identifiers.mailboxOwner],
     ['provider', journey.identifiers.provider],
@@ -38,7 +40,7 @@ export function getTraceInspectorPresentation(journey: TraceJourney): {
 
   return {
     title: 'Run',
-    description: `${journey.stages.length} ${journey.stages.length === 1 ? 'step' : 'steps'} · updated ${formatEasternTime(journey.lastUpdatedAt)}`,
+    description: `${lifecycleStepCount} ${lifecycleStepCount === 1 ? 'lifecycle step' : 'lifecycle steps'} · updated ${formatEasternTime(journey.lastUpdatedAt)}`,
     headerContent: (
       <>
         <div className="mb-3 flex flex-wrap items-center gap-2">

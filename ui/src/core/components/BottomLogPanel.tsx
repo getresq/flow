@@ -15,7 +15,6 @@ import {
 } from '@/components/ui'
 
 import type { FlowConfig, LogEntry, TraceJourney } from '../types'
-import { isDefaultVisibleLogEntry } from '../telemetryClassification'
 import { formatRunLabel, formatStepDisplayLabel, isDefaultVisibleJourney } from '../runPresentation'
 import {
   DEFAULT_BOTTOM_PANEL_HEIGHT,
@@ -43,6 +42,11 @@ function getScrollViewport(root: HTMLDivElement | null) {
   return root?.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement | null
 }
 
+function resolveNodeDisplayLabel(nodeId: string, nodeLabels: Map<string, string>): string {
+  const label = nodeLabels.get(nodeId)?.trim()
+  return label || nodeId
+}
+
 export function BottomLogPanel({
   flow,
   globalLogs,
@@ -59,13 +63,18 @@ export function BottomLogPanel({
   const [activeNodeFilters, setActiveNodeFilters] = useState<Set<string>>(new Set())
   const [pinnedTraceIds, setPinnedTraceIds] = useState<Set<string>>(new Set())
   const [liveTail, setLiveTail] = useState(true)
-  const [showAll, setShowAll] = useState(false)
+  const [showAllRuns, setShowAllRuns] = useState(false)
   const logsScrollAreaRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null)
   const previousExpandedHeightRef = useRef(Math.max(panelHeight, DEFAULT_BOTTOM_PANEL_HEIGHT))
 
   const collapsed = panelHeight <= MIN_BOTTOM_PANEL_HEIGHT
   const maximized = typeof window !== 'undefined' && panelHeight >= window.innerHeight * MAX_HEIGHT_RATIO - 4
+
+  const flowLogs = useMemo(
+    () => globalLogs.filter((entry) => entry.eventType === 'log'),
+    [globalLogs],
+  )
 
   const nodeLabels = useMemo(() => {
     const map = new Map<string, string>()
@@ -76,17 +85,14 @@ export function BottomLogPanel({
   }, [flow.nodes])
 
   const activeNodeIds = useMemo(
-    () => new Set(globalLogs.map((entry) => entry.nodeId).filter(Boolean) as string[]),
-    [globalLogs],
+    () => new Set(flowLogs.map((entry) => entry.nodeId).filter(Boolean) as string[]),
+    [flowLogs],
   )
 
   const filteredLogs = useMemo(() => {
     const query = search.trim().toLowerCase()
-    return [...globalLogs]
+    return [...flowLogs]
       .filter((entry) => {
-        if (!showAll && !isDefaultVisibleLogEntry(entry)) {
-          return false
-        }
         const executionId = entry.runId ?? entry.traceId
         if (selectedTraceId && executionId !== selectedTraceId) {
           return false
@@ -100,7 +106,7 @@ export function BottomLogPanel({
         const nodeLabel = entry.nodeId ? nodeLabels.get(entry.nodeId) : undefined
         return buildLogSearchText(entry, nodeLabel).includes(query)
       })
-  }, [activeNodeFilters, globalLogs, nodeLabels, search, selectedTraceId, showAll])
+  }, [activeNodeFilters, flowLogs, nodeLabels, search, selectedTraceId])
 
   const filteredJourneys = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -114,11 +120,11 @@ export function BottomLogPanel({
     })
 
     if (!query) {
-      return showAll ? ordered : ordered.filter((journey) => isDefaultVisibleJourney(journey))
+      return showAllRuns ? ordered : ordered.filter((journey) => isDefaultVisibleJourney(journey))
     }
 
     return ordered.filter((journey) => {
-      if (!showAll && !isDefaultVisibleJourney(journey)) {
+      if (!showAllRuns && !isDefaultVisibleJourney(journey)) {
         return false
       }
       const stage = journey.stages.at(-1)
@@ -129,7 +135,42 @@ export function BottomLogPanel({
         (journey.errorSummary?.toLowerCase().includes(query) ?? false)
       )
     })
-  }, [journeys, pinnedTraceIds, search, showAll])
+  }, [journeys, pinnedTraceIds, search, showAllRuns])
+
+  const logsEmptyState = useMemo(() => {
+    if (flowLogs.length === 0) {
+      return {
+        title: 'Waiting for activity',
+        body: 'Logs will appear here when the flow runs.',
+      }
+    }
+
+    return {
+      title: 'No logs match the current filters',
+      body: 'Try clearing node filters or search to see more flow activity.',
+    }
+  }, [flowLogs.length])
+
+  const runsEmptyState = useMemo(() => {
+    if (journeys.length === 0) {
+      return {
+        title: 'Waiting for activity',
+        body: 'Runs will appear here when the flow runs.',
+      }
+    }
+
+    if (!showAllRuns) {
+      return {
+        title: 'No lifecycle runs yet',
+        body: 'Turn on Show all to inspect queue and worker runs.',
+      }
+    }
+
+    return {
+      title: 'No runs match the current filters',
+      body: 'Try clearing search to see more runs.',
+    }
+  }, [journeys.length, showAllRuns])
 
 
   useEffect(() => {
@@ -295,7 +336,13 @@ export function BottomLogPanel({
                 >
                   All
                 </Button>
-                {[...activeNodeIds].map((nodeId) => {
+                {[...activeNodeIds]
+                  .sort((left, right) =>
+                    resolveNodeDisplayLabel(left, nodeLabels).localeCompare(
+                      resolveNodeDisplayLabel(right, nodeLabels),
+                    ),
+                  )
+                  .map((nodeId) => {
                   const active = activeNodeFilters.has(nodeId)
                   return (
                     <Button
@@ -306,7 +353,7 @@ export function BottomLogPanel({
                       className="rounded-full"
                       onClick={() => toggleNodeFilter(nodeId)}
                     >
-                      {nodeLabels.get(nodeId) ?? nodeId}
+                      {resolveNodeDisplayLabel(nodeId, nodeLabels)}
                     </Button>
                   )
                 })}
@@ -315,8 +362,8 @@ export function BottomLogPanel({
           ) : null}
 
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            {tab === 'logs' || tab === 'traces' ? (
-              <Toggle pressed={showAll} size="sm" onPressedChange={setShowAll} aria-label="Show all telemetry">
+            {tab === 'traces' ? (
+              <Toggle pressed={showAllRuns} size="sm" onPressedChange={setShowAllRuns} aria-label="Show all runs">
                 Show all
               </Toggle>
             ) : null}
@@ -342,8 +389,8 @@ export function BottomLogPanel({
                 {filteredLogs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
                     <Radio className="size-8 text-[var(--text-muted)]" />
-                    <p className="text-sm text-[var(--text-secondary)]">No logs yet</p>
-                    <p className="text-xs text-[var(--text-muted)]">Logs will appear here as telemetry arrives.</p>
+                    <p className="text-sm text-[var(--text-secondary)]">{logsEmptyState.title}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{logsEmptyState.body}</p>
                   </div>
                 ) : (
                   <LogsTable
@@ -386,8 +433,8 @@ export function BottomLogPanel({
                 {filteredJourneys.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
                     <Inbox className="size-8 text-[var(--text-muted)]" />
-                    <p className="text-sm text-[var(--text-secondary)]">No runs yet</p>
-                    <p className="text-xs text-[var(--text-muted)]">Runs will appear here as telemetry arrives.</p>
+                    <p className="text-sm text-[var(--text-secondary)]">{runsEmptyState.title}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{runsEmptyState.body}</p>
                   </div>
                 ) : (
                   <RunsTable

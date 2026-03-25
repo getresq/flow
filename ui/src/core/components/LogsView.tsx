@@ -11,14 +11,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Toggle,
 } from '@/components/ui'
 
 import { buildLogSearchText } from '../logPresentation'
 import { LogsTable } from './LogsTable'
 import type { FlowConfig, LogEntry } from '../types'
 import type { SourceMode } from '../hooks/useUrlState'
-import { isDefaultVisibleLogEntry } from '../telemetryClassification'
 
 interface LogsViewProps {
   flow: FlowConfig
@@ -33,6 +31,11 @@ function getScrollViewport(root: HTMLDivElement | null) {
   return root?.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement | null
 }
 
+function resolveNodeDisplayLabel(nodeId: string, nodeLabels: Map<string, string>): string {
+  const label = nodeLabels.get(nodeId)?.trim()
+  return label || nodeId
+}
+
 export function LogsView({
   flow,
   logs,
@@ -45,7 +48,6 @@ export function LogsView({
   const [statusFilter, setStatusFilter] = useState<'all' | 'info' | 'error'>('all')
   const [nodeFilter, setNodeFilter] = useState<string>('all')
   const [liveTail, setLiveTail] = useState(true)
-  const [showAll, setShowAll] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement | null>(null)
 
   const nodeLabels = useMemo(() => {
@@ -56,11 +58,30 @@ export function LogsView({
     return map
   }, [flow.nodes])
 
+  const availableNodeIds = useMemo(() => {
+    const ids = new Set<string>()
+
+    for (const entry of logs) {
+      if (entry.eventType !== 'log' || !entry.nodeId) {
+        continue
+      }
+      ids.add(entry.nodeId)
+    }
+
+    if (nodeFilter !== 'all') {
+      ids.add(nodeFilter)
+    }
+
+    return [...ids].sort((left, right) =>
+      resolveNodeDisplayLabel(left, nodeLabels).localeCompare(resolveNodeDisplayLabel(right, nodeLabels)),
+    )
+  }, [logs, nodeFilter, nodeLabels])
+
   const filteredLogs = useMemo(() => {
     const query = search.trim().toLowerCase()
 
     return logs.filter((entry) => {
-      if (!showAll && !isDefaultVisibleLogEntry(entry)) {
+      if (entry.eventType !== 'log') {
         return false
       }
       if (selectedTraceId && (entry.runId ?? entry.traceId) !== selectedTraceId) {
@@ -76,10 +97,29 @@ export function LogsView({
         return true
       }
 
-      const nodeLabel = entry.nodeId ? nodeLabels.get(entry.nodeId)?.toLowerCase() : ''
+      const nodeLabel = entry.nodeId ? resolveNodeDisplayLabel(entry.nodeId, nodeLabels).toLowerCase() : ''
       return buildLogSearchText(entry, nodeLabel).includes(query)
     })
-  }, [logs, nodeFilter, nodeLabels, search, selectedTraceId, showAll, statusFilter])
+  }, [logs, nodeFilter, nodeLabels, search, selectedTraceId, statusFilter])
+
+  const hasAnyFlowLogs = useMemo(
+    () => logs.some((entry) => entry.eventType === 'log'),
+    [logs],
+  )
+
+  const logsEmptyState = useMemo(() => {
+    if (!hasAnyFlowLogs) {
+      return {
+        title: 'Waiting for activity',
+        body: 'Logs will appear here when the flow runs.',
+      }
+    }
+
+    return {
+      title: 'No logs match the current filters',
+      body: 'Try clearing search, node, or status filters to see more flow activity.',
+    }
+  }, [hasAnyFlowLogs])
 
   useEffect(() => {
     if (!liveTail || sourceMode !== 'live') {
@@ -124,9 +164,9 @@ export function LogsView({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All nodes</SelectItem>
-            {flow.nodes.map((node) => (
-              <SelectItem key={node.id} value={node.id}>
-                {node.label}
+            {availableNodeIds.map((nodeId) => (
+              <SelectItem key={nodeId} value={nodeId}>
+                {resolveNodeDisplayLabel(nodeId, nodeLabels)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -156,9 +196,6 @@ export function LogsView({
           Live tail {liveTail ? 'on' : 'off'}
         </Button>
 
-        <Toggle pressed={showAll} size="sm" onPressedChange={setShowAll} aria-label="Show all telemetry">
-          Show all
-        </Toggle>
       </div>
 
       <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -167,20 +204,27 @@ export function LogsView({
             ref={scrollAreaRef}
             className="min-h-0 flex-1"
           >
-            <LogsTable
-              logs={filteredLogs}
-              nodeLabels={nodeLabels}
-              selectedTraceId={selectedTraceId}
-              onSelectLog={(entry) => {
-                const executionId = entry.runId ?? entry.traceId
-                if (executionId) {
-                  onSelectTrace(executionId)
-                }
-                if (entry.nodeId) {
-                  onSelectNode(entry.nodeId)
-                }
-              }}
-            />
+            {filteredLogs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                <p className="text-sm text-[var(--text-secondary)]">{logsEmptyState.title}</p>
+                <p className="text-xs text-[var(--text-muted)]">{logsEmptyState.body}</p>
+              </div>
+            ) : (
+              <LogsTable
+                logs={filteredLogs}
+                nodeLabels={nodeLabels}
+                selectedTraceId={selectedTraceId}
+                onSelectLog={(entry) => {
+                  const executionId = entry.runId ?? entry.traceId
+                  if (executionId) {
+                    onSelectTrace(executionId)
+                  }
+                  if (entry.nodeId) {
+                    onSelectNode(entry.nodeId)
+                  }
+                }}
+              />
+            )}
           </ScrollArea>
         </CardContent>
       </Card>

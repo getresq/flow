@@ -162,4 +162,54 @@ describe('runPresentation', () => {
     expect(getJourneySummaryStage(journey)?.stageId).toBe('analyze.final_result')
     expect(getOverviewStages(journey.stages).map((stage) => stage.stageId)).toEqual(['analyze.final_result'])
   })
+
+  it('keeps lifecycle transitions and hides bookkeeping stages in overview', () => {
+    const stages = [
+      {
+        stageId: 'analyze.reply_status_write',
+        label: 'analyze.reply_status_write',
+        nodeId: 'analyze-decision',
+        startSeq: 1,
+        endSeq: 1,
+        startTs: '2026-03-24T12:00:00.000Z',
+        durationMs: 0,
+        status: 'success' as const,
+      },
+      {
+        stageId: 'extract.recompute_enqueue',
+        label: 'extract.recompute_enqueue',
+        nodeId: 'extract-worker',
+        startSeq: 2,
+        endSeq: 2,
+        startTs: '2026-03-24T12:00:01.000Z',
+        durationMs: 0,
+        status: 'success' as const,
+      },
+      {
+        stageId: 'recompute.final_result',
+        label: 'recompute.final_result',
+        nodeId: 'extract-worker',
+        startSeq: 3,
+        endSeq: 3,
+        startTs: '2026-03-24T12:00:02.000Z',
+        durationMs: 0,
+        status: 'success' as const,
+      },
+      {
+        stageId: 'worker.result',
+        label: 'worker.result',
+        nodeId: 'extract-worker',
+        startSeq: 4,
+        endSeq: 4,
+        startTs: '2026-03-24T12:00:03.000Z',
+        durationMs: 0,
+        status: 'success' as const,
+      },
+    ]
+
+    expect(getOverviewStages(stages).map((stage) => stage.stageId)).toEqual([
+      'extract.recompute_enqueue',
+      'recompute.final_result',
+    ])
+  })
 })

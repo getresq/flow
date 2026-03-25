@@ -28,6 +28,14 @@ function logVariant(level: LogEntry['level']): 'destructive' | 'success' {
   return level === 'error' ? 'destructive' : 'success'
 }
 
+function compareLogEntriesDescending(left: LogEntry, right: LogEntry): number {
+  if (typeof left.seq === 'number' && typeof right.seq === 'number' && left.seq !== right.seq) {
+    return right.seq - left.seq
+  }
+
+  return Date.parse(right.timestamp) - Date.parse(left.timestamp)
+}
+
 export function LogPanel({ flow, globalLogs, selectedNodeId, onSelectNode }: LogPanelProps) {
   const [open, setOpen] = useState(true)
   const [levelFilter, setLevelFilter] = useState<'all' | 'info' | 'error'>('all')
@@ -64,7 +72,7 @@ export function LogPanel({ flow, globalLogs, selectedNodeId, onSelectNode }: Log
 
         return buildLogSearchText(entry, entry.nodeId ? nodeLabels.get(entry.nodeId) : undefined).includes(query)
       })
-      .sort((left, right) => Date.parse(right.timestamp) - Date.parse(left.timestamp))
+      .sort(compareLogEntriesDescending)
   }, [effectiveNodeFilter, globalLogs, levelFilter, nodeLabels, search])
 
   useEffect(() => {
@@ -141,7 +149,7 @@ export function LogPanel({ flow, globalLogs, selectedNodeId, onSelectNode }: Log
         <div className="space-y-3 px-4 py-3">
           {filteredLogs.map((entry, index) => {
             const nodeLabel = entry.nodeId ? nodeLabels.get(entry.nodeId) ?? entry.nodeId : 'unmapped'
-            const timestamp = formatEasternTime(entry.timestamp)
+            const timestamp = formatEasternTime(entry.timestamp, { precise: true })
 
             return (
               <button

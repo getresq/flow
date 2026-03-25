@@ -83,4 +83,37 @@ describe('telemetryClassification', () => {
 
     expect(isDefaultVisibleLogEntry(entry)).toBe(false)
   })
+
+  it('treats lifecycle span wrappers as raw but keeps lifecycle log events meaningful', () => {
+    const spanEvent: FlowEvent = {
+      type: 'span_end',
+      timestamp: '2026-03-19T12:00:00.000Z',
+      trace_id: 'trace-5',
+      span_id: 'span-5',
+      attributes: {
+        component_id: 'analyze-decision',
+        stage_id: 'analyze.final_result',
+        reply_status: 'needs_review',
+      },
+      message: 'span completed',
+    }
+
+    const logEvent: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-19T12:00:00.100Z',
+      trace_id: 'trace-5',
+      span_id: 'log-5',
+      attributes: {
+        component_id: 'analyze-decision',
+        stage_id: 'analyze.final_result',
+        reply_status: 'needs_review',
+        draft_status: 'needs_review',
+        result_action: 'draft_reply',
+      },
+      message: 'analyze finalized reply branch',
+    }
+
+    expect(classifyFlowEvent(spanEvent)).toBe('raw')
+    expect(classifyFlowEvent(logEvent)).toBe('meaningful')
+  })
 })

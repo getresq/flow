@@ -271,4 +271,44 @@ describe('useTraceJourney', () => {
       'extract-queue::queue.enqueue#2:queue.enqueue',
     ])
   })
+
+  it('preserves richer stage attrs when later span events update the same stage', () => {
+    const events: FlowEvent[] = [
+      {
+        type: 'log',
+        seq: 1,
+        timestamp: '2026-03-05T12:00:00.000Z',
+        trace_id: 'trace-summary',
+        attributes: {
+          event: 'flow_event',
+          run_id: 'run-summary',
+          component_id: 'analyze-decision',
+          stage_id: 'analyze.final_result',
+          reply_status: 'needs_review',
+          draft_status: 'needs_review',
+          result_action: 'draft_reply',
+        },
+      },
+      {
+        type: 'span_end',
+        seq: 2,
+        timestamp: '2026-03-05T12:00:00.100Z',
+        trace_id: 'trace-summary',
+        attributes: {
+          event: 'flow_event',
+          run_id: 'run-summary',
+          component_id: 'analyze-decision',
+          stage_id: 'analyze.final_result',
+        },
+      },
+    ]
+
+    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping))
+    const journey = result.current.journeys[0]
+
+    expect(journey.stages).toHaveLength(1)
+    expect(journey.stages[0].attrs?.reply_status).toBe('needs_review')
+    expect(journey.stages[0].attrs?.draft_status).toBe('needs_review')
+    expect(journey.stages[0].attrs?.result_action).toBe('draft_reply')
+  })
 })

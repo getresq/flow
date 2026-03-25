@@ -95,4 +95,63 @@ describe('NodeDetailContent', () => {
     expect(screen.getByText('latest activity')).toBeInTheDocument()
     expect(screen.getByText('activity 1')).toBeInTheDocument()
   })
+
+  it('shows the latest meaningful entry per run and labels activity when multiple runs are present', () => {
+    render(
+      <NodeDetailContent
+        node={node}
+        logs={[
+          {
+            timestamp: '2026-03-23T12:00:06.000Z',
+            seq: 6,
+            level: 'info',
+            nodeId: 'incoming-queue',
+            message: 'latest activity',
+            displayMessage: 'latest activity',
+            signal: 'meaningful',
+            defaultVisible: true,
+            eventType: 'log',
+            traceId: 'trace-1',
+            runId: 'run-1',
+            attributes: { thread_id: 'thread-1' },
+          },
+          {
+            timestamp: '2026-03-23T12:00:05.000Z',
+            seq: 5,
+            level: 'info',
+            nodeId: 'incoming-queue',
+            message: 'older activity same run',
+            displayMessage: 'older activity same run',
+            signal: 'meaningful',
+            defaultVisible: true,
+            eventType: 'log',
+            traceId: 'trace-1',
+            runId: 'run-1',
+            attributes: { thread_id: 'thread-1' },
+          },
+          {
+            timestamp: '2026-03-23T12:00:04.000Z',
+            seq: 4,
+            level: 'info',
+            nodeId: 'incoming-queue',
+            message: 'other run activity',
+            displayMessage: 'other run activity',
+            signal: 'meaningful',
+            defaultVisible: true,
+            eventType: 'log',
+            traceId: 'trace-2',
+            runId: 'run-2',
+            attributes: { thread_id: 'thread-2' },
+          },
+        ]}
+        spans={[]}
+      />,
+    )
+
+    expect(screen.getByText('thread thread-1')).toBeInTheDocument()
+    expect(screen.getByText('thread thread-2')).toBeInTheDocument()
+    expect(screen.getByText('latest activity')).toBeInTheDocument()
+    expect(screen.getByText('other run activity')).toBeInTheDocument()
+    expect(screen.queryByText('older activity same run')).not.toBeInTheDocument()
+  })
 })

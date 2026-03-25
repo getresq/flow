@@ -16,7 +16,7 @@ import {
 
 import { formatEasternTime } from '../time'
 import type { SpanEntry, TraceJourney, TraceStage, TraceStatus } from '../types'
-import { formatStepDisplayLabel, formatStepLabel, getJourneySummaryStage, getOverviewStages } from '../runPresentation'
+import { formatStepDisplayLabel, getJourneySummaryStage, getOverviewStages } from '../runPresentation'
 import { DurationBadge, formatDurationLabel } from './DurationBadge'
 import { PanelSkeleton } from './PanelSkeleton'
 import { WaterfallChart } from './WaterfallChart'
@@ -66,10 +66,6 @@ function insightIcon(tone: InsightTone) {
   if (tone === 'warning') return <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[var(--status-warning)]" />
   if (tone === 'error') return <XCircle className="mt-0.5 size-4 shrink-0 text-[var(--status-error)]" />
   return <Info className="mt-0.5 size-4 shrink-0 text-[var(--text-muted)]" />
-}
-
-function stepLabel(step: TraceStage): string {
-  return formatStepLabel(step)
 }
 
 function stepDisplayLabel(step: TraceStage): string {
@@ -124,17 +120,14 @@ export function TraceDetailContent({ journey, spans = [], onSelectNode }: TraceD
 
   const overviewStages = useMemo(() => getOverviewStages(journey.stages), [journey.stages])
 
-  const failedStep = useMemo(
-    () => journey.stages.find((stage) => stage.status === 'error'),
-    [journey.stages],
-  )
+  const failedStep = useMemo(() => overviewStages.find((stage) => stage.status === 'error') ?? journey.stages.find((stage) => stage.status === 'error'), [journey.stages, overviewStages])
 
   const slowestStep = useMemo(
     () =>
-      [...journey.stages]
+      [...overviewStages]
         .filter((stage) => typeof stage.durationMs === 'number')
         .sort((left, right) => (right.durationMs ?? 0) - (left.durationMs ?? 0))[0],
-    [journey.stages],
+    [overviewStages],
   )
 
   const insights = useMemo(() => {
@@ -156,25 +149,25 @@ export function TraceDetailContent({ journey, spans = [], onSelectNode }: TraceD
     if (slowestStep && slowestStep.durationMs && journey.stages.length > 1) {
       const slowestDuration = formatDurationLabel(slowestStep.durationMs)
       if (slowestDuration) {
-        items.push({
-          tone: journey.status === 'error' ? 'neutral' : 'warning',
-          text: `Most time was spent in ${stepLabel(slowestStep)} (${slowestDuration}).`,
-        })
+          items.push({
+            tone: journey.status === 'error' ? 'neutral' : 'warning',
+            text: `Most time was spent in ${stepDisplayLabel(slowestStep)} (${slowestDuration}).`,
+          })
+        }
       }
-    }
 
-    if (journey.stages.length > 1) {
+    if (overviewStages.length > 0) {
       items.push({
         tone: 'neutral',
-        text: `This run reached ${journey.stages.length} steps.`,
+        text: `This run reached ${overviewStages.length} ${overviewStages.length === 1 ? 'lifecycle step' : 'lifecycle steps'}.`,
       })
     }
 
     return items.slice(0, 3)
-  }, [failedStep, journey, slowestStep])
+  }, [failedStep, journey, overviewStages, slowestStep])
 
   const focusLabel = failedStep ? 'Failed In' : 'Slowest Step'
-  const focusValue = failedStep ? stepDisplayLabel(failedStep) : slowestStep ? stepLabel(slowestStep) : 'None yet'
+  const focusValue = failedStep ? stepDisplayLabel(failedStep) : slowestStep ? stepDisplayLabel(slowestStep) : 'None yet'
   const focusMeta = !failedStep && slowestStep?.durationMs ? formatDurationLabel(slowestStep.durationMs) : null
 
   return (
@@ -268,7 +261,7 @@ export function TraceDetailContent({ journey, spans = [], onSelectNode }: TraceD
                           : 'var(--text-muted)'
 
                     return (
-                      <div key={`${stage.stageId}-${index}`} className="relative flex gap-3 pb-3">
+                      <div key={stage.instanceId ?? `${stage.stageId}-${index}`} className="relative flex gap-3 pb-3">
                           {/* Timeline dot */}
                         <div className="relative z-10 mt-3 flex shrink-0 items-start">
                           <div
@@ -291,8 +284,7 @@ export function TraceDetailContent({ journey, spans = [], onSelectNode }: TraceD
                             </div>
                             <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)]">
                               <span>step {index + 1}</span>
-                              {stage.nodeId ? <span>node {stage.nodeId}</span> : null}
-                              {typeof stage.attempt === 'number' ? <span>attempt {stage.attempt}</span> : null}
+                              {typeof stage.attempt === 'number' && stage.attempt > 0 ? <span>retry {stage.attempt}</span> : null}
                             </div>
                             {errorSummary ? (
                               <div className="mt-2 rounded-lg border border-[var(--status-error)] px-3 py-2 text-xs text-[var(--text-primary)] [background-color:color-mix(in_srgb,var(--status-error)_12%,transparent)]">
@@ -336,6 +328,9 @@ export function TraceDetailContent({ journey, spans = [], onSelectNode }: TraceD
                     <CardContent className="p-3">
                       <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Steps</div>
                       <div className="mt-1 text-sm text-[var(--text-primary)]">{journey.stages.length}</div>
+                      <div className="mt-1 text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
+                        telemetry steps
+                      </div>
                     </CardContent>
                   </Card>
                 </div>

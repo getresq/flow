@@ -122,6 +122,19 @@ function resolveStageLabel(event: FlowEvent, stageId: string): string {
   return readStringAttribute(event.attributes, 'stage_name') ?? stageId
 }
 
+function mergeStageAttributes(
+  existing: Record<string, unknown> | undefined,
+  incoming: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!existing) {
+    return incoming
+  }
+  if (!incoming) {
+    return existing
+  }
+  return { ...existing, ...incoming }
+}
+
 function resolveStageStatus(event: FlowEvent, current: TraceStatus): TraceStatus {
   if (inferErrorState(event)) {
     return 'error'
@@ -376,11 +389,14 @@ export function useTraceJourney(
         journey.stageOrder.push(stageKey)
       }
 
-      stage.label = resolveStageLabel(event, stageId)
+      const nextLabel = resolveStageLabel(event, stageId)
+      if (stage.label === stage.stageId || nextLabel !== stageId) {
+        stage.label = nextLabel
+      }
       stage.nodeId = stage.nodeId ?? nodeId ?? undefined
       stage.endSeq = Math.max(stage.endSeq, seq)
       stage.endTs = event.timestamp
-      stage.attrs = event.attributes
+      stage.attrs = mergeStageAttributes(stage.attrs, event.attributes)
       stage.status = resolveStageStatus(event, stage.status)
 
       const attempt = readAttempt(event.attributes)

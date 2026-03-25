@@ -3,6 +3,7 @@ import { summarizeStageOutcome } from './stageOutcomePresentation'
 
 interface FlowLogPresentationInput {
   stageId?: string
+  nodeId?: string
   stageName?: string
   message: string
   retryable?: boolean

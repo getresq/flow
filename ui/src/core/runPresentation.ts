@@ -1,5 +1,6 @@
 import type { TraceJourney, TraceStage } from './types'
 import {
+  getStagePresentationTier,
   isGenericOperationalStage,
   isLifecycleTerminalStage,
   summarizeStageOutcome,
@@ -134,6 +135,7 @@ export function formatStepDisplayLabel(
 ): string {
   const summary = summarizeStageOutcome({
     stageId: stage.stageId,
+    nodeId: stage.nodeId,
     attributes: stage.attrs,
   })
 
@@ -145,21 +147,28 @@ export function formatStepDisplayLabel(
 }
 
 export function getOverviewStages(stages: TraceStage[]): TraceStage[] {
-  const hasLifecycleStages = stages.some(
-    (stage) =>
-      Boolean(
-        summarizeStageOutcome({
-          stageId: stage.stageId,
-          attributes: stage.attrs,
-        }),
-      ) || isLifecycleTerminalStage(stage.stageId),
-  )
+  const lifecycleStages = stages.filter((stage) => {
+    const tier = getStagePresentationTier({
+      stageId: stage.stageId,
+      nodeId: stage.nodeId,
+      attributes: stage.attrs,
+    })
 
-  if (!hasLifecycleStages) {
-    return stages
+    return tier === 'outcome' || tier === 'transition' || isLifecycleTerminalStage(stage.stageId)
+  })
+
+  if (lifecycleStages.length > 0) {
+    return lifecycleStages
   }
 
-  const filtered = stages.filter((stage) => !isGenericOperationalStage(stage.stageId))
+  const filtered = stages.filter(
+    (stage) =>
+      !isGenericOperationalStage({
+        stageId: stage.stageId,
+        nodeId: stage.nodeId,
+      }),
+  )
+
   return filtered.length > 0 ? filtered : stages
 }
 

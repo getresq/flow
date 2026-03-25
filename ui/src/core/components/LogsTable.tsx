@@ -94,7 +94,7 @@ export function LogsTable({
         ),
         cell: ({ row }) => (
           <span className="font-mono text-xs text-[var(--text-muted)]">
-            {formatEasternTime(row.original.timestamp)}
+            {formatEasternTime(row.original.timestamp, { precise: true })}
           </span>
         ),
       },
@@ -103,12 +103,9 @@ export function LogsTable({
         accessorKey: 'nodeLabel',
         header: 'Node',
         cell: ({ row }) => (
-          <div className="min-w-0">
-            <div className="truncate text-[var(--text-secondary)]">{row.original.nodeLabel}</div>
-            {row.original.nodeId && row.original.nodeId !== row.original.nodeLabel ? (
-              <div className="truncate font-mono text-[11px] text-[var(--text-muted)]">{row.original.nodeId}</div>
-            ) : null}
-          </div>
+          <span className="block truncate text-[var(--text-secondary)]" title={row.original.nodeId ?? row.original.nodeLabel}>
+            {row.original.nodeLabel}
+          </span>
         ),
       },
       {
