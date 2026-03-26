@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MoonStar, Settings2, SunMedium } from 'lucide-react'
+import { ChevronLeft, Maximize2, MoonStar, RotateCcw, Settings2, SunMedium } from 'lucide-react'
 
 import {
   Button,
@@ -16,18 +16,17 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
-  Toggle,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui'
 
-import type { FlowConfig, FlowViewMode, ThemeMode } from '../types'
+import type { FlowViewMode, ThemeMode } from '../types'
 
 interface FlowSelectorProps {
-  flows: FlowConfig[]
   currentFlowId: string
+  currentFlowName: string
   connected: boolean
   reconnecting: boolean
   relayWsUrl: string
@@ -42,11 +41,12 @@ interface FlowSelectorProps {
   historyQuery: string
   historySummary?: string
   historyError?: string
-  onSelectFlow: (flowId: string) => void
+  onNavigateBack: () => void
   onViewModeChange: (viewMode: FlowViewMode) => void
   onToggleFocusMode: () => void
   onToggleFocusActivePath: () => void
   onToggleTheme: () => void
+  onResetLayout: () => void
   onHistoryWindowChange: (window: string) => void
   onHistoryQueryChange: (query: string) => void
   onLoadHistory: () => void
@@ -63,8 +63,7 @@ const historyWindowOptions = [
 ]
 
 export function FlowSelector({
-  flows,
-  currentFlowId,
+  currentFlowName,
   connected,
   reconnecting,
   relayWsUrl,
@@ -79,11 +78,12 @@ export function FlowSelector({
   historyQuery,
   historySummary,
   historyError,
-  onSelectFlow,
+  onNavigateBack,
   onViewModeChange,
   onToggleFocusMode,
   onToggleFocusActivePath,
   onToggleTheme,
+  onResetLayout,
   onHistoryWindowChange,
   onHistoryQueryChange,
   onLoadHistory,
@@ -109,18 +109,17 @@ export function FlowSelector({
       <header className="relative z-50 grid h-12 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 bg-[var(--surface-raised)]/95 px-4 backdrop-blur-sm">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex min-w-0 items-center gap-2">
-            <Select value={currentFlowId} onValueChange={onSelectFlow}>
-              <SelectTrigger id="flow-select" className="h-9 w-[220px] min-w-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {flows.map((flow) => (
-                  <SelectItem key={flow.id} value={flow.id}>
-                    {flow.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <button
+              type="button"
+              onClick={onNavigateBack}
+              className="flex size-8 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-inset)] hover:text-[var(--text-secondary)]"
+              aria-label="Back to flows"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <span className="truncate text-sm font-medium text-[var(--text-primary)]">
+              {currentFlowName}
+            </span>
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
@@ -146,9 +145,13 @@ export function FlowSelector({
 
         <div className="flex items-center justify-center gap-2">
           <Tabs value={viewMode} onValueChange={(value) => onViewModeChange(value as FlowViewMode)}>
-            <TabsList className="border-0">
+            <TabsList className="min-h-0 gap-0 rounded-lg border-0 bg-[var(--surface-inset)] px-1 py-1">
               {availableViewModes.map((mode) => (
-                <TabsTrigger key={mode} value={mode}>
+                <TabsTrigger
+                  key={mode}
+                  value={mode}
+                  className="h-7 rounded-md border-0 px-3 text-xs transition-all duration-150 active:scale-[0.94] data-[state=active]:border-0 data-[state=active]:bg-[var(--surface-raised)] data-[state=active]:text-[var(--text-primary)] data-[state=active]:shadow-sm"
+                >
                   {mode === 'canvas' ? 'Flow' : mode === 'metrics' ? 'Metrics' : 'Logs'}
                 </TabsTrigger>
               ))}
@@ -158,14 +161,21 @@ export function FlowSelector({
 
         <div className="flex items-center justify-end gap-2">
           {showCanvasControls ? (
-            <Toggle
-              size="sm"
-              pressed={focusMode}
-              onPressedChange={onToggleFocusMode}
-              aria-label="Toggle focus mode"
-            >
-              Focus
-            </Toggle>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={onToggleFocusMode}
+                  aria-label="Toggle focus mode"
+                  className={focusMode ? 'bg-[var(--surface-inset)]' : ''}
+                >
+                  <Maximize2 className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Focus mode</TooltipContent>
+            </Tooltip>
           ) : null}
 
           <DropdownMenu open={settingsOpen} onOpenChange={setSettingsOpen}>
@@ -194,6 +204,30 @@ export function FlowSelector({
                     Switch to {theme === 'dark' ? 'light' : 'dark'} mode
                   </Button>
                 </div>
+
+                {showCanvasControls ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+                        Canvas
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          onResetLayout()
+                          setSettingsOpen(false)
+                        }}
+                      >
+                        <RotateCcw className="mr-2 size-4" />
+                        Reset to default layout
+                      </Button>
+                    </div>
+                  </>
+                ) : null}
 
                 <DropdownMenuSeparator />
 

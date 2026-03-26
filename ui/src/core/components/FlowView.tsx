@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { Button } from '@/components/ui'
+import { Minimize2 } from 'lucide-react'
+
+import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui'
 
 import { BottomLogPanel } from './BottomLogPanel'
 import { eventMatchesFlow } from '../events'
@@ -113,6 +115,7 @@ export function FlowView() {
   const [historyQuery, setHistoryQuery] = useState('')
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState<string | undefined>()
+  const [resetLayoutKey, setResetLayoutKey] = useState(0)
   const [historySummary, setHistorySummary] = useState<{
     from: string
     to: string
@@ -376,18 +379,9 @@ export function FlowView() {
     [updateUrlState],
   )
 
-  const handleSelectFlow = useCallback(
-    (nextFlowId: string) => {
-      setHistoryState((previous) => ({
-        events: [],
-        resetKey: previous.resetKey + 1,
-      }))
-      setHistoryError(undefined)
-      setHistorySummary(undefined)
-      navigate(`/flows/${nextFlowId}?mode=live`)
-    },
-    [navigate],
-  )
+  const handleNavigateBack = useCallback(() => {
+    navigate('/flows')
+  }, [navigate])
 
   const selectedNode = currentFlow.nodes.find((node) => node.id === selectedNodeId) ?? null
   const selectedNodeStatus = selectedNodeId ? animations.nodeStatuses.get(selectedNodeId) : undefined
@@ -467,8 +461,8 @@ export function FlowView() {
             transition={{ duration: 0.18, ease: 'easeOut' }}
           >
             <FlowSelector
-              flows={flows}
               currentFlowId={currentFlow.id}
+              currentFlowName={currentFlow.name}
               connected={relayConnected}
               reconnecting={relayReconnecting}
               relayWsUrl={relayWsUrl}
@@ -487,11 +481,12 @@ export function FlowView() {
                   : undefined
               }
               historyError={historyError}
-              onSelectFlow={handleSelectFlow}
+              onNavigateBack={handleNavigateBack}
               onViewModeChange={setActiveFlowViewMode}
               onToggleFocusMode={toggleFocusModeWithLayout}
               onToggleFocusActivePath={() => setFocusActivePath((previous) => !previous)}
               onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              onResetLayout={() => setResetLayoutKey((k) => k + 1)}
               onHistoryWindowChange={setHistoryWindow}
               onHistoryQueryChange={setHistoryQuery}
               onLoadHistory={() => {
@@ -517,6 +512,7 @@ export function FlowView() {
             nodeLogMap={logStream.nodeLogMap}
             nodeSpans={traceTimeline.nodeSpans}
             selectedNodeId={selectedNodeId}
+            resetLayoutKey={resetLayoutKey}
             onSelectNode={handleSelectNode}
           />
         ) : null}
@@ -542,15 +538,23 @@ export function FlowView() {
             transition={{ duration: 0.18, ease: 'easeOut' }}
             className="pointer-events-none absolute right-4 top-4 z-40"
           >
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="pointer-events-auto bg-[var(--surface-raised)]/95 shadow-lg backdrop-blur-sm"
-              onClick={toggleFocusModeWithLayout}
-            >
-              Exit focus
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="pointer-events-auto bg-[var(--surface-raised)]/80 shadow-lg backdrop-blur-md transition-all duration-100 active:scale-[0.88]"
+                    onClick={toggleFocusModeWithLayout}
+                    aria-label="Exit focus mode"
+                  >
+                    <Minimize2 className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Exit focus</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </motion.div>
         ) : null}
       </AnimatePresence>

@@ -12,9 +12,10 @@ import {
   type NodeMouseHandler,
   type Viewport,
 } from '@xyflow/react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Hand, MousePointer2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { Button, Toggle } from '@/components/ui'
+import { Toggle, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui'
 
 import { edgeTypes } from '../edges'
 import { applyBranchTemplatePositions } from '../layout/branchPlacement'
@@ -376,6 +377,7 @@ interface FlowCanvasProps {
   nodeLogMap: Map<string, LogEntry[]>
   nodeSpans: Map<string, SpanEntry[]>
   selectedNodeId?: string
+  resetLayoutKey?: number
   onSelectNode: (nodeId?: string) => void
 }
 
@@ -389,6 +391,7 @@ export function FlowCanvas({
   theme,
   nodeLogMap,
   selectedNodeId,
+  resetLayoutKey,
   onSelectNode,
 }: FlowCanvasProps) {
   const [elkLayout, setElkLayout] = useState<Map<string, LayoutGeometry> | null>(null)
@@ -409,6 +412,30 @@ export function FlowCanvas({
     () => flow.nodes.filter((node) => node.type !== 'group').length,
     [flow.nodes],
   )
+
+  const resetLayout = useCallback(() => {
+    clearPersistedLayout(flow)
+    setRuntimePositions(new Map())
+    setSavedViewport(null)
+    setLayoutReady(false)
+    computeElkLayout(flow.nodes, flow.edges)
+      .then((layout) => {
+        setElkLayout(layout)
+        setLayoutReady(true)
+      })
+      .catch((error) => {
+        console.error('ELK layout failed', error)
+        setLayoutReady(true)
+      })
+  }, [flow])
+
+  const previousResetKeyRef = useRef(resetLayoutKey)
+  useEffect(() => {
+    if (resetLayoutKey !== undefined && resetLayoutKey !== previousResetKeyRef.current) {
+      previousResetKeyRef.current = resetLayoutKey
+      resetLayout()
+    }
+  }, [resetLayout, resetLayoutKey])
 
   useEffect(() => {
     const persisted = loadPersistedLayout(flow)
@@ -697,57 +724,40 @@ export function FlowCanvas({
 
   return (
     <div className="relative h-full w-full">
-      <div className="absolute left-3 top-3 z-20 flex items-center gap-2">
-        <Button
-          type="button"
-          title="Reset the canvas to the authored flow layout"
-          variant="outline"
-          size="sm"
-          className="bg-[var(--surface-raised)]/95 shadow-sm backdrop-blur-sm"
-          onClick={() => {
-            clearPersistedLayout(flow)
-            setRuntimePositions(new Map())
-            setSavedViewport(null)
-            setLayoutReady(false)
-            computeElkLayout(flow.nodes, flow.edges)
-              .then((layout) => {
-                setElkLayout(layout)
-                setLayoutReady(true)
-              })
-              .catch((error) => {
-                console.error('ELK layout failed', error)
-                setLayoutReady(true)
-              })
-          }}
-        >
-          Reset layout
-        </Button>
-
-        <div className="ml-1 flex items-center gap-1 rounded-md border border-[var(--border-default)] bg-[var(--surface-raised)]/95 p-1 shadow-sm backdrop-blur-sm">
-          <Toggle
-            type="button"
-            title="Pointer mode (V)"
-            aria-label="Pointer mode (V)"
-            size="sm"
-            pressed={interactionMode === 'pointer'}
-            className="data-[state=off]:bg-transparent data-[state=off]:text-[var(--text-secondary)]"
-            onClick={() => setInteractionMode('pointer')}
-          >
-            Pointer
-          </Toggle>
-          <Toggle
-            type="button"
-            title="Pan mode (H)"
-            aria-label="Pan mode (H)"
-            size="sm"
-            pressed={interactionMode === 'pan'}
-            className="data-[state=off]:bg-transparent data-[state=off]:text-[var(--text-secondary)]"
-            onClick={() => setInteractionMode('pan')}
-          >
-            Pan
-          </Toggle>
+      <TooltipProvider>
+        <div className="absolute left-3 top-3 z-20 flex items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-raised)]/80 p-1 shadow-sm backdrop-blur-md">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Toggle
+                type="button"
+                size="sm"
+                pressed={interactionMode === 'pointer'}
+                className="size-8 p-0 transition-all duration-100 active:scale-[0.88] data-[state=off]:bg-transparent data-[state=off]:text-[var(--text-muted)]"
+                onClick={() => setInteractionMode('pointer')}
+                aria-label="Pointer mode (V)"
+              >
+                <MousePointer2 className="size-3.5" />
+              </Toggle>
+            </TooltipTrigger>
+            <TooltipContent>Pointer (V)</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Toggle
+                type="button"
+                size="sm"
+                pressed={interactionMode === 'pan'}
+                className="size-8 p-0 transition-all duration-100 active:scale-[0.88] data-[state=off]:bg-transparent data-[state=off]:text-[var(--text-muted)]"
+                onClick={() => setInteractionMode('pan')}
+                aria-label="Pan mode (H)"
+              >
+                <Hand className="size-3.5" />
+              </Toggle>
+            </TooltipTrigger>
+            <TooltipContent>Pan (H)</TooltipContent>
+          </Tooltip>
         </div>
-      </div>
+      </TooltipProvider>
 
       <ReactFlow
         colorMode={theme}
