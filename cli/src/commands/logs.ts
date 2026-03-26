@@ -325,11 +325,29 @@ export function renderLogsListRows(rows: CliLogRow[]): string[] {
 export function renderTailRow(row: CliLogRow, scope: LogReadScope): string {
   const time = row.timestamp.length >= 19 ? row.timestamp.slice(11, 19) : row.timestamp;
   const scopePrefix =
-    scope.kind === "all" ? `${displayFlowLabel(row).padEnd(16)}  ` : "";
-  const stage = preferredStageLabel(row).padEnd(22);
-  const run = (row.runId ?? "-").padEnd(12);
-  const status = (row.status ?? "-").padEnd(5);
+    scope.kind === "all"
+      ? `${formatTailCell(displayFlowLabel(row), 16)}  `
+      : "";
+  const stage = formatTailCell(preferredStageLabel(row), 24);
+  const run = formatTailCell(row.runId ?? "-", 40);
+  const status = formatTailCell(row.status ?? "-", 5);
   return `[${time}] ${scopePrefix}${stage}  ${run}  ${status}  ${row.message}`;
+}
+
+function fitTailColumn(value: string, maxWidth: number): string {
+  if (value.length <= maxWidth) {
+    return value;
+  }
+
+  if (maxWidth <= 1) {
+    return value.slice(0, maxWidth);
+  }
+
+  return `${value.slice(0, maxWidth - 1)}…`;
+}
+
+function formatTailCell(value: string, width: number): string {
+  return fitTailColumn(value, width).padEnd(width);
 }
 
 function parseLogsListArgs(args: string[]): LogsListOptions {
