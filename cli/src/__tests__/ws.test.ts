@@ -39,13 +39,13 @@ describe("websocket helpers", () => {
 
     const firstRows = extractLogRowsFromEnvelope({
       raw: payload,
-      flowId: "mail-pipeline",
+      scope: { kind: "flow", flowId: "mail-pipeline" },
       filters: { attrs: [] },
       seenSeq,
     });
     const secondRows = extractLogRowsFromEnvelope({
       raw: payload,
-      flowId: "mail-pipeline",
+      scope: { kind: "flow", flowId: "mail-pipeline" },
       filters: { attrs: [] },
       seenSeq,
     });
@@ -81,12 +81,49 @@ describe("websocket helpers", () => {
           },
         ],
       }),
-      flowId: "mail-pipeline",
+      scope: { kind: "flow", flowId: "mail-pipeline" },
       filters: { attrs: [] },
       seenSeq: new Set<number>(),
     });
 
     expect(rows).toHaveLength(1);
     expect(rows[0]?.flowId).toBe("mail-pipeline");
+  });
+
+  it("includes unscoped rows only for --all reads", () => {
+    const raw = JSON.stringify({
+      type: "batch",
+      events: [
+        {
+          type: "log",
+          seq: 5,
+          timestamp: "2026-03-23T18:41:02.110Z",
+          message: "oauth refresh checkpoint",
+          attributes: {
+            subsystem: "mail-auth",
+          },
+        },
+      ],
+    });
+
+    expect(
+      extractLogRowsFromEnvelope({
+        raw,
+        scope: { kind: "flow", flowId: "mail-pipeline" },
+        filters: { attrs: [] },
+        seenSeq: new Set<number>(),
+      }),
+    ).toHaveLength(0);
+
+    const allRows = extractLogRowsFromEnvelope({
+      raw,
+      scope: { kind: "all" },
+      filters: { attrs: [] },
+      seenSeq: new Set<number>(),
+    });
+
+    expect(allRows).toHaveLength(1);
+    expect(allRows[0]?.flowId).toBeUndefined();
+    expect(allRows[0]?.matchedFlowIds).toBeUndefined();
   });
 });

@@ -57,6 +57,7 @@ export function matchesQuery(row: CliLogRow, query?: string): boolean {
   const haystacks = [
     row.timestamp,
     row.flowId,
+    row.matchedFlowIds?.join(" "),
     row.runId,
     row.traceId,
     row.stageId,

@@ -88,6 +88,42 @@ function createHistoryFetchMock(): typeof fetch {
     })) as typeof fetch;
 }
 
+function createAllHistoryFetchMock(): typeof fetch {
+  return (async () =>
+    createJsonResponse({
+      from: "2026-03-23T18:00:00.000Z",
+      to: "2026-03-23T18:15:00.000Z",
+      events: [
+        {
+          type: "log",
+          timestamp: "2026-03-23T18:41:02.110Z",
+          trace_id: "trace-debug-201",
+          message: "oauth refresh checkpoint",
+          attributes: {
+            subsystem: "mail-auth",
+          },
+        },
+        {
+          type: "log",
+          timestamp: "2026-03-23T18:41:06.901Z",
+          trace_id: "trace-send-201",
+          message: "Gmail API timeout",
+          attributes: {
+            flow_id: "mail-pipeline",
+            run_id: "thread-201",
+            thread_id: "thread-201",
+            stage_id: "send.provider_call",
+            status: "error",
+          },
+        },
+      ],
+      log_count: 2,
+      span_count: 0,
+      truncated: false,
+      warnings: [],
+    })) as typeof fetch;
+}
+
 describe("resq-flow logs list", () => {
   it("prints the default human-readable output", async () => {
     const buffered = createBufferedIo();
@@ -222,5 +258,50 @@ describe("resq-flow logs list", () => {
     expect(exitCode).toBe(0);
     expect(buffered.readStdout()).toContain("No matching logs found.");
     expect(buffered.readStderr()).toBe("");
+  });
+
+  it("supports explicit global reads with --all", async () => {
+    const buffered = createBufferedIo();
+
+    const exitCode = await runCli(
+      ["logs", "list", "--all", "--json"],
+      buffered.io,
+      { fetchImpl: createAllHistoryFetchMock() },
+    );
+
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(buffered.readStdout());
+    expect(parsed).toHaveLength(2);
+    expect(parsed[0].flowId).toBeUndefined();
+    expect(parsed[0].message).toBe("oauth refresh checkpoint");
+    expect(parsed[1]).toMatchObject({
+      flowId: "mail-pipeline",
+      message: "Gmail API timeout",
+    });
+  });
+
+  it("requires exactly one of --flow or --all", async () => {
+    const buffered = createBufferedIo();
+
+    const missingScopeCode = await runCli(
+      ["logs", "list"],
+      buffered.io,
+      { fetchImpl: createHistoryFetchMock() },
+    );
+    expect(missingScopeCode).toBe(2);
+    expect(buffered.readStderr()).toContain(
+      "exactly one of --flow <flow-id> or --all is required",
+    );
+
+    const conflicting = createBufferedIo();
+    const conflictingCode = await runCli(
+      ["logs", "list", "--flow", "mail-pipeline", "--all"],
+      conflicting.io,
+      { fetchImpl: createHistoryFetchMock() },
+    );
+    expect(conflictingCode).toBe(2);
+    expect(conflicting.readStderr()).toContain(
+      "exactly one of --flow <flow-id> or --all is required",
+    );
   });
 });

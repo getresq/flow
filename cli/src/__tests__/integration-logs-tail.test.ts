@@ -5,8 +5,6 @@ import { once } from "node:events";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
-import WebSocket from "ws";
-
 const cliDir = fileURLToPath(new URL("../../", import.meta.url));
 const repoDir = fileURLToPath(new URL("../../../", import.meta.url));
 const relayDir = join(repoDir, "relay");
@@ -19,7 +17,7 @@ const relayBinaryPath = join(
 
 describe("CLI integration: logs tail", () => {
   it(
-    "streams JSONL rows from a real relay",
+    "delivers flow-scoped emits to flow-scoped tail",
     async () => {
       ensureBuild("bun", ["run", "build"], cliDir, "CLI build failed");
       ensureBuild(
@@ -31,40 +29,57 @@ describe("CLI integration: logs tail", () => {
 
       const port = await getFreePort();
       const relay = await startRelay(port);
-      const tail = startCliTail(relay.baseUrl);
+      const tail = startCliTail([
+        "logs",
+        "tail",
+        "--flow",
+        "mail-pipeline",
+        "--url",
+        relay.baseUrl,
+        "--jsonl",
+      ]);
 
       try {
         await delay(250);
-        await sendRelayEvent(relay.wsUrl, {
-          type: "log",
-          timestamp: "2026-03-23T18:45:02.014Z",
-          trace_id: "trace-seed-201",
-          span_id: "log-seed-201",
-          attributes: {
-            event: "flow_event",
-            flow_id: "mail-pipeline",
-            run_id: "thread-201",
-            thread_id: "thread-201",
-            stage_id: "analyze.decision",
-            status: "ok",
-          },
-          message: "classified thread as needs-reply",
-        });
-        await sendRelayEvent(relay.wsUrl, {
-          type: "log",
-          timestamp: "2026-03-23T18:45:05.941Z",
-          trace_id: "trace-send-201",
-          span_id: "log-send-201",
-          attributes: {
-            event: "flow_event",
-            flow_id: "mail-pipeline",
-            run_id: "thread-201",
-            thread_id: "thread-201",
-            stage_id: "send.provider_call",
-            status: "ok",
-          },
-          message: "sent Gmail reply",
-        });
+        const firstEmit = await runBuiltCli([
+          "logs",
+          "emit",
+          "--flow",
+          "mail-pipeline",
+          "--message",
+          "classified thread as needs-reply",
+          "--attr",
+          "run_id=thread-201",
+          "--attr",
+          "thread_id=thread-201",
+          "--attr",
+          "stage_id=analyze.decision",
+          "--attr",
+          "status=ok",
+          "--url",
+          relay.baseUrl,
+        ]);
+        expect(firstEmit.exitCode).toBe(0);
+
+        const secondEmit = await runBuiltCli([
+          "logs",
+          "emit",
+          "--flow",
+          "mail-pipeline",
+          "--message",
+          "sent Gmail reply",
+          "--attr",
+          "run_id=thread-201",
+          "--attr",
+          "thread_id=thread-201",
+          "--attr",
+          "stage_id=send.provider_call",
+          "--attr",
+          "status=ok",
+          "--url",
+          relay.baseUrl,
+        ]);
+        expect(secondEmit.exitCode).toBe(0);
 
         await waitForOutput(tail, (stdout) => stdout.trim().split("\n").length >= 2);
         tail.child.kill("SIGINT");
@@ -91,6 +106,86 @@ describe("CLI integration: logs tail", () => {
         if (tail.child.exitCode === null && !tail.child.killed) {
           tail.child.kill("SIGINT");
           await tail.result.catch(() => undefined);
+        }
+        await relay.stop();
+      }
+    },
+    120_000,
+  );
+
+  it(
+    "shows global emits in --all and keeps them out of flow tails",
+    async () => {
+      ensureBuild("bun", ["run", "build"], cliDir, "CLI build failed");
+      ensureBuild(
+        "cargo",
+        ["build", "--bin", "resq-flow-relay"],
+        relayDir,
+        "relay build failed",
+      );
+
+      const port = await getFreePort();
+      const relay = await startRelay(port);
+      const allTail = startCliTail(["logs", "tail", "--all", "--url", relay.baseUrl, "--jsonl"]);
+      const flowTail = startCliTail([
+        "logs",
+        "tail",
+        "--flow",
+        "mail-pipeline",
+        "--url",
+        relay.baseUrl,
+        "--jsonl",
+      ]);
+
+      try {
+        await delay(250);
+        const emit = await runBuiltCli([
+          "logs",
+          "emit",
+          "--global",
+          "--message",
+          "debug checkpoint before oauth refresh",
+          "--attr",
+          "subsystem=mail-auth",
+          "--url",
+          relay.baseUrl,
+        ]);
+        expect(emit.exitCode).toBe(0);
+
+        await waitForOutput(allTail, (stdout) => stdout.trim().split("\n").length >= 1);
+        await delay(250);
+
+        allTail.child.kill("SIGINT");
+        flowTail.child.kill("SIGINT");
+        const allResult = await allTail.result;
+        const flowResult = await flowTail.result;
+
+        expect(allResult.exitCode).toBe(0);
+        expect(flowResult.exitCode).toBe(0);
+        expect(allResult.stderr).toBe("");
+        expect(flowResult.stderr).toBe("");
+
+        const lines = allResult.stdout
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line));
+        expect(lines).toHaveLength(1);
+        expect(lines[0].flowId).toBeUndefined();
+        expect(lines[0]).toMatchObject({
+          message: "debug checkpoint before oauth refresh",
+          attributes: {
+            subsystem: "mail-auth",
+          },
+        });
+        expect(flowResult.stdout.trim()).toBe("");
+      } finally {
+        if (allTail.child.exitCode === null && !allTail.child.killed) {
+          allTail.child.kill("SIGINT");
+          await allTail.result.catch(() => undefined);
+        }
+        if (flowTail.child.exitCode === null && !flowTail.child.killed) {
+          flowTail.child.kill("SIGINT");
+          await flowTail.result.catch(() => undefined);
         }
         await relay.stop();
       }
@@ -144,7 +239,6 @@ async function getFreePort(): Promise<number> {
 
 async function startRelay(port: number): Promise<{
   baseUrl: string;
-  wsUrl: string;
   stop(): Promise<void>;
 }> {
   const child = spawn(relayBinaryPath, [], {
@@ -169,7 +263,6 @@ async function startRelay(port: number): Promise<{
 
   return {
     baseUrl,
-    wsUrl: `ws://127.0.0.1:${port}/ws`,
     async stop() {
       if (child.exitCode !== null || child.killed) {
         return;
@@ -212,14 +305,14 @@ async function waitForHealth(
   throw new Error(`timed out waiting for relay /health at ${baseUrl}\n${readLogs()}`);
 }
 
-function startCliTail(baseUrl: string): {
+function startCliTail(args: string[]): {
   child: ChildProcessWithoutNullStreams;
   readStdout(): string;
   result: Promise<{ exitCode: number; stdout: string; stderr: string }>;
 } {
   const child = spawn(
     "node",
-    ["dist/index.js", "logs", "tail", "--flow", "mail-pipeline", "--url", baseUrl, "--jsonl"],
+    ["dist/index.js", ...args],
     {
       cwd: cliDir,
       env: process.env,
@@ -247,27 +340,6 @@ function startCliTail(baseUrl: string): {
       stderr,
     })),
   };
-}
-
-async function sendRelayEvent(wsUrl: string, event: unknown): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const socket = new WebSocket(wsUrl);
-
-    socket.once("error", reject);
-    socket.once("open", () => {
-      socket.send(JSON.stringify(event), (error) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        setTimeout(() => {
-          socket.close();
-          resolve();
-        }, 50);
-      });
-    });
-  });
 }
 
 async function waitForOutput(
@@ -306,4 +378,32 @@ async function waitForExit(
   } catch {
     return false;
   }
+}
+
+async function runBuiltCli(args: string[]): Promise<{
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}> {
+  const child = spawn("node", ["dist/index.js", ...args], {
+    cwd: cliDir,
+    env: process.env,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  let stdout = "";
+  let stderr = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+  child.stderr.on("data", (chunk) => {
+    stderr += chunk.toString();
+  });
+
+  const [exitCode] = await once(child, "exit");
+  return {
+    exitCode: (exitCode as number | null) ?? 0,
+    stdout,
+    stderr,
+  };
 }

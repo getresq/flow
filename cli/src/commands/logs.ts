@@ -5,10 +5,9 @@ import {
   resolveTimeout,
   resolveWindow,
 } from "../lib/config.js";
+import { BadArgumentError, EXIT_CODES } from "../lib/errors.js";
 import { parseAttributeFilter, matchesLogFilters } from "../lib/filters.js";
 import { preferredStageLabel, fetchHistoryRows } from "../lib/history.js";
-import { BadArgumentError, EXIT_CODES } from "../lib/errors.js";
-import { streamLogRows, type WebSocketFactory } from "../lib/ws.js";
 import {
   printJson,
   printJsonl,
@@ -16,7 +15,19 @@ import {
   writeStdout,
   type CliIo,
 } from "../lib/output.js";
-import type { CliLogRow } from "../types.js";
+import { displayFlowLabel } from "../lib/scope.js";
+import {
+  emitLogEvent,
+  streamLogRows,
+  type WebSocketFactory,
+} from "../lib/ws.js";
+import type {
+  CliLogRow,
+  JsonObject,
+  LogEmitScope,
+  LogReadScope,
+  RelayFlowEvent,
+} from "../types.js";
 
 export const LOGS_HELP = `Usage:
   resq-flow logs <subcommand> [options]
@@ -24,14 +35,16 @@ export const LOGS_HELP = `Usage:
 Subcommands:
   list                List recent log rows
   tail                Stream live log rows
+  emit                Emit an ad hoc log event
 `;
 
 export const LOGS_LIST_HELP = `Usage:
-  resq-flow logs list --flow <flow-id> [options]
+  resq-flow logs list (--flow <flow-id> | --all) [options]
 
 Options:
   --help              Show help
   --flow <flow-id>    Flow ID to query
+  --all               Query logs across all scopes
   --window <window>   Time window (<number><unit>, where unit is s, m, or h)
   --attr <key=value>  Exact attribute filter (repeatable)
   --query <text>      Search term
@@ -42,20 +55,34 @@ Options:
 `;
 
 export const LOGS_TAIL_HELP = `Usage:
-  resq-flow logs tail --flow <flow-id> [options]
+  resq-flow logs tail (--flow <flow-id> | --all) [options]
 
 Options:
   --help              Show help
   --flow <flow-id>    Flow ID to stream
+  --all               Stream logs across all scopes
   --attr <key=value>  Exact attribute filter (repeatable)
   --query <text>      Search term
   --jsonl             Emit JSONL output
   --url <base-url>    Relay base URL
 `;
 
+export const LOGS_EMIT_HELP = `Usage:
+  resq-flow logs emit (--flow <flow-id> | --global) --message <text> [options]
+
+Options:
+  --help              Show help
+  --flow <flow-id>    Emit a flow-scoped log
+  --global            Emit an unscoped global log
+  --message <text>    Log message to emit
+  --attr <key=value>  Extra attributes to attach (repeatable)
+  --url <base-url>    Relay base URL
+`;
+
 interface LogsListOptions {
   help: boolean;
   flow?: string;
+  all: boolean;
   window?: string;
   attrs: string[];
   query?: string;
@@ -69,9 +96,19 @@ interface LogsListOptions {
 interface LogsTailOptions {
   help: boolean;
   flow?: string;
+  all: boolean;
   attrs: string[];
   query?: string;
   jsonl: boolean;
+  url?: string;
+}
+
+interface LogsEmitOptions {
+  help: boolean;
+  flow?: string;
+  global: boolean;
+  message?: string;
+  attrs: string[];
   url?: string;
 }
 
@@ -96,6 +133,8 @@ export async function runLogsCommand(
       return runLogsListCommand(rest, io, dependencies);
     case "tail":
       return runLogsTailCommand(rest, io, dependencies);
+    case "emit":
+      return runLogsEmitCommand(rest, io, dependencies);
     default:
       throw new BadArgumentError(`unknown logs command: ${subcommand}`);
   }
@@ -112,10 +151,7 @@ async function runLogsListCommand(
     return EXIT_CODES.OK;
   }
 
-  if (!options.flow) {
-    throw new BadArgumentError("--flow is required");
-  }
-
+  const scope = resolveReadScope(options.flow, options.all);
   const baseUrl = resolveBaseUrl(options.url);
   const timeoutMs = resolveTimeout(options.timeout);
   const outputMode = resolveOutputMode({
@@ -124,7 +160,7 @@ async function runLogsListCommand(
   });
   const rows = await fetchHistoryRows({
     baseUrl,
-    flowId: options.flow,
+    scope,
     window: resolveWindow(options.window ?? DEFAULT_LOG_WINDOW),
     query: options.query,
     limit: resolveLimit(options.limit),
@@ -170,10 +206,7 @@ async function runLogsTailCommand(
     return EXIT_CODES.OK;
   }
 
-  if (!options.flow) {
-    throw new BadArgumentError("--flow is required");
-  }
-
+  const scope = resolveReadScope(options.flow, options.all);
   const baseUrl = resolveBaseUrl(options.url);
   const filters = {
     attrs: options.attrs.map(parseAttributeFilter),
@@ -188,7 +221,7 @@ async function runLogsTailCommand(
   try {
     await streamLogRows({
       baseUrl,
-      flowId: options.flow,
+      scope,
       filters,
       signal: controller.signal,
       websocketFactory: dependencies.websocketFactory,
@@ -198,7 +231,7 @@ async function runLogsTailCommand(
           return;
         }
 
-        writeStdout(io, renderTailRow(row));
+        writeStdout(io, renderTailRow(row, scope));
       },
     });
   } finally {
@@ -209,11 +242,78 @@ async function runLogsTailCommand(
   return EXIT_CODES.OK;
 }
 
+async function runLogsEmitCommand(
+  args: string[],
+  io: CliIo,
+  dependencies: LogsCommandDependencies,
+): Promise<number> {
+  const options = parseLogsEmitArgs(args);
+  if (options.help) {
+    writeStdout(io, LOGS_EMIT_HELP.trimEnd());
+    return EXIT_CODES.OK;
+  }
+
+  const scope = resolveEmitScope(options.flow, options.global);
+  const message = options.message?.trim();
+  if (!message) {
+    throw new BadArgumentError("--message is required");
+  }
+
+  const baseUrl = resolveBaseUrl(options.url);
+  const attributes = buildEmitAttributes(options.attrs.map(parseAttributeFilter), scope);
+  const event = buildEmitEvent({
+    scope,
+    message,
+    attributes,
+  });
+
+  await emitLogEvent({
+    baseUrl,
+    event,
+    websocketFactory: dependencies.websocketFactory,
+  });
+
+  writeStdout(
+    io,
+    scope.kind === "flow"
+      ? `Emitted flow log to ${scope.flowId}.`
+      : "Emitted global log.",
+  );
+  return EXIT_CODES.OK;
+}
+
+export function buildEmitEvent({
+  scope,
+  message,
+  attributes,
+  timestamp = new Date().toISOString(),
+}: {
+  scope: LogEmitScope;
+  message: string;
+  attributes: JsonObject;
+  timestamp?: string;
+}): RelayFlowEvent {
+  const nextAttributes: JsonObject = {
+    ...attributes,
+  };
+
+  if (scope.kind === "flow") {
+    nextAttributes.flow_id = scope.flowId;
+  }
+
+  return {
+    type: "log",
+    timestamp,
+    message,
+    attributes: nextAttributes,
+  };
+}
+
 export function renderLogsListRows(rows: CliLogRow[]): string[] {
   return renderAlignedRows(
     rows.map((row) => [
       row.timestamp,
-      row.flowId,
+      displayFlowLabel(row),
       row.runId ?? "-",
       preferredStageLabel(row),
       row.status ?? "-",
@@ -222,17 +322,20 @@ export function renderLogsListRows(rows: CliLogRow[]): string[] {
   );
 }
 
-export function renderTailRow(row: CliLogRow): string {
+export function renderTailRow(row: CliLogRow, scope: LogReadScope): string {
   const time = row.timestamp.length >= 19 ? row.timestamp.slice(11, 19) : row.timestamp;
+  const scopePrefix =
+    scope.kind === "all" ? `${displayFlowLabel(row).padEnd(16)}  ` : "";
   const stage = preferredStageLabel(row).padEnd(22);
   const run = (row.runId ?? "-").padEnd(12);
   const status = (row.status ?? "-").padEnd(5);
-  return `[${time}] ${stage}  ${run}  ${status}  ${row.message}`;
+  return `[${time}] ${scopePrefix}${stage}  ${run}  ${status}  ${row.message}`;
 }
 
 function parseLogsListArgs(args: string[]): LogsListOptions {
   const options: LogsListOptions = {
     help: false,
+    all: false,
     attrs: [],
     json: false,
     jsonl: false,
@@ -256,6 +359,11 @@ function parseLogsListArgs(args: string[]): LogsListOptions {
 
     if (arg === "--jsonl") {
       options.jsonl = true;
+      continue;
+    }
+
+    if (arg === "--all") {
+      options.all = true;
       continue;
     }
 
@@ -322,6 +430,7 @@ function parseLogsListArgs(args: string[]): LogsListOptions {
 function parseLogsTailArgs(args: string[]): LogsTailOptions {
   const options: LogsTailOptions = {
     help: false,
+    all: false,
     attrs: [],
     jsonl: false,
   };
@@ -344,6 +453,11 @@ function parseLogsTailArgs(args: string[]): LogsTailOptions {
 
     if (arg === "--json") {
       throw new BadArgumentError("--json is not supported for logs tail");
+    }
+
+    if (arg === "--all") {
+      options.all = true;
+      continue;
     }
 
     if (arg === "--attr") {
@@ -388,6 +502,147 @@ function parseLogsTailArgs(args: string[]): LogsTailOptions {
   }
 
   return options;
+}
+
+function parseLogsEmitArgs(args: string[]): LogsEmitOptions {
+  const options: LogsEmitOptions = {
+    help: false,
+    global: false,
+    attrs: [],
+  };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === undefined) {
+      break;
+    }
+
+    if (arg === "--help") {
+      options.help = true;
+      continue;
+    }
+
+    if (arg === "--global") {
+      options.global = true;
+      continue;
+    }
+
+    if (arg === "--attr") {
+      const value = args[index + 1];
+      if (!value) {
+        throw new BadArgumentError("missing value for --attr");
+      }
+      options.attrs.push(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--flow" || arg === "--message" || arg === "--url") {
+      const value = args[index + 1];
+      if (!value) {
+        throw new BadArgumentError(`missing value for ${arg}`);
+      }
+
+      switch (arg) {
+        case "--flow":
+          options.flow = value;
+          break;
+        case "--message":
+          options.message = value;
+          break;
+        case "--url":
+          options.url = value;
+          break;
+        default:
+          break;
+      }
+
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("-")) {
+      throw new BadArgumentError(`unknown flag: ${arg}`);
+    }
+
+    throw new BadArgumentError(`unexpected argument: ${arg}`);
+  }
+
+  return options;
+}
+
+function buildEmitAttributes(
+  filters: Array<{ key: string; value: string }>,
+  scope: LogEmitScope,
+): JsonObject {
+  const attributes: JsonObject = {};
+
+  for (const filter of filters) {
+    if (filter.key === "flow_id") {
+      throw new BadArgumentError(
+        "flow scope is controlled by --flow or --global, not --attr flow_id=...",
+      );
+    }
+
+    attributes[filter.key] = filter.value;
+  }
+
+  if (scope.kind === "flow") {
+    attributes.flow_id = scope.flowId;
+  }
+
+  return attributes;
+}
+
+function resolveReadScope(flow: string | undefined, all: boolean): LogReadScope {
+  if (flow && all) {
+    throw new BadArgumentError(
+      "exactly one of --flow <flow-id> or --all is required",
+    );
+  }
+
+  if (flow) {
+    return {
+      kind: "flow",
+      flowId: flow,
+    };
+  }
+
+  if (all) {
+    return {
+      kind: "all",
+    };
+  }
+
+  throw new BadArgumentError("exactly one of --flow <flow-id> or --all is required");
+}
+
+function resolveEmitScope(
+  flow: string | undefined,
+  global: boolean,
+): LogEmitScope {
+  if (flow && global) {
+    throw new BadArgumentError(
+      "exactly one of --flow <flow-id> or --global is required",
+    );
+  }
+
+  if (flow) {
+    return {
+      kind: "flow",
+      flowId: flow,
+    };
+  }
+
+  if (global) {
+    return {
+      kind: "global",
+    };
+  }
+
+  throw new BadArgumentError(
+    "exactly one of --flow <flow-id> or --global is required",
+  );
 }
 
 function resolveLimit(raw?: string): number | undefined {

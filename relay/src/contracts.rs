@@ -138,13 +138,9 @@ impl FlowRegistry {
             format!("({})", clauses.join(" or "))
         };
 
-        if let Some(selected_flow_id) = flow_id.map(str::trim).filter(|value| !value.is_empty()) {
-            query.push_str(" and ");
-            query.push_str(&format!(
-                "flow_id:{}",
-                quote_logsql_string(selected_flow_id)
-            ));
-        }
+        // Keep the backend query broad and let relay-side contract matching decide flow
+        // ownership. History needs to surface matched_flow_ids-only logs too, not just logs
+        // with an explicit flow_id field already persisted in storage.
 
         if let Some(term) = search.map(str::trim).filter(|term| !term.is_empty()) {
             let quoted = quote_logsql_string(term);
@@ -462,7 +458,7 @@ mod tests {
     }
 
     #[test]
-    fn selected_flow_history_query_scopes_shared_event_name_by_flow_id() {
+    fn selected_flow_history_query_keeps_shared_event_query_broad_for_post_filtering() {
         let registry = FlowRegistry {
             contracts: Arc::new(vec![
                 contract("mail-pipeline", &["flow_event"]),
@@ -474,7 +470,7 @@ mod tests {
             .history_log_query(Some("mail-pipeline"), None)
             .expect("query");
 
-        assert_eq!(query, r#"event:"flow_event" and flow_id:"mail-pipeline""#);
+        assert_eq!(query, r#"event:"flow_event""#);
     }
 
     #[test]

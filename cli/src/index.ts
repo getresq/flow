@@ -26,7 +26,7 @@ const MAIN_HELP = renderHelp({
       title: "Commands:",
       lines: [
         "  status              Show relay status and ingest health",
-        "  logs                List or tail flow logs",
+        "  logs                List, tail, or emit logs",
       ],
     },
     {
@@ -74,7 +74,7 @@ export async function runCli(
           fetchImpl: runtime.fetchImpl,
         });
       case "logs":
-        return runLogsCommand(rest, io, {
+        return await runLogsCommand(rest, io, {
           fetchImpl: runtime.fetchImpl,
           websocketFactory: runtime.websocketFactory,
         });

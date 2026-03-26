@@ -49,6 +49,7 @@ describe("CLI integration: logs list", () => {
         expect(human.exitCode).toBe(0);
         expect(human.stdout).toContain("incoming.fetch_threads");
         expect(human.stdout).toContain("Gmail API timeout");
+        expect(human.stdout).toContain("matched-only history log");
         expect(human.stderr).toBe("");
 
         const filtered = await runCli([
@@ -70,6 +71,29 @@ describe("CLI integration: logs list", () => {
           runId: "thread-201",
           stageId: "send.provider_call",
           message: "Gmail API timeout",
+        });
+
+        const matchedOnly = await runCli([
+          "logs",
+          "list",
+          "--flow",
+          "mail-pipeline",
+          "--url",
+          relay.baseUrl,
+          "--attr",
+          "thread_id=thread-301",
+          "--json",
+        ]);
+        expect(matchedOnly.exitCode).toBe(0);
+        expect(matchedOnly.stderr).toBe("");
+        const matchedOnlyRows = JSON.parse(matchedOnly.stdout);
+        expect(matchedOnlyRows).toHaveLength(1);
+        expect(matchedOnlyRows[0].flowId).toBeUndefined();
+        expect(matchedOnlyRows[0]).toMatchObject({
+          matchedFlowIds: ["mail-pipeline"],
+          runId: "thread-301",
+          stageId: "analyze.decision",
+          message: "matched-only history log",
         });
       } finally {
         await relay.stop();
@@ -204,10 +228,24 @@ function routeHistoryRequest(
         status: "ok",
         message: "sent Gmail reply",
       },
+      {
+        _time: "2026-03-23T18:41:10.901Z",
+        event: "flow_event",
+        run_id: "thread-301",
+        thread_id: "thread-301",
+        stage_id: "analyze.decision",
+        status: "ok",
+        message: "matched-only history log",
+      },
     ];
 
+    const query = url.searchParams.get("query") ?? "";
+    const filteredLines = query.includes('flow_id:"mail-pipeline"')
+      ? lines.filter((line) => line.flow_id === "mail-pipeline")
+      : lines;
+
     response.writeHead(200, { "content-type": "text/plain" });
-    response.end(lines.map((line) => JSON.stringify(line)).join("\n") + "\n");
+    response.end(filteredLines.map((line) => JSON.stringify(line)).join("\n") + "\n");
     return;
   }
 

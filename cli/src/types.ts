@@ -76,10 +76,29 @@ export interface RelayWsEnvelope {
   events: RelayFlowEvent[];
 }
 
+export type LogReadScope =
+  | {
+      kind: "flow";
+      flowId: string;
+    }
+  | {
+      kind: "all";
+    };
+
+export type LogEmitScope =
+  | {
+      kind: "flow";
+      flowId: string;
+    }
+  | {
+      kind: "global";
+    };
+
 export interface CliLogRow {
   seq?: number | undefined;
   timestamp: string;
-  flowId: string;
+  flowId?: string | undefined;
+  matchedFlowIds?: string[] | undefined;
   runId?: string | undefined;
   traceId?: string | undefined;
   stageId?: string | undefined;

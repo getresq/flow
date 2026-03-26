@@ -1,16 +1,17 @@
 import { resolveWindow } from "./config.js";
 import { requestJson } from "./http.js";
+import { readExplicitFlowId, readMatchedFlowIds, rowMatchesScope } from "./scope.js";
 import type {
   CliLogRow,
-  JsonObject,
   JsonValue,
+  LogReadScope,
   RelayFlowEvent,
   RelayHistoryPayload,
 } from "../types.js";
 
 export interface HistoryRequestOptions {
   baseUrl: string;
-  flowId: string;
+  scope: LogReadScope;
   window?: string | undefined;
   query?: string | undefined;
   limit?: number | undefined;
@@ -20,7 +21,7 @@ export interface HistoryRequestOptions {
 
 export async function fetchHistoryRows({
   baseUrl,
-  flowId,
+  scope,
   window,
   query,
   limit,
@@ -33,7 +34,7 @@ export async function fetchHistoryRows({
     timeoutMs,
     fetchImpl,
     query: {
-      flow_id: flowId,
+      flow_id: scope.kind === "flow" ? scope.flowId : undefined,
       window: resolveWindow(window),
       query,
       limit,
@@ -42,35 +43,28 @@ export async function fetchHistoryRows({
 
   return payload.events
     .filter((event) => event.type === "log")
-    .map((event) => normalizeLogRow(event, flowId));
+    .map((event) => normalizeLogRow(event))
+    .filter((row) => rowMatchesScope(row, scope));
 }
 
-export function normalizeLogRow(
-  event: RelayFlowEvent,
-  requestedFlowId?: string,
-): CliLogRow {
-  const attributes = event.attributes ?? ({} as JsonObject);
-
+export function normalizeLogRow(event: RelayFlowEvent): CliLogRow {
   return {
     seq: event.seq,
     timestamp: event.timestamp,
-    flowId:
-      stringAttribute(attributes.flow_id) ??
-      firstString(event.matched_flow_ids) ??
-      requestedFlowId ??
-      "unknown",
-    runId: stringAttribute(attributes.run_id),
+    flowId: readExplicitFlowId(event.attributes),
+    matchedFlowIds: readMatchedFlowIds(event),
+    runId: stringAttribute(event.attributes.run_id),
     traceId: event.trace_id,
-    stageId: stringAttribute(attributes.stage_id),
-    stageName: stringAttribute(attributes.stage_name),
-    componentId: stringAttribute(attributes.component_id),
-    status: stringAttribute(attributes.status),
+    stageId: stringAttribute(event.attributes.stage_id),
+    stageName: stringAttribute(event.attributes.stage_name),
+    componentId: stringAttribute(event.attributes.component_id),
+    status: stringAttribute(event.attributes.status),
     message:
       event.message ??
-      stringAttribute(attributes.message) ??
-      stringAttribute(attributes.event) ??
+      stringAttribute(event.attributes.message) ??
+      stringAttribute(event.attributes.event) ??
       "",
-    attributes,
+    attributes: event.attributes,
   };
 }
 
@@ -88,8 +82,4 @@ export function stringAttribute(value: JsonValue | undefined): string | undefine
   }
 
   return undefined;
-}
-
-function firstString(values: string[] | undefined): string | undefined {
-  return values && values.length > 0 ? values[0] : undefined;
 }

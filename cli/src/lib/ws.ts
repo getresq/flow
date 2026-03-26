@@ -4,12 +4,19 @@ import { normalizeNetworkError, CliError } from "./errors.js";
 import { matchesLogFilters, type LogFilters } from "./filters.js";
 import { normalizeLogRow } from "./history.js";
 import { resolveBaseUrl } from "./config.js";
-import type { CliLogRow, RelayFlowEvent, RelayWsEnvelope } from "../types.js";
+import { eventMatchesScope } from "./scope.js";
+import type {
+  CliLogRow,
+  LogReadScope,
+  RelayFlowEvent,
+  RelayWsEnvelope,
+} from "../types.js";
 
 export type WebSocketFactory = (url: string) => WebSocketLike;
 
 export interface WebSocketLike {
   close(code?: number, data?: string): void;
+  send?(data: string, cb?: (error?: Error) => void): void;
   on(event: "open", listener: () => void): this;
   on(event: "message", listener: (data: RawData) => void): this;
   on(event: "error", listener: (error: Error) => void): this;
@@ -18,9 +25,16 @@ export interface WebSocketLike {
 
 export interface StreamLogRowsOptions {
   baseUrl: string;
-  flowId: string;
+  scope: LogReadScope;
   filters: LogFilters;
   onRow: (row: CliLogRow) => void;
+  signal?: AbortSignal | undefined;
+  websocketFactory?: WebSocketFactory | undefined;
+}
+
+export interface EmitLogEventOptions {
+  baseUrl: string;
+  event: RelayFlowEvent;
   signal?: AbortSignal | undefined;
   websocketFactory?: WebSocketFactory | undefined;
 }
@@ -47,12 +61,12 @@ export function parseEnvelope(raw: string): RelayWsEnvelope {
 
 export function extractLogRowsFromEnvelope({
   raw,
-  flowId,
+  scope,
   filters,
   seenSeq,
 }: {
   raw: string;
-  flowId: string;
+  scope: LogReadScope;
   filters: LogFilters;
   seenSeq: Set<number>;
 }): CliLogRow[] {
@@ -68,11 +82,11 @@ export function extractLogRowsFromEnvelope({
       continue;
     }
 
-    const row = normalizeLogRow(event, flowId);
-    if (row.flowId !== flowId) {
+    if (!eventMatchesScope(event, scope)) {
       continue;
     }
 
+    const row = normalizeLogRow(event);
     if (!matchesLogFilters(row, filters)) {
       continue;
     }
@@ -85,7 +99,7 @@ export function extractLogRowsFromEnvelope({
 
 export async function streamLogRows({
   baseUrl,
-  flowId,
+  scope,
   filters,
   onRow,
   signal,
@@ -128,7 +142,7 @@ export async function streamLogRows({
       try {
         const rows = extractLogRowsFromEnvelope({
           raw: rawDataToString(data),
-          flowId,
+          scope,
           filters,
           seenSeq,
         });
@@ -138,6 +152,74 @@ export async function streamLogRows({
       } catch (error) {
         finalize(error);
       }
+    });
+
+    socket.on("error", (error) => {
+      if (signal?.aborted) {
+        finalize();
+        return;
+      }
+
+      finalize(normalizeNetworkError(error, url));
+    });
+
+    socket.on("close", () => {
+      finalize();
+    });
+  });
+}
+
+export async function emitLogEvent({
+  baseUrl,
+  event,
+  signal,
+  websocketFactory = createWebSocket,
+}: EmitLogEventOptions): Promise<void> {
+  const url = buildWebSocketUrl(baseUrl);
+  const socket = websocketFactory(url);
+
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+
+    const finalize = (error?: unknown) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      signal?.removeEventListener("abort", handleAbort);
+      if (error) {
+        reject(error);
+      } else {
+        resolve();
+      }
+    };
+
+    const handleAbort = () => {
+      socket.close();
+      finalize();
+    };
+
+    signal?.addEventListener("abort", handleAbort, { once: true });
+
+    socket.on("open", () => {
+      if (signal?.aborted) {
+        handleAbort();
+        return;
+      }
+
+      if (!socket.send) {
+        finalize(new CliError("websocket does not support send"));
+        return;
+      }
+
+      socket.send(JSON.stringify(event), (error) => {
+        if (error) {
+          finalize(error);
+          return;
+        }
+
+        socket.close();
+      });
     });
 
     socket.on("error", (error) => {

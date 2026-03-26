@@ -105,6 +105,12 @@ The UI should not re-implement coarse flow matching in multiple places. Instead:
 - history mode passes `flow_id` to the relay
 - the relay applies the same contract model for both paths
 
+For manual CLI-emitted logs, scope stays explicit:
+
+- `logs emit --flow <id>` emits `type: "log"` with `attributes.flow_id = <id>`
+- `logs emit --global` emits an unscoped `type: "log"` with no flow assignment
+- unscoped logs do not appear in any flow UI
+
 ## WebSocket Model
 
 The live WebSocket protocol uses envelopes:
@@ -118,10 +124,16 @@ The client ingests those envelopes append-only, keeps a bounded buffer, and igno
 
 ## CLI
 
-The CLI is the headless `resq-flow` surface for relay status checks plus `logs list` and `logs tail`.
+The CLI is the headless `resq-flow` surface for relay status checks plus `logs list`, `logs tail`, and `logs emit`.
 It lives in `cli/` and uses the same relay APIs and WebSocket envelopes as the UI.
-Use it when you want quick terminal inspection or agent-friendly JSON/JSONL output without opening the browser.
+Use it when you want quick terminal inspection, agent-friendly JSON/JSONL output, or ad hoc local logs without opening the browser.
 See the main `README.md` for build steps, command examples, and supported arguments.
+
+The CLI scope model is explicit and should stay explicit:
+
+- `logs list` and `logs tail` require exactly one of `--flow <id>` or `--all`
+- `logs emit` requires exactly one of `--flow <id>` or `--global`
+- neither the CLI nor the UI should silently treat unscoped logs as belonging to a requested flow
 
 ## Vector Contract
 

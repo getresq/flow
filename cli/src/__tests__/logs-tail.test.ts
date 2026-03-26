@@ -218,4 +218,56 @@ describe("resq-flow logs tail", () => {
       message: "sent Gmail reply",
     });
   });
+
+  it("supports explicit global tailing with --all", async () => {
+    const buffered = createBufferedIo();
+
+    const exitCode = await runCli(
+      ["logs", "tail", "--all"],
+      buffered.io,
+      {
+        websocketFactory: () =>
+          createStreamingSocket([
+            {
+              type: "snapshot",
+              events: [
+                {
+                  type: "log",
+                  seq: 1,
+                  timestamp: "2026-03-23T18:45:02.014Z",
+                  message: "debug checkpoint before oauth refresh",
+                  attributes: {
+                    subsystem: "mail-auth",
+                  },
+                },
+              ],
+            },
+          ]),
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(buffered.readStdout()).toContain("[18:45:02]");
+    expect(buffered.readStdout()).toContain("global");
+    expect(buffered.readStdout()).toContain("debug checkpoint before oauth refresh");
+  });
+
+  it("requires exactly one of --flow or --all", async () => {
+    const missing = createBufferedIo();
+    const missingCode = await runCli(["logs", "tail"], missing.io);
+    expect(missingCode).toBe(2);
+    expect(missing.readStderr()).toContain(
+      "exactly one of --flow <flow-id> or --all is required",
+    );
+
+    const conflicting = createBufferedIo();
+    const conflictingCode = await runCli(
+      ["logs", "tail", "--flow", "mail-pipeline", "--all"],
+      conflicting.io,
+    );
+    expect(conflictingCode).toBe(2);
+    expect(conflicting.readStderr()).toContain(
+      "exactly one of --flow <flow-id> or --all is required",
+    );
+  });
 });

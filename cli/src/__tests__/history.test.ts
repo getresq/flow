@@ -56,7 +56,7 @@ describe("history normalization", () => {
 
     const rows = await fetchHistoryRows({
       baseUrl: "http://relay.example",
-      flowId: "mail-pipeline",
+      scope: { kind: "flow", flowId: "mail-pipeline" },
       window: "15m",
       query: "thread-201",
       limit: 25,
@@ -77,6 +77,7 @@ describe("history normalization", () => {
         seq: 12,
         timestamp: "2026-03-23T18:41:06.901Z",
         flowId: "mail-pipeline",
+        matchedFlowIds: undefined,
         runId: "thread-201",
         traceId: "trace-send-201",
         stageId: "send.provider_call",
@@ -90,6 +91,56 @@ describe("history normalization", () => {
           component_id: "send-worker",
           status: "error",
           thread_id: "thread-201",
+        },
+      },
+    ]);
+  });
+
+  it("does not manufacture a flow id for unscoped rows", async () => {
+    const fetchImpl = (async () =>
+      createJsonResponse({
+        from: "2026-03-23T18:00:00.000Z",
+        to: "2026-03-23T18:15:00.000Z",
+        events: [
+          {
+            type: "log",
+            seq: 14,
+            timestamp: "2026-03-23T18:41:06.901Z",
+            trace_id: "trace-debug-201",
+            message: "oauth refresh checkpoint",
+            attributes: {
+              subsystem: "mail-auth",
+            },
+          },
+        ],
+        log_count: 1,
+        span_count: 0,
+        truncated: false,
+        warnings: [],
+      })) as typeof fetch;
+
+    const rows = await fetchHistoryRows({
+      baseUrl: "http://relay.example",
+      scope: { kind: "all" },
+      timeoutMs: 500,
+      fetchImpl,
+    });
+
+    expect(rows).toEqual([
+      {
+        seq: 14,
+        timestamp: "2026-03-23T18:41:06.901Z",
+        flowId: undefined,
+        matchedFlowIds: undefined,
+        runId: undefined,
+        traceId: "trace-debug-201",
+        stageId: undefined,
+        stageName: undefined,
+        componentId: undefined,
+        status: undefined,
+        message: "oauth refresh checkpoint",
+        attributes: {
+          subsystem: "mail-auth",
         },
       },
     ]);
