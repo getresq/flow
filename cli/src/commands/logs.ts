@@ -163,6 +163,7 @@ async function runLogsListCommand(
     scope,
     window: resolveWindow(options.window ?? DEFAULT_LOG_WINDOW),
     query: options.query,
+    attrs: options.attrs,
     limit: resolveLimit(options.limit),
     timeoutMs,
     fetchImpl: dependencies.fetchImpl,

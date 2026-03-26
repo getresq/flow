@@ -70,7 +70,9 @@ describe("history normalization", () => {
     expect(url.searchParams.get("flow_id")).toBe("mail-pipeline");
     expect(url.searchParams.get("window")).toBe("15m");
     expect(url.searchParams.get("query")).toBe("thread-201");
+    expect(url.searchParams.get("logs_only")).toBe("true");
     expect(url.searchParams.get("limit")).toBe("25");
+    expect(url.searchParams.getAll("attr")).toEqual([]);
 
     expect(rows).toEqual([
       {
@@ -143,6 +145,40 @@ describe("history normalization", () => {
           subsystem: "mail-auth",
         },
       },
+    ]);
+  });
+
+  it("forwards repeated attribute filters to relay history", async () => {
+    const seenUrls: string[] = [];
+    const fetchImpl = (async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      seenUrls.push(url);
+
+      return createJsonResponse({
+        from: "2026-03-23T18:00:00.000Z",
+        to: "2026-03-23T18:15:00.000Z",
+        events: [],
+        log_count: 0,
+        span_count: 0,
+        truncated: false,
+        warnings: [],
+      });
+    }) as typeof fetch;
+
+    await fetchHistoryRows({
+      baseUrl: "http://relay.example",
+      scope: { kind: "flow", flowId: "mail-pipeline" },
+      attrs: ["thread_id=thread-201", "status=error"],
+      timeoutMs: 500,
+      fetchImpl,
+    });
+
+    expect(seenUrls).toHaveLength(1);
+    const url = new URL(seenUrls[0]!);
+    expect(url.searchParams.get("logs_only")).toBe("true");
+    expect(url.searchParams.getAll("attr")).toEqual([
+      "thread_id=thread-201",
+      "status=error",
     ]);
   });
 });

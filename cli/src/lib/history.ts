@@ -14,6 +14,7 @@ export interface HistoryRequestOptions {
   scope: LogReadScope;
   window?: string | undefined;
   query?: string | undefined;
+  attrs?: string[] | undefined;
   limit?: number | undefined;
   timeoutMs: number;
   fetchImpl?: typeof fetch | undefined;
@@ -24,6 +25,7 @@ export async function fetchHistoryRows({
   scope,
   window,
   query,
+  attrs,
   limit,
   timeoutMs,
   fetchImpl,
@@ -37,6 +39,8 @@ export async function fetchHistoryRows({
       flow_id: scope.kind === "flow" ? scope.flowId : undefined,
       window: resolveWindow(window),
       query,
+      attr: attrs && attrs.length > 0 ? attrs : undefined,
+      logs_only: true,
       limit,
     },
   });

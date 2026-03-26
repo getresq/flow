@@ -73,6 +73,28 @@ describe("CLI integration: logs list", () => {
           message: "Gmail API timeout",
         });
 
+        const limitedAttrFiltered = await runCli([
+          "logs",
+          "list",
+          "--flow",
+          "mail-pipeline",
+          "--url",
+          relay.baseUrl,
+          "--attr",
+          "thread_id=thread-201",
+          "--limit",
+          "1",
+          "--json",
+        ]);
+        expect(limitedAttrFiltered.exitCode).toBe(0);
+        expect(limitedAttrFiltered.stderr).toBe("");
+        const limitedAttrRows = JSON.parse(limitedAttrFiltered.stdout);
+        expect(limitedAttrRows).toHaveLength(1);
+        expect(limitedAttrRows[0]).toMatchObject({
+          runId: "thread-201",
+        });
+        expect(limitedAttrRows[0].attributes.thread_id).toBe("thread-201");
+
         const matchedOnly = await runCli([
           "logs",
           "list",
@@ -240,9 +262,22 @@ function routeHistoryRequest(
     ];
 
     const query = url.searchParams.get("query") ?? "";
-    const filteredLines = query.includes('flow_id:"mail-pipeline"')
+    const backendThreadId = query.match(/thread_id:"([^"]+)"/)?.[1];
+    const backendStatus = query.match(/status:"([^"]+)"/)?.[1];
+    let filteredLines = query.includes('flow_id:"mail-pipeline"')
       ? lines.filter((line) => line.flow_id === "mail-pipeline")
       : lines;
+
+    if (backendThreadId) {
+      filteredLines = filteredLines.filter((line) => line.thread_id === backendThreadId);
+    }
+
+    if (backendStatus) {
+      filteredLines = filteredLines.filter((line) => line.status === backendStatus);
+    }
+
+    const limit = Number(url.searchParams.get("limit") ?? filteredLines.length);
+    filteredLines = filteredLines.slice(0, Number.isFinite(limit) ? limit : filteredLines.length);
 
     response.writeHead(200, { "content-type": "text/plain" });
     response.end(filteredLines.map((line) => JSON.stringify(line)).join("\n") + "\n");

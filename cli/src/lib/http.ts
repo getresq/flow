@@ -4,7 +4,10 @@ import { CliError, normalizeNetworkError } from "./errors.js";
 export interface RequestJsonOptions {
   baseUrl?: string;
   path: string;
-  query?: Record<string, string | number | boolean | undefined>;
+  query?: Record<
+    string,
+    string | number | boolean | Array<string | number | boolean> | undefined
+  >;
   timeoutMs?: number;
   fetchImpl?: typeof fetch | undefined;
 }
@@ -12,7 +15,12 @@ export interface RequestJsonOptions {
 interface BuildRelayUrlOptions {
   baseUrl: string | undefined;
   path: string;
-  query: Record<string, string | number | boolean | undefined> | undefined;
+  query:
+    | Record<
+        string,
+        string | number | boolean | Array<string | number | boolean> | undefined
+      >
+    | undefined;
 }
 
 export function buildRelayUrl({
@@ -28,6 +36,14 @@ export function buildRelayUrl({
       if (value === undefined) {
         continue;
       }
+
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          url.searchParams.append(key, String(item));
+        }
+        continue;
+      }
+
       url.searchParams.set(key, String(value));
     }
   }
