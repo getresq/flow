@@ -1,6 +1,8 @@
 import type { FlowEvent } from '../core/types'
 
-import { loadReplayFixture, runDirectReplay } from './replay-direct'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const DEFAULT_WS_URL = 'ws://localhost:4200/ws'
 
@@ -27,6 +29,13 @@ function parseSpeedArg(defaultSpeed = 1): number {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function loadReplayFixture(): Promise<FlowEvent[]> {
+  const fixturePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), './fixtures/mail-pipeline-replay.json')
+  const content = await readFile(fixturePath, 'utf8')
+  const events = JSON.parse(content) as FlowEvent[]
+  return [...events].sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp))
 }
 
 async function connectRelay(url: string): Promise<WebSocket> {
@@ -84,10 +93,9 @@ async function main() {
     return
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.warn('[replay] relay unavailable, falling back to direct replay mode', error)
+    console.error('[replay] relay unavailable; start the relay first with `make dev` or `make dev-relay`', error)
+    process.exit(1)
   }
-
-  await runDirectReplay(events, speed)
 }
 
 if (import.meta.main) {
