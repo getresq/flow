@@ -3,8 +3,8 @@ import { create } from 'zustand'
 import type { ThemeMode } from '../core/types'
 
 export const THEME_STORAGE_KEY = 'resq-flow-theme'
-export const DEFAULT_BOTTOM_PANEL_HEIGHT = 260
-export const MIN_BOTTOM_PANEL_HEIGHT = 48
+export const DEFAULT_BOTTOM_PANEL_HEIGHT = 320
+export const MIN_BOTTOM_PANEL_HEIGHT = 72
 export type BottomPanelTab = 'logs' | 'traces'
 
 export interface LayoutState {

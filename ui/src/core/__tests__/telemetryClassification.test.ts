@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { classifyFlowEvent, isDefaultVisibleSignal } from '../telemetryClassification'
-import type { FlowEvent } from '../types'
+import { classifyFlowEvent, isDefaultVisibleLogEntry, isDefaultVisibleSignal } from '../telemetryClassification'
+import type { FlowEvent, LogEntry } from '../types'
 
 describe('telemetryClassification', () => {
   it('classifies generic lifecycle spans as raw', () => {
@@ -69,5 +69,51 @@ describe('telemetryClassification', () => {
 
     expect(classifyFlowEvent(event)).toBe('critical')
     expect(isDefaultVisibleSignal(classifyFlowEvent(event))).toBe(true)
+  })
+
+  it('hides span-derived rows from the default logs view', () => {
+    const entry: LogEntry = {
+      timestamp: '2026-03-24T12:00:00.000Z',
+      level: 'info',
+      signal: 'meaningful',
+      defaultVisible: true,
+      message: 'span completed: mail.analyze_decision',
+      eventType: 'span_end',
+    }
+
+    expect(isDefaultVisibleLogEntry(entry)).toBe(false)
+  })
+
+  it('treats lifecycle span wrappers as raw but keeps lifecycle log events meaningful', () => {
+    const spanEvent: FlowEvent = {
+      type: 'span_end',
+      timestamp: '2026-03-19T12:00:00.000Z',
+      trace_id: 'trace-5',
+      span_id: 'span-5',
+      attributes: {
+        component_id: 'analyze-decision',
+        stage_id: 'analyze.final_result',
+        reply_status: 'needs_review',
+      },
+      message: 'span completed',
+    }
+
+    const logEvent: FlowEvent = {
+      type: 'log',
+      timestamp: '2026-03-19T12:00:00.100Z',
+      trace_id: 'trace-5',
+      span_id: 'log-5',
+      attributes: {
+        component_id: 'analyze-decision',
+        stage_id: 'analyze.final_result',
+        reply_status: 'needs_review',
+        draft_status: 'needs_review',
+        result_action: 'draft_reply',
+      },
+      message: 'analyze finalized reply branch',
+    }
+
+    expect(classifyFlowEvent(spanEvent)).toBe('raw')
+    expect(classifyFlowEvent(logEvent)).toBe('meaningful')
   })
 })

@@ -49,6 +49,7 @@ function toLogEntry(event: FlowEvent, nodeId?: string): LogEntry {
     message,
     displayMessage: buildFlowLogDisplayMessage({
       stageId,
+      nodeId,
       stageName,
       message,
       retryable: retryable ? retryable.toLowerCase() === 'true' : undefined,

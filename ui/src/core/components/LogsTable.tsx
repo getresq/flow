@@ -9,7 +9,6 @@ import {
 } from '@tanstack/react-table'
 
 import {
-  Badge,
   Table,
   TableBody,
   TableCell,
@@ -26,6 +25,7 @@ import { DurationBadge } from './DurationBadge'
 interface LogsTableProps {
   logs: LogEntry[]
   nodeLabels: Map<string, string>
+  nodeFamilies: Map<string, string>
   selectedTraceId?: string
   onSelectLog: (entry: LogEntry) => void
 }
@@ -36,7 +36,9 @@ interface LogRowData {
   timestamp: string
   nodeLabel: string
   nodeId?: string
-  message: string
+  nodeFamily?: string
+  messagePrefix?: string
+  messageBody: string
   messageTitle: string
   entry: LogEntry
 }
@@ -54,6 +56,7 @@ function sortIndicator(direction: false | 'asc' | 'desc') {
 export function LogsTable({
   logs,
   nodeLabels,
+  nodeFamilies,
   selectedTraceId,
   onSelectLog,
 }: LogsTableProps) {
@@ -61,20 +64,29 @@ export function LogsTable({
 
   const data = useMemo<LogRowData[]>(
     () =>
-      logs.map((entry, index) => ({
-        id: `${entry.seq ?? entry.timestamp}-${index}`,
-        executionId: entry.runId ?? entry.traceId,
-        timestamp: entry.timestamp,
-        nodeLabel: entry.nodeId ? nodeLabels.get(entry.nodeId) ?? entry.nodeId : '—',
-        nodeId: entry.nodeId,
-        message: getLogDisplayMessage(entry),
-        messageTitle:
-          entry.displayMessage && entry.displayMessage !== entry.message
-            ? `${entry.displayMessage}\nraw: ${entry.message}`
-            : getLogDisplayMessage(entry),
-        entry,
-      })),
-    [logs, nodeLabels],
+      logs.map((entry, index) => {
+        const fullMsg = getLogDisplayMessage(entry)
+        const colonIdx = fullMsg.indexOf(':')
+        const messagePrefix = colonIdx > 0 && colonIdx < 40 ? fullMsg.slice(0, colonIdx) : undefined
+        const messageBody = colonIdx > 0 && colonIdx < 40 ? fullMsg.slice(colonIdx + 1).trimStart() : fullMsg
+
+        return {
+          id: `${entry.seq ?? entry.timestamp}-${index}`,
+          executionId: entry.runId ?? entry.traceId,
+          timestamp: entry.timestamp,
+          nodeLabel: entry.nodeId ? nodeLabels.get(entry.nodeId) ?? entry.nodeId : '—',
+          nodeId: entry.nodeId,
+          nodeFamily: entry.nodeId ? nodeFamilies.get(entry.nodeId) : undefined,
+          messagePrefix,
+          messageBody,
+          messageTitle:
+            entry.displayMessage && entry.displayMessage !== entry.message
+              ? `${entry.displayMessage}\nraw: ${entry.message}`
+              : fullMsg,
+          entry,
+        }
+      }),
+    [logs, nodeLabels, nodeFamilies],
   )
 
   const columns = useMemo<ColumnDef<LogRowData>[]>(
@@ -94,7 +106,7 @@ export function LogsTable({
         ),
         cell: ({ row }) => (
           <span className="font-mono text-xs text-[var(--text-muted)]">
-            {formatEasternTime(row.original.timestamp)}
+            {formatEasternTime(row.original.timestamp, { precise: true })}
           </span>
         ),
       },
@@ -103,32 +115,47 @@ export function LogsTable({
         accessorKey: 'nodeLabel',
         header: 'Node',
         cell: ({ row }) => (
-          <div className="min-w-0">
-            <div className="truncate text-[var(--text-secondary)]">{row.original.nodeLabel}</div>
-            {row.original.nodeId && row.original.nodeId !== row.original.nodeLabel ? (
-              <div className="truncate font-mono text-[11px] text-[var(--text-muted)]">{row.original.nodeId}</div>
-            ) : null}
-          </div>
+          <span
+            className="inline-block rounded-[5px] px-1.5 py-0.5 text-[10px] font-medium"
+            style={{
+              background: `var(--chip-${row.original.nodeFamily ?? 'cron'}-bg)`,
+              color: `var(--chip-${row.original.nodeFamily ?? 'cron'}-text)`,
+            }}
+            title={row.original.nodeId ?? row.original.nodeLabel}
+          >
+            {row.original.nodeLabel}
+          </span>
         ),
       },
       {
         id: 'message',
-        accessorKey: 'message',
+        accessorKey: 'messageBody',
         header: 'Message',
         cell: ({ row }) => (
           <span className="block truncate" title={row.original.messageTitle}>
-            {row.original.message}
+            {row.original.messagePrefix && (
+              <span className="mr-1 font-mono text-[10px] text-[var(--text-muted)]">
+                {row.original.messagePrefix}:
+              </span>
+            )}
+            <span className="text-[var(--text-primary)]">{row.original.messageBody}</span>
           </span>
         ),
       },
       {
         id: 'status',
         accessorFn: (row) => row.entry.level,
-        header: 'Status',
+        header: '',
         cell: ({ row }) => (
-          <Badge variant={row.original.entry.level === 'error' ? 'destructive' : 'success'}>
-            {row.original.entry.level === 'error' ? 'ERR' : 'OK'}
-          </Badge>
+          <span
+            className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full"
+            style={{
+              background:
+                row.original.entry.level === 'error'
+                  ? 'var(--status-error)'
+                  : 'var(--status-success)',
+            }}
+          />
         ),
       },
       {
@@ -161,7 +188,14 @@ export function LogsTable({
   })
 
   return (
-    <Table>
+    <Table className="table-fixed">
+      <colgroup>
+        <col className="w-[160px]" />
+        <col className="w-[200px]" />
+        <col />
+        <col className="w-[24px]" />
+        <col className="w-[90px]" />
+      </colgroup>
       <TableHeader>
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id} className="cursor-default hover:bg-transparent">
@@ -187,6 +221,7 @@ export function LogsTable({
               <TableRow
                 key={row.id}
                 data-state={selected ? 'selected' : undefined}
+                data-level={row.original.entry.level}
                 onClick={() => onSelectLog(row.original.entry)}
               >
                 {row.getVisibleCells().map((cell) => (

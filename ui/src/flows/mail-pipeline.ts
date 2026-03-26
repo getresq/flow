@@ -99,16 +99,16 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'trigger-oauth',
       type: 'pill',
-      label: 'vendor email account connected',
-      sublabel: '(triggered by Fullstack -> integrations -> oauth flow)',
+      label: 'Email Account Connected',
+      sublabel: 'Fullstack integration OAuth flow',
       description: 'External mailbox connection trigger that starts the mail pipeline.',
       position: { x: -270, y: -40 },
     },
     {
       id: 'backfill-queue',
       type: 'roundedRect',
-      label: 'rrq:queue:mail-backfill',
-      sublabel: '(read batches of email)',
+      label: 'Backfill Queue',
+      sublabel: 'rrq:queue:mail-backfill',
       notes: [
         'Uses mail_cursors.backfill_page_token to control paging.',
         'An empty token starts from the first page; a saved token resumes from that page.',
@@ -121,8 +121,8 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'backfill-worker',
       type: 'rectangle',
-      label: 'mail_backfill',
-      sublabel: 'workers',
+      label: 'Backfill Worker',
+      sublabel: 'mail_backfill',
       description: 'Backfills historical mail for newly connected accounts.',
       style: { icon: 'worker' },
       position: { x: 185, y: 60 },
@@ -132,8 +132,8 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'cron-scheduler',
       type: 'roundedRect',
-      label: 'rrq cron (scheduler)',
-      sublabel: 'function: handle_mail_cron_tick',
+      label: 'Cron Scheduler',
+      sublabel: 'handle_mail_cron_tick',
       description: 'Recurring scheduler boundary that decides when mailbox checks should run.',
       style: { icon: 'cron' },
       position: { x: 175, y: 220 },
@@ -153,7 +153,8 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'incoming-queue',
       type: 'roundedRect',
-      label: 'rrq:queue:mail-incoming',
+      label: 'Incoming Queue',
+      sublabel: 'rrq:queue:mail-incoming',
       notes: [
         'Contains both handle_mail_cron_tick and handle_mail_incoming_check jobs.',
         'Jobs can arrive from multiple vendors and mailboxes.',
@@ -170,8 +171,8 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'incoming-worker',
       type: 'rectangle',
-      label: 'mail_incoming',
-      sublabel: 'workers',
+      label: 'Incoming Worker',
+      sublabel: 'mail_incoming',
       description: 'Checks connected inboxes for new mail and hands off downstream work.',
       notes: [
         'If no incoming_history_id exists yet, incoming processing writes the baseline cursor and stops.',
@@ -199,7 +200,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'incoming-schedule-process',
       semanticRole: 'process',
       type: 'rectangle',
-      label: 'schedule incoming checks',
+      label: 'Schedule Incoming Checks',
 
       position: { x: 115, y: 32 },
       size: { width: 300 },
@@ -339,7 +340,8 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'analyze-queue',
       type: 'roundedRect',
-      label: 'rrq:queue:mail-analyze',
+      label: 'Analyze Queue',
+      sublabel: 'rrq:queue:mail-analyze',
       style: { icon: 'queue' },
       position: { x: 980, y: 1010 },
       size: { width: 250 },
@@ -352,8 +354,8 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'analyze-worker',
       type: 'rectangle',
-      label: 'mail_analyze',
-      sublabel: 'workers',
+      label: 'Analyze Worker',
+      sublabel: 'mail_analyze',
       description: 'Analyzes extracted mail and decides whether to draft a reply.',
       style: { icon: 'worker' },
       position: { x: 1005, y: 1160 },
@@ -364,7 +366,8 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'analyze-decision',
       type: 'diamond',
-      label: 'analyze reply decision\n(propose mode)',
+      label: 'Analyze Decision',
+      sublabel: 'propose mode',
       notes: [
         'Prechecks run before the LLM branch.',
         'The LLM can return skip, needs_review, or draft_reply.',
@@ -421,7 +424,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'draft-reply',
       semanticRole: 'process',
       type: 'rectangle',
-      label: 'draft reply',
+      label: 'Draft Reply',
       sublabel: 'mail_reply_drafts',
 
       position: { x: 930, y: 1780 },
@@ -496,7 +499,8 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'actions-queue',
       type: 'roundedRect',
-      label: 'rrq:queue:mail-actions',
+      label: 'Actions Queue',
+      sublabel: 'rrq:queue:mail-actions',
       style: { icon: 'queue' },
       position: { x: 985, y: 2525 },
       size: { width: 250 },
@@ -509,8 +513,8 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'actions-worker',
       type: 'rectangle',
-      label: 'mail_actions',
-      sublabel: 'workers',
+      label: 'Actions Worker',
+      sublabel: 'mail_actions',
       description: 'Executes approved actions and hands off send jobs.',
       style: { icon: 'worker' },
       position: { x: 1005, y: 2670 },
@@ -556,7 +560,8 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'extract-queue',
       type: 'roundedRect',
-      label: 'rrq:queue:mail-extract',
+      label: 'Extract Queue',
+      sublabel: 'rrq:queue:mail-extract',
       notes: [
         'Contains both handle_mail_extract and handle_mail_recompute_opportunities.',
         'AI provider credentials are required only for handle_mail_extract.',
@@ -573,8 +578,8 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'extract-worker',
       type: 'rectangle',
-      label: 'mail_extract',
-      sublabel: 'workers',
+      label: 'Extract Worker',
+      sublabel: 'mail_extract',
       description: 'Extracts structured contact and thread details from stored mail.',
       style: { icon: 'worker' },
       position: { x: 1580, y: 1035 },
@@ -681,7 +686,7 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'recompute-process',
       semanticRole: 'process',
       type: 'rectangle',
-      label: 'recompute\nfollow_up_opportunities',
+      label: 'Recompute Opportunities',
       notes: [
         'Scans mail_extracted_contacts for the mailbox.',
         'Upserts or deletes follow_up_opportunities.',
@@ -694,7 +699,8 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'send-queue',
       type: 'roundedRect',
-      label: 'rrq:queue:mail-send',
+      label: 'Send Queue',
+      sublabel: 'rrq:queue:mail-send',
       style: { icon: 'queue' },
       position: { x: 985, y: 3135 },
       size: { width: 250 },
@@ -706,8 +712,8 @@ export const mailPipelineFlow: FlowConfig = {
     {
       id: 'send-worker',
       type: 'rectangle',
-      label: 'mail_send',
-      sublabel: 'workers',
+      label: 'Send Worker',
+      sublabel: 'mail_send',
       description: 'Validates and sends reply drafts through the provider.',
       style: { icon: 'worker' },
       position: { x: 1005, y: 3280 },
@@ -718,7 +724,8 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'send-process',
       semanticRole: 'process',
       type: 'rectangle',
-      label: 'handle_mail_send_reply',
+      label: 'Send Process',
+      sublabel: 'handle_mail_send_reply',
 
       position: { x: 1005, y: 3450 },
       size: { width: 210 },

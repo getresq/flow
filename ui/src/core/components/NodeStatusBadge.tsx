@@ -1,7 +1,5 @@
 import clsx from 'clsx'
 
-import { Badge } from '@/components/ui'
-
 import type { NodeStatus } from '../types'
 import { DurationBadge } from './DurationBadge'
 
@@ -10,19 +8,6 @@ interface NodeStatusBadgeProps {
   durationMs?: number
   durationVisibleUntil?: number
   className?: string
-}
-
-function badgeVariant(status: NodeStatus) {
-  if (status === 'success') {
-    return 'success'
-  }
-  if (status === 'error') {
-    return 'destructive'
-  }
-  if (status === 'active') {
-    return 'default'
-  }
-  return 'outline'
 }
 
 export function NodeStatusBadge({
@@ -36,19 +21,16 @@ export function NodeStatusBadge({
 
   return (
     <div className={clsx('inline-flex items-center gap-2', className)}>
-      <Badge
+      <span
         data-testid={`status-badge-${status}`}
-        variant={badgeVariant(status)}
-        className="gap-1.5 px-2.5 py-0.5 capitalize"
-      >
-        <span
-          className={clsx(
-            'size-2 rounded-full bg-current',
-            status === 'active' && 'animate-flow-pulse',
-          )}
-        />
-        <span>{status}</span>
-      </Badge>
+        className={clsx(
+          'size-1.5 rounded-full',
+          status === 'idle'    && 'bg-[var(--status-idle)]',
+          status === 'active'  && 'bg-[var(--status-active)] animate-flow-pulse',
+          status === 'success' && 'bg-[var(--status-success)]',
+          status === 'error'   && 'bg-[var(--status-error)]',
+        )}
+      />
       <DurationBadge durationMs={durationMs} faded={faded} />
     </div>
   )

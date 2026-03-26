@@ -8,12 +8,26 @@ const easternTimeFormatter = new Intl.DateTimeFormat('en-US', {
   hour12: true,
 })
 
-export function formatEasternTime(value: string | Date): string {
+const easternPreciseTimeFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: EASTERN_TIME_ZONE,
+  hour: 'numeric',
+  minute: '2-digit',
+  second: '2-digit',
+  fractionalSecondDigits: 3,
+  hour12: true,
+})
+
+interface EasternTimeFormatOptions {
+  precise?: boolean
+}
+
+export function formatEasternTime(value: string | Date, options?: EasternTimeFormatOptions): string {
   const date = typeof value === 'string' ? new Date(value) : value
 
   if (Number.isNaN(date.getTime())) {
     return typeof value === 'string' ? value : ''
   }
 
-  return `${easternTimeFormatter.format(date)} ET`
+  const formatter = options?.precise ? easternPreciseTimeFormatter : easternTimeFormatter
+  return `${formatter.format(date)} ET`
 }

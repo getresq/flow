@@ -48,16 +48,10 @@ function StatusDot({ status }: { status: NodeStatus }) {
   }[status]
 
   return (
-    <div className="flex shrink-0 items-center gap-1" data-testid={`status-badge-${status}`}>
-      <span
-        className={clsx(
-          'size-1.5 rounded-full',
-          dotColor,
-          status === 'active' && 'node-dot-pulse',
-        )}
-      />
-      <span className="text-[9px] leading-none opacity-60">{status}</span>
-    </div>
+    <span
+      className={clsx('size-1.5 shrink-0 rounded-full', dotColor, status === 'active' && 'node-dot-pulse')}
+      data-testid={`status-badge-${status}`}
+    />
   )
 }
 

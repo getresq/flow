@@ -1,5 +1,6 @@
 import { resolveEventKind } from './events'
 import { inferErrorState, readStringAttribute } from './mapping'
+import { getStagePresentationTier } from './stageOutcomePresentation'
 import type { FlowEvent, LogEntry, TelemetrySignal } from './types'
 
 const CRITICAL_TOKENS = ['manual', 'needs_review', 'retry', 'pause', 'stuck']
@@ -59,12 +60,18 @@ function hasExplicitMessage(event: FlowEvent): boolean {
 export function classifyFlowEvent(event: FlowEvent): TelemetrySignal {
   const stageId = readStringAttribute(event.attributes, 'stage_id')?.toLowerCase()
   const stageName = readStringAttribute(event.attributes, 'stage_name')?.toLowerCase()
+  const componentId = readStringAttribute(event.attributes, 'component_id')?.toLowerCase()
   const status = readStringAttribute(event.attributes, 'status')?.toLowerCase()
   const outcome = readStringAttribute(event.attributes, 'outcome')?.toLowerCase()
   const retryable = readStringAttribute(event.attributes, 'retryable')?.toLowerCase() === 'true'
   const spanName = event.span_name?.toLowerCase()
   const eventKind = resolveEventKind(event)
   const sourceText = eventSourceText(event)
+  const stageTier = getStagePresentationTier({
+    stageId,
+    nodeId: componentId,
+    attributes: event.attributes,
+  })
 
   if (
     inferErrorState(event) ||
@@ -76,20 +83,28 @@ export function classifyFlowEvent(event: FlowEvent): TelemetrySignal {
     return 'critical'
   }
 
+  if (event.type === 'span_start' || event.type === 'span_end') {
+    return 'raw'
+  }
+
+  if (spanName && GENERIC_RAW_SPANS.has(spanName)) {
+    return 'raw'
+  }
+
+  if (stageTier === 'outcome' || stageTier === 'transition') {
+    return 'meaningful'
+  }
+
+  if (stageTier === 'plumbing') {
+    return 'operational'
+  }
+
   if (eventKind === 'queue_enqueued') {
     return 'meaningful'
   }
 
   if (eventKind === 'queue_picked') {
     return 'operational'
-  }
-
-  if ((event.type === 'span_start' || event.type === 'span_end') && (!stageId && !stageName)) {
-    return 'raw'
-  }
-
-  if (spanName && GENERIC_RAW_SPANS.has(spanName)) {
-    return 'raw'
   }
 
   if (includesAnyToken(sourceText, OPERATIONAL_TOKENS) || (spanName?.startsWith('mail.store.') ?? false)) {
@@ -107,6 +122,12 @@ export function isDefaultVisibleSignal(signal: TelemetrySignal): boolean {
   return signal === 'critical' || signal === 'meaningful'
 }
 
-export function isDefaultVisibleLogEntry(entry: Pick<LogEntry, 'signal' | 'defaultVisible'>): boolean {
+export function isDefaultVisibleLogEntry(
+  entry: Pick<LogEntry, 'signal' | 'defaultVisible' | 'eventType'>,
+): boolean {
+  if ('eventType' in entry && entry.eventType !== 'log') {
+    return false
+  }
+
   return typeof entry.defaultVisible === 'boolean' ? entry.defaultVisible : isDefaultVisibleSignal(entry.signal)
 }

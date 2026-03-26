@@ -18,6 +18,7 @@ import { getLogDisplayMessage } from '../logPresentation'
 import { DurationBadge } from './DurationBadge'
 import { PanelSkeleton } from './PanelSkeleton'
 import { isDefaultVisibleLogEntry } from '../telemetryClassification'
+import { normalizeTraceIdentifierValue } from '../traceIdentifiers'
 import type { FlowNodeConfig, LogEntry, NodeStatus, SpanEntry } from '../types'
 
 export interface NodeDetailStatus {
@@ -48,6 +49,19 @@ function parseIsoTime(value?: string): number {
 
   const parsed = Date.parse(value)
   return Number.isNaN(parsed) ? 0 : parsed
+}
+
+function compareLogEntriesDescending(left: LogEntry, right: LogEntry): number {
+  if (typeof left.seq === 'number' && typeof right.seq === 'number' && left.seq !== right.seq) {
+    return right.seq - left.seq
+  }
+
+  const byTime = parseIsoTime(right.timestamp) - parseIsoTime(left.timestamp)
+  if (byTime !== 0) {
+    return byTime
+  }
+
+  return (right.runId ?? right.traceId ?? '').localeCompare(left.runId ?? left.traceId ?? '')
 }
 
 function spanSortTime(span: SpanEntry): number {
@@ -87,6 +101,50 @@ function formatRelativeTime(timestampMs: number): string | null {
   }
 
   return `${Math.round(deltaMs / 86_400_000)}d ago`
+}
+
+function compactIdentifier(value: string, maxLength = 12): string {
+  if (value.length <= maxLength) {
+    return value
+  }
+
+  return `${value.slice(0, maxLength)}…`
+}
+
+function readNormalizedLogAttribute(entry: LogEntry, key: string): string | undefined {
+  const value = entry.attributes?.[key]
+
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return normalizeTraceIdentifierValue(value)
+  }
+
+  return undefined
+}
+
+function activityExecutionLabel(entry: LogEntry): string | null {
+  const threadId = readNormalizedLogAttribute(entry, 'thread_id')
+  const replyDraftId = readNormalizedLogAttribute(entry, 'reply_draft_id')
+  const requestId = readNormalizedLogAttribute(entry, 'request_id')
+  const runId = normalizeTraceIdentifierValue(entry.runId)
+  const traceId = normalizeTraceIdentifierValue(entry.traceId)
+
+  if (threadId) {
+    return `thread ${compactIdentifier(threadId)}`
+  }
+  if (replyDraftId) {
+    return `draft ${compactIdentifier(replyDraftId)}`
+  }
+  if (requestId) {
+    return `request ${compactIdentifier(requestId)}`
+  }
+  if (runId) {
+    return `run ${compactIdentifier(runId)}`
+  }
+  if (traceId) {
+    return `trace ${compactIdentifier(traceId)}`
+  }
+
+  return null
 }
 
 function computeDepthMap(spans: SpanEntry[]): Map<string, number> {
@@ -147,7 +205,7 @@ export function NodeDetailContent({ node, status, logs, spans }: NodeDetailConte
   const showRuntimeCards = new Set(['queue', 'worker', 'scheduler', 'process', 'decision']).has(node.semanticRole ?? '')
 
   const sortedLogs = useMemo(
-    () => [...logs].sort((left, right) => parseIsoTime(right.timestamp) - parseIsoTime(left.timestamp)),
+    () => [...logs].sort(compareLogEntriesDescending),
     [logs],
   )
   const defaultVisibleLogs = useMemo(
@@ -194,8 +252,21 @@ export function NodeDetailContent({ node, status, logs, spans }: NodeDetailConte
   )
   const lastSeenLabel = formatRelativeTime(lastSeenTimestamp)
   const recentActivity = useMemo(() => {
-    return defaultVisibleLogs.slice(0, 50)
+    const latestPerExecution = new Map<string, LogEntry>()
+
+    for (const entry of defaultVisibleLogs) {
+      const executionKey = entry.runId ?? entry.traceId ?? `${entry.timestamp}:${entry.message}`
+      if (!latestPerExecution.has(executionKey)) {
+        latestPerExecution.set(executionKey, entry)
+      }
+    }
+
+    return [...latestPerExecution.values()].slice(0, 50)
   }, [defaultVisibleLogs])
+  const recentActivityHasMultipleRuns = useMemo(() => {
+    const distinct = new Set(recentActivity.map((entry) => activityExecutionLabel(entry) ?? entry.runId ?? entry.traceId))
+    return distinct.size > 1
+  }, [recentActivity])
 
   const insights = useMemo(() => {
     const items: InsightItem[] = []
@@ -336,6 +407,11 @@ export function NodeDetailContent({ node, status, logs, spans }: NodeDetailConte
                             {entry.signal}
                           </Badge>
                           <span className="text-xs text-[var(--text-muted)]">{formatRelativeTime(parseIsoTime(entry.timestamp)) ?? 'just now'}</span>
+                          {recentActivityHasMultipleRuns ? (
+                            <span className="truncate text-xs text-[var(--text-muted)]">
+                              {activityExecutionLabel(entry) ?? 'unknown run'}
+                            </span>
+                          ) : null}
                           <DurationBadge className="ml-auto" durationMs={entry.durationMs} />
                         </div>
                         <p className="text-sm leading-6 text-[var(--text-primary)]">{getLogDisplayMessage(entry)}</p>

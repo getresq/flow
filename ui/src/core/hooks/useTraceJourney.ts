@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { eventExecutionKey, resolveEventKind } from '../events'
 import { inferErrorState, readStringAttribute, resolveMappedNodeId } from '../mapping'
+import { normalizeTraceIdentifierValue } from '../traceIdentifiers'
 import type {
   FlowEvent,
   SpanMapping,
@@ -13,6 +14,7 @@ import type {
 } from '../types'
 
 interface MutableStage {
+  instanceId: string
   stageId: string
   label: string
   nodeId?: string
@@ -95,8 +97,42 @@ function resolveStageKey(event: FlowEvent, stageId: string, nodeId: string | nul
   return `${componentKey}::${stageId}`
 }
 
+function resolveLatestStageInstanceKey(stageOrder: string[], baseStageKey: string): string | undefined {
+  for (let index = stageOrder.length - 1; index >= 0; index -= 1) {
+    const stageKey = stageOrder[index]
+    if (stageKey === baseStageKey || stageKey.startsWith(`${baseStageKey}#`)) {
+      return stageKey
+    }
+  }
+
+  return undefined
+}
+
+function nextStageInstanceKey(stageOrder: string[], baseStageKey: string): string {
+  let occurrence = 2
+  let candidate = `${baseStageKey}#${occurrence}`
+  while (stageOrder.includes(candidate)) {
+    occurrence += 1
+    candidate = `${baseStageKey}#${occurrence}`
+  }
+  return candidate
+}
+
 function resolveStageLabel(event: FlowEvent, stageId: string): string {
   return readStringAttribute(event.attributes, 'stage_name') ?? stageId
+}
+
+function mergeStageAttributes(
+  existing: Record<string, unknown> | undefined,
+  incoming: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!existing) {
+    return incoming
+  }
+  if (!incoming) {
+    return existing
+  }
+  return { ...existing, ...incoming }
 }
 
 function resolveStageStatus(event: FlowEvent, current: TraceStatus): TraceStatus {
@@ -141,10 +177,11 @@ function resolveErrorSummary(event: FlowEvent): string | undefined {
 }
 
 function setIdentifierIfEmpty(target: TraceIdentifiers, key: keyof TraceIdentifiers, value: string | undefined) {
-  if (!value || target[key]) {
+  const normalized = normalizeTraceIdentifierValue(value)
+  if (!normalized || target[key]) {
     return
   }
-  target[key] = value
+  target[key] = normalized
 }
 
 function materializeJourneys(journeyMap: Map<string, MutableJourney>): TraceJourney[] {
@@ -161,6 +198,7 @@ function materializeJourneys(journeyMap: Map<string, MutableJourney>): TraceJour
           return Date.parse(left.startTs) - Date.parse(right.startTs)
         })
         .map((stage) => ({
+          instanceId: stage.instanceId,
           stageId: stage.stageId,
           label: stage.label,
           nodeId: stage.nodeId,
@@ -315,8 +353,16 @@ export function useTraceJourney(
       setIdentifierIfEmpty(journey.identifiers, 'journeyKey', readStringAttribute(event.attributes, 'journey_key'))
 
       const stageId = resolveStageId(event, nodeId)
-      const stageKey = resolveStageKey(event, stageId, nodeId)
+      const baseStageKey = resolveStageKey(event, stageId, nodeId)
       const previousStageKey = journey.stageOrder[journey.stageOrder.length - 1]
+      const latestStageInstanceKey = resolveLatestStageInstanceKey(journey.stageOrder, baseStageKey)
+      const stageKey =
+        latestStageInstanceKey && previousStageKey === latestStageInstanceKey
+          ? latestStageInstanceKey
+          : latestStageInstanceKey
+            ? nextStageInstanceKey(journey.stageOrder, baseStageKey)
+            : baseStageKey
+
       if (previousStageKey && previousStageKey !== stageKey) {
         const previousStage = journey.stagesById.get(previousStageKey)
         if (previousStage && previousStage.status === 'running') {
@@ -328,6 +374,7 @@ export function useTraceJourney(
       }
 
       const stage = journey.stagesById.get(stageKey) ?? {
+        instanceId: stageKey,
         stageId,
         label: resolveStageLabel(event, stageId),
         nodeId: nodeId ?? undefined,
@@ -342,11 +389,14 @@ export function useTraceJourney(
         journey.stageOrder.push(stageKey)
       }
 
-      stage.label = resolveStageLabel(event, stageId)
+      const nextLabel = resolveStageLabel(event, stageId)
+      if (stage.label === stage.stageId || nextLabel !== stageId) {
+        stage.label = nextLabel
+      }
       stage.nodeId = stage.nodeId ?? nodeId ?? undefined
       stage.endSeq = Math.max(stage.endSeq, seq)
       stage.endTs = event.timestamp
-      stage.attrs = event.attributes
+      stage.attrs = mergeStageAttributes(stage.attrs, event.attributes)
       stage.status = resolveStageStatus(event, stage.status)
 
       const attempt = readAttempt(event.attributes)

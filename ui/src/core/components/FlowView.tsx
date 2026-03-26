@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { Badge, Button } from '@/components/ui'
+import { Minimize2 } from 'lucide-react'
+
+import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui'
 
 import { BottomLogPanel } from './BottomLogPanel'
 import { eventMatchesFlow } from '../events'
@@ -18,6 +20,7 @@ import { TraceDetailContent } from './TraceDetailPanel'
 import { useFlowAnimations } from '../hooks/useFlowAnimations'
 import { useLogStream } from '../hooks/useLogStream'
 import { DEFAULT_RELAY_WS_URL, useRelayConnection } from '../hooks/useRelayConnection'
+import { formatRunLabel } from '../runPresentation'
 import { formatEasternTime } from '../time'
 import { useTraceJourney } from '../hooks/useTraceJourney'
 import { useTraceTimeline } from '../hooks/useTraceTimeline'
@@ -112,6 +115,7 @@ export function FlowView() {
   const [historyQuery, setHistoryQuery] = useState('')
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState<string | undefined>()
+  const [resetLayoutKey, setResetLayoutKey] = useState(0)
   const [historySummary, setHistorySummary] = useState<{
     from: string
     to: string
@@ -375,18 +379,9 @@ export function FlowView() {
     [updateUrlState],
   )
 
-  const handleSelectFlow = useCallback(
-    (nextFlowId: string) => {
-      setHistoryState((previous) => ({
-        events: [],
-        resetKey: previous.resetKey + 1,
-      }))
-      setHistoryError(undefined)
-      setHistorySummary(undefined)
-      navigate(`/flows/${nextFlowId}?mode=live`)
-    },
-    [navigate],
-  )
+  const handleNavigateBack = useCallback(() => {
+    navigate('/flows')
+  }, [navigate])
 
   const selectedNode = currentFlow.nodes.find((node) => node.id === selectedNodeId) ?? null
   const selectedNodeStatus = selectedNodeId ? animations.nodeStatuses.get(selectedNodeId) : undefined
@@ -396,7 +391,7 @@ export function FlowView() {
     () =>
       traceJourney.journeys.slice(0, 12).map((journey) => ({
         traceId: journey.traceId,
-        label: journey.rootEntity ?? journey.traceId,
+        label: formatRunLabel(journey),
       })),
     [traceJourney.journeys],
   )
@@ -466,8 +461,8 @@ export function FlowView() {
             transition={{ duration: 0.18, ease: 'easeOut' }}
           >
             <FlowSelector
-              flows={flows}
               currentFlowId={currentFlow.id}
+              currentFlowName={currentFlow.name}
               connected={relayConnected}
               reconnecting={relayReconnecting}
               relayWsUrl={relayWsUrl}
@@ -486,11 +481,12 @@ export function FlowView() {
                   : undefined
               }
               historyError={historyError}
-              onSelectFlow={handleSelectFlow}
+              onNavigateBack={handleNavigateBack}
               onViewModeChange={setActiveFlowViewMode}
               onToggleFocusMode={toggleFocusModeWithLayout}
               onToggleFocusActivePath={() => setFocusActivePath((previous) => !previous)}
               onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              onResetLayout={() => setResetLayoutKey((k) => k + 1)}
               onHistoryWindowChange={setHistoryWindow}
               onHistoryQueryChange={setHistoryQuery}
               onLoadHistory={() => {
@@ -516,6 +512,7 @@ export function FlowView() {
             nodeLogMap={logStream.nodeLogMap}
             nodeSpans={traceTimeline.nodeSpans}
             selectedNodeId={selectedNodeId}
+            resetLayoutKey={resetLayoutKey}
             onSelectNode={handleSelectNode}
           />
         ) : null}
@@ -539,17 +536,25 @@ export function FlowView() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="pointer-events-none absolute left-4 top-4 z-40"
+            className="pointer-events-none absolute right-4 top-4 z-40"
           >
-            <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-[var(--surface-raised)]/95 px-3 py-2 shadow-lg backdrop-blur-sm">
-              <Badge variant="secondary">{currentFlow.name}</Badge>
-              <span className="text-xs text-[var(--text-secondary)]">
-                {sourceMode === 'history' ? 'History focus' : 'Canvas focus'}
-              </span>
-              <Button type="button" variant="ghost" size="sm" onClick={toggleFocusModeWithLayout}>
-                Exit
-              </Button>
-            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="pointer-events-auto bg-[var(--surface-raised)]/80 shadow-lg backdrop-blur-md transition-all duration-100 active:scale-[0.88]"
+                    onClick={toggleFocusModeWithLayout}
+                    aria-label="Exit focus mode"
+                  >
+                    <Minimize2 className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Exit focus</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </motion.div>
         ) : null}
       </AnimatePresence>

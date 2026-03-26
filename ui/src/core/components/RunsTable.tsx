@@ -23,6 +23,12 @@ import {
 
 import { formatEasternTime } from '../time'
 import type { TraceJourney, TraceStatus } from '../types'
+import {
+  canonicalStepId,
+  formatRunLabel,
+  formatStepDisplayLabel,
+  getJourneySummaryStage,
+} from '../runPresentation'
 import { DurationBadge } from './DurationBadge'
 
 interface RunsTableProps {
@@ -36,7 +42,8 @@ interface RunsTableProps {
 interface RunRowData {
   traceId: string
   runLabel: string
-  currentStep: string
+  latestStep: string
+  latestStepId?: string
   status: TraceStatus
   durationMs?: number
   updatedAt: string
@@ -55,11 +62,6 @@ function statusVariant(status: TraceStatus) {
     return 'warning' as const
   }
   return 'default' as const
-}
-
-function currentStepLabel(journey: TraceJourney) {
-  const currentStep = journey.stages.at(-1)
-  return currentStep?.label || currentStep?.nodeId || currentStep?.stageId || '-'
 }
 
 function statusRank(status: TraceStatus) {
@@ -105,16 +107,20 @@ export function RunsTable({
 
   const data = useMemo<RunRowData[]>(
     () =>
-      journeys.map((journey) => ({
-        traceId: journey.traceId,
-        runLabel: journey.rootEntity ?? `Run ${journey.traceId.slice(0, 8)}...`,
-        currentStep: currentStepLabel(journey),
-        status: journey.status,
-        durationMs: journey.durationMs,
-        updatedAt: journey.lastUpdatedAt,
-        issue: journey.errorSummary ?? '-',
-        pinned: pinnedTraceIds.has(journey.traceId),
-      })),
+      journeys.map((journey) => {
+        const summaryStage = getJourneySummaryStage(journey)
+        return {
+          traceId: journey.traceId,
+          runLabel: formatRunLabel(journey),
+          latestStep: summaryStage ? formatStepDisplayLabel(summaryStage) : '-',
+          latestStepId: summaryStage ? canonicalStepId(summaryStage) : undefined,
+          status: journey.status,
+          durationMs: journey.durationMs,
+          updatedAt: journey.lastUpdatedAt,
+          issue: journey.errorSummary ?? '-',
+          pinned: pinnedTraceIds.has(journey.traceId),
+        }
+      }),
     [journeys, pinnedTraceIds],
   )
 
@@ -127,11 +133,16 @@ export function RunsTable({
         cell: ({ row }) => <span className="truncate">{row.original.runLabel}</span>,
       },
       {
-        id: 'currentStep',
-        accessorKey: 'currentStep',
-        header: 'Current step',
+        id: 'latestStep',
+        accessorKey: 'latestStep',
+        header: 'Latest step',
         cell: ({ row }) => (
-          <span className="truncate text-[var(--text-secondary)]">{row.original.currentStep}</span>
+          <span
+            className="truncate text-[var(--text-secondary)]"
+            title={row.original.latestStepId ?? row.original.latestStep}
+          >
+            {row.original.latestStep}
+          </span>
         ),
       },
       {

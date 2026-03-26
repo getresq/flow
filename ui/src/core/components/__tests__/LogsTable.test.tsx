@@ -10,6 +10,11 @@ const nodeLabels = new Map([
   ['node-b', 'Send'],
 ])
 
+const nodeFamilies = new Map([
+  ['node-a', 'worker'],
+  ['node-b', 'queue'],
+])
+
 const logs: LogEntry[] = [
   {
     timestamp: '2026-03-17T13:10:00.000Z',
@@ -51,7 +56,7 @@ describe('LogsTable', () => {
     const user = userEvent.setup()
 
     render(
-      <LogsTable logs={logs} nodeLabels={nodeLabels} onSelectLog={vi.fn()} />,
+      <LogsTable logs={logs} nodeLabels={nodeLabels} nodeFamilies={nodeFamilies} onSelectLog={vi.fn()} />,
     )
 
     await user.click(screen.getByRole('button', { name: /duration/i }))
@@ -61,7 +66,7 @@ describe('LogsTable', () => {
     expect(within(rows[2]).getByText('Provider timeout')).toBeInTheDocument()
   })
 
-  it('calls the row click handler and renders error badges', async () => {
+  it('calls the row click handler and marks error rows with data-level', async () => {
     const user = userEvent.setup()
     const onSelectLog = vi.fn()
 
@@ -69,6 +74,7 @@ describe('LogsTable', () => {
       <LogsTable
         logs={logs}
         nodeLabels={nodeLabels}
+        nodeFamilies={nodeFamilies}
         selectedTraceId="run-2"
         onSelectLog={onSelectLog}
       />,
@@ -77,10 +83,15 @@ describe('LogsTable', () => {
     await user.click(screen.getByText('Provider timeout'))
 
     expect(onSelectLog).toHaveBeenCalledWith(logs[1])
-    expect(screen.getByText('ERR')).toBeInTheDocument()
+
+    // Error row has data-level="error" (no longer a text badge)
+    const rows = screen.getAllByRole('row').slice(1)
+    const errorRow = rows.find((row) => row.getAttribute('data-level') === 'error')
+    expect(errorRow).toBeDefined()
+
     const selectedRow = screen.getAllByRole('row').find((row) => row.getAttribute('data-state') === 'selected')
     expect(selectedRow).toBeDefined()
-    expect(within(selectedRow!).getByText('node-b')).toBeInTheDocument()
+    expect(within(selectedRow!).getByText('Send')).toBeInTheDocument()
   })
 
   it('shows summary-first messages when a display message is present', () => {
@@ -102,10 +113,57 @@ describe('LogsTable', () => {
           },
         ]}
         nodeLabels={nodeLabels}
+        nodeFamilies={nodeFamilies}
         onSelectLog={vi.fn()}
       />,
     )
 
     expect(screen.getByText('drafted; awaiting manual review')).toBeInTheDocument()
+  })
+
+  it('renders node chips with family-based color tokens', () => {
+    render(
+      <LogsTable logs={logs} nodeLabels={nodeLabels} nodeFamilies={nodeFamilies} onSelectLog={vi.fn()} />,
+    )
+
+    // Node labels appear as chips with inline CSS variable styles
+    const chips = screen.getAllByText('Analyze')
+    expect(chips.length).toBeGreaterThan(0)
+    const style = chips[0].getAttribute('style') ?? ''
+    expect(style).toContain('--chip-worker-bg')
+  })
+
+  it('splits message prefix from body when a colon is present', () => {
+    render(
+      <LogsTable
+        logs={[
+          {
+            timestamp: '2026-03-17T13:14:00.000Z',
+            level: 'info',
+            nodeId: 'node-a',
+            message: 'status: processing request',
+            signal: 'meaningful',
+            defaultVisible: true,
+            eventType: 'log',
+            traceId: 'run-5',
+          },
+        ]}
+        nodeLabels={nodeLabels}
+        nodeFamilies={nodeFamilies}
+        onSelectLog={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('status:')).toBeInTheDocument()
+    expect(screen.getByText('processing request')).toBeInTheDocument()
+  })
+
+  it('uses a fixed column layout so filtering does not reflow columns', () => {
+    const { container } = render(
+      <LogsTable logs={logs} nodeLabels={nodeLabels} nodeFamilies={nodeFamilies} onSelectLog={vi.fn()} />,
+    )
+
+    expect(screen.getByRole('table')).toHaveClass('table-fixed')
+    expect(container.querySelectorAll('col')).toHaveLength(5)
   })
 })

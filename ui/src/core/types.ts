@@ -277,6 +277,7 @@ export interface TraceIdentifiers {
 }
 
 export interface TraceStage {
+  instanceId?: string
   stageId: string
   label: string
   nodeId?: string

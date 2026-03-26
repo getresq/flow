@@ -98,6 +98,10 @@ fn decode_log_events(headers: &HeaderMap, body: &Bytes) -> RelayResult<Vec<FlowE
     }
 }
 
+fn parse_positive_nanos(value: Option<&Value>) -> Option<i128> {
+    parse_nanos(value).filter(|nanos| *nanos > 0)
+}
+
 fn detect_payload_format(headers: &HeaderMap, body: &Bytes) -> RelayResult<OtlpPayloadFormat> {
     let content_type = headers
         .get(CONTENT_TYPE)
@@ -246,10 +250,11 @@ pub fn parse_log_events(payload: &Value) -> Vec<FlowEvent> {
 
             for log_record in log_records {
                 let attributes = parse_attributes(log_record.get("attributes"));
-                let timestamp = parse_nanos(log_record.get("timeUnixNano"))
+                let timestamp = parse_positive_nanos(log_record.get("timeUnixNano"))
                     .map(nanos_to_iso)
                     .or_else(|| {
-                        parse_nanos(log_record.get("observedTimeUnixNano")).map(nanos_to_iso)
+                        parse_positive_nanos(log_record.get("observedTimeUnixNano"))
+                            .map(nanos_to_iso)
                     })
                     .unwrap_or_else(now_iso);
                 let trace_id =

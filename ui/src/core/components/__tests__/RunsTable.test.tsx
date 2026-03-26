@@ -16,6 +16,7 @@ const journeys: TraceJourney[] = [
       {
         stageId: 'analyze',
         label: 'Analyze',
+        nodeId: 'analyze-decision',
         startSeq: 1,
         endSeq: 2,
         startTs: '2026-03-17T13:00:00.000Z',
@@ -26,7 +27,9 @@ const journeys: TraceJourney[] = [
     nodePath: ['analyze'],
     lastUpdatedAt: '2026-03-17T13:09:00.000Z',
     eventCount: 4,
-    identifiers: {},
+    identifiers: {
+      mailboxOwner: 'support@resq.dev',
+    },
   },
   {
     traceId: 'run-b',
@@ -36,8 +39,9 @@ const journeys: TraceJourney[] = [
     status: 'error',
     stages: [
       {
-        stageId: 'send',
+        stageId: 'send.final_result',
         label: 'Send',
+        nodeId: 'send-process',
         startSeq: 3,
         endSeq: 4,
         startTs: '2026-03-17T13:02:00.000Z',
@@ -49,29 +53,51 @@ const journeys: TraceJourney[] = [
     errorSummary: 'Provider timeout',
     lastUpdatedAt: '2026-03-17T13:10:00.000Z',
     eventCount: 5,
-    identifiers: {},
+    identifiers: {
+      mailboxOwner: 'billing@resq.dev',
+    },
   },
   {
     traceId: 'run-c',
-    rootEntity: 'ops@resq.dev',
+    rootEntity: '0',
     startedAt: '2026-03-17T13:01:00.000Z',
-    durationMs: 1_240,
+    durationMs: 1774352148700,
     status: 'running',
     stages: [
       {
-        stageId: 'extract',
-        label: 'Extract',
+        stageId: 'worker.pickup',
+        label: 'worker.pickup',
+        nodeId: 'incoming-worker',
         startSeq: 5,
-        endSeq: 6,
+        endSeq: 5,
         startTs: '2026-03-17T13:01:00.000Z',
-        durationMs: 1_240,
+        durationMs: 0,
+        status: 'success',
+      },
+      {
+        stageId: 'send.final_result',
+        label: 'send.final_result',
+        nodeId: 'send-process',
+        startSeq: 6,
+        endSeq: 6,
+        startTs: '2026-03-17T13:01:01.000Z',
+        durationMs: 1774352148700,
         status: 'running',
+        attrs: {
+          reply_status: 'pending_action_approval',
+          draft_status: 'approval_pending',
+          result_action: 'draft_reply',
+          auto_approved: false,
+        },
       },
     ],
     nodePath: ['extract'],
     lastUpdatedAt: '2026-03-17T13:11:00.000Z',
     eventCount: 6,
-    identifiers: {},
+    identifiers: {
+      mailboxOwner: 'ops@resq.dev',
+      replyDraftId: '0',
+    },
   },
 ]
 
@@ -124,5 +150,22 @@ describe('RunsTable', () => {
     await user.click(screen.getByText('billing@resq.dev'))
     expect(onSelectTrace).toHaveBeenCalledWith('run-b')
     expect(screen.getByText('Provider timeout')).toBeInTheDocument()
+  })
+
+  it('shows meaningful run labels, latest steps, and compact long durations', () => {
+    render(
+      <RunsTable
+        journeys={journeys}
+        pinnedTraceIds={new Set()}
+        onSelectTrace={vi.fn()}
+        onTogglePinned={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('columnheader', { name: /latest step/i })).toBeInTheDocument()
+    expect(screen.getByText('ops@resq.dev')).toBeInTheDocument()
+    expect(screen.getByText('awaiting manual approval')).toBeInTheDocument()
+    expect(screen.getByText('20536d 11h')).toBeInTheDocument()
+    expect(screen.queryByText(/^0$/)).not.toBeInTheDocument()
   })
 })

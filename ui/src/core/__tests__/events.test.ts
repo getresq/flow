@@ -160,4 +160,17 @@ describe('events helpers', () => {
       }),
     ).toBe('run-1')
   })
+
+  it('falls back to trace_id when run_id is a placeholder value', () => {
+    expect(
+      eventExecutionKey({
+        type: 'log',
+        timestamp: '2026-03-05T12:00:00.000Z',
+        trace_id: 'trace-1',
+        attributes: {
+          run_id: 0,
+        },
+      }),
+    ).toBe('trace-1')
+  })
 })

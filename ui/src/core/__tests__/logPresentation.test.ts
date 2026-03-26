@@ -98,6 +98,29 @@ describe('logPresentation', () => {
     ).toBe('terminal send failure')
   })
 
+  it('summarizes extract and recompute transitions with consistent phrasing', () => {
+    expect(
+      buildFlowLogDisplayMessage({
+        stageId: 'extract.recompute_enqueue',
+        message: 'extract enqueued mailbox opportunity recompute',
+      }),
+    ).toBe('recompute queued')
+
+    expect(
+      buildFlowLogDisplayMessage({
+        stageId: 'recompute.started',
+        message: 'recompute worker started mailbox opportunity recompute',
+      }),
+    ).toBe('recompute started')
+
+    expect(
+      buildFlowLogDisplayMessage({
+        stageId: 'recompute.final_result',
+        message: 'recompute finalized mailbox opportunity sync',
+      }),
+    ).toBe('recompute finished')
+  })
+
   it('keeps raw message searchable even when a summary is shown', () => {
     const entry: LogEntry = {
       timestamp: '2026-03-23T12:00:00.000Z',

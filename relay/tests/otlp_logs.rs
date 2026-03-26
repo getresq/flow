@@ -265,6 +265,53 @@ async fn posts_protobuf_flow_event_logs_and_receives_log_event() {
     server.shutdown();
 }
 
+#[tokio::test]
+async fn falls_back_to_observed_time_when_log_time_is_zero() {
+    let server = common::spawn_server().await;
+    let mut socket = common::connect_ws(&format!("{}/ws", server.ws_base)).await;
+
+    let payload = json!({
+      "resourceLogs": [
+        {
+          "scopeLogs": [
+            {
+              "logRecords": [
+                {
+                  "timeUnixNano": "0",
+                  "observedTimeUnixNano": "1710000001000000000",
+                  "body": { "stringValue": "mail event" },
+                  "attributes": [
+                    { "key": "event", "value": { "stringValue": "flow_event" } },
+                    { "key": "flow_id", "value": { "stringValue": "mail-pipeline" } },
+                    { "key": "run_id", "value": { "stringValue": "thread-123" } },
+                    { "key": "component_id", "value": { "stringValue": "analyze-queue" } }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+
+    let response = reqwest::Client::new()
+        .post(format!("{}/v1/logs", server.http_base))
+        .json(&payload)
+        .send()
+        .await
+        .expect("post logs");
+
+    assert!(response.status().is_success());
+
+    let batch = common::recv_flow_events(&mut socket).await;
+    assert_eq!(batch.len(), 1);
+    let event = &batch[0];
+    assert_eq!(event.event_type, "log");
+    assert_eq!(event.timestamp, "2024-03-09T16:00:01.000Z");
+
+    server.shutdown();
+}
+
 fn string_attribute(key: &str, value: &str) -> KeyValue {
     KeyValue {
         key: key.to_string(),

@@ -1,4 +1,5 @@
 import type { FlowEvent } from './types'
+import { normalizeTraceIdentifierValue } from './traceIdentifiers'
 
 interface RelayEnvelope {
   type: 'snapshot' | 'batch'
@@ -17,7 +18,7 @@ function readAttr(event: FlowEvent, key: string): string | undefined {
 }
 
 export function eventExecutionKey(event: FlowEvent): string | undefined {
-  return readAttr(event, 'run_id') ?? event.trace_id ?? undefined
+  return normalizeTraceIdentifierValue(readAttr(event, 'run_id')) ?? event.trace_id ?? undefined
 }
 
 export function resolveEventKind(event: FlowEvent): NonNullable<FlowEvent['event_kind']> {

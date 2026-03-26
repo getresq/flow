@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Search } from 'lucide-react'
 
 import {
-  Button,
-  Card,
-  CardContent,
   Input,
   ScrollArea,
   Select,
@@ -11,14 +9,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Toggle,
 } from '@/components/ui'
 
 import { buildLogSearchText } from '../logPresentation'
 import { LogsTable } from './LogsTable'
 import type { FlowConfig, LogEntry } from '../types'
 import type { SourceMode } from '../hooks/useUrlState'
-import { isDefaultVisibleLogEntry } from '../telemetryClassification'
 
 interface LogsViewProps {
   flow: FlowConfig
@@ -33,6 +29,17 @@ function getScrollViewport(root: HTMLDivElement | null) {
   return root?.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement | null
 }
 
+function resolveNodeDisplayLabel(nodeId: string, nodeLabels: Map<string, string>): string {
+  const label = nodeLabels.get(nodeId)?.trim()
+  return label || nodeId
+}
+
+function resolveSemanticFamily(semanticRole: string | undefined): string | undefined {
+  if (!semanticRole) return undefined
+  if (semanticRole === 'scheduler') return 'cron'
+  return semanticRole
+}
+
 export function LogsView({
   flow,
   logs,
@@ -42,10 +49,9 @@ export function LogsView({
   onSelectTrace,
 }: LogsViewProps) {
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'info' | 'error'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'error'>('all')
   const [nodeFilter, setNodeFilter] = useState<string>('all')
   const [liveTail, setLiveTail] = useState(true)
-  const [showAll, setShowAll] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement | null>(null)
 
   const nodeLabels = useMemo(() => {
@@ -56,11 +62,39 @@ export function LogsView({
     return map
   }, [flow.nodes])
 
+  const nodeFamilies = useMemo(() => {
+    const map = new Map<string, string>()
+    flow.nodes.forEach((node) => {
+      const family = resolveSemanticFamily(node.semanticRole)
+      if (family) map.set(node.id, family)
+    })
+    return map
+  }, [flow.nodes])
+
+  const availableNodeIds = useMemo(() => {
+    const ids = new Set<string>()
+
+    for (const entry of logs) {
+      if (entry.eventType !== 'log' || !entry.nodeId) {
+        continue
+      }
+      ids.add(entry.nodeId)
+    }
+
+    if (nodeFilter !== 'all') {
+      ids.add(nodeFilter)
+    }
+
+    return [...ids].sort((left, right) =>
+      resolveNodeDisplayLabel(left, nodeLabels).localeCompare(resolveNodeDisplayLabel(right, nodeLabels)),
+    )
+  }, [logs, nodeFilter, nodeLabels])
+
   const filteredLogs = useMemo(() => {
     const query = search.trim().toLowerCase()
 
     return logs.filter((entry) => {
-      if (!showAll && !isDefaultVisibleLogEntry(entry)) {
+      if (entry.eventType !== 'log') {
         return false
       }
       if (selectedTraceId && (entry.runId ?? entry.traceId) !== selectedTraceId) {
@@ -76,10 +110,29 @@ export function LogsView({
         return true
       }
 
-      const nodeLabel = entry.nodeId ? nodeLabels.get(entry.nodeId)?.toLowerCase() : ''
+      const nodeLabel = entry.nodeId ? resolveNodeDisplayLabel(entry.nodeId, nodeLabels).toLowerCase() : ''
       return buildLogSearchText(entry, nodeLabel).includes(query)
     })
-  }, [logs, nodeFilter, nodeLabels, search, selectedTraceId, showAll, statusFilter])
+  }, [logs, nodeFilter, nodeLabels, search, selectedTraceId, statusFilter])
+
+  const hasAnyFlowLogs = useMemo(
+    () => logs.some((entry) => entry.eventType === 'log'),
+    [logs],
+  )
+
+  const logsEmptyState = useMemo(() => {
+    if (!hasAnyFlowLogs) {
+      return {
+        title: 'Waiting for activity',
+        body: 'Logs will appear here when the flow runs.',
+      }
+    }
+
+    return {
+      title: 'No logs match the current filters',
+      body: 'Try clearing search, node, or error filters to see more flow activity.',
+    }
+  }, [hasAnyFlowLogs])
 
   useEffect(() => {
     if (!liveTail || sourceMode !== 'live') {
@@ -111,12 +164,15 @@ export function LogsView({
   return (
     <div className="flex h-full flex-col gap-4 overflow-hidden px-4 py-4 sm:px-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search logs, nodes, or run IDs…"
-          className="w-full max-w-sm"
-        />
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search logs, nodes, or run IDs…"
+            className="border-0 bg-[var(--surface-inset)] pl-8 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+        </div>
 
         <Select value={nodeFilter} onValueChange={setNodeFilter}>
           <SelectTrigger className="w-[180px]">
@@ -124,66 +180,76 @@ export function LogsView({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All nodes</SelectItem>
-            {flow.nodes.map((node) => (
-              <SelectItem key={node.id} value={node.id}>
-                {node.label}
+            {availableNodeIds.map((nodeId) => (
+              <SelectItem key={nodeId} value={nodeId}>
+                {resolveNodeDisplayLabel(nodeId, nodeLabels)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        <div className="flex items-center gap-2">
-          {(['all', 'info', 'error'] as const).map((status) => (
-            <Button
+        <div className="flex items-center overflow-hidden rounded-lg bg-[var(--surface-inset)]">
+          {(['all', 'error'] as const).map((status) => (
+            <button
               key={status}
               type="button"
-              variant={statusFilter === status ? 'default' : 'outline'}
-              size="sm"
+              className={`px-3 py-1 text-[10px] font-medium capitalize ${
+                statusFilter === status
+                  ? 'rounded-lg bg-[var(--text-primary)] text-[var(--surface-primary)]'
+                  : 'bg-transparent text-[var(--text-muted)]'
+              }`}
               onClick={() => setStatusFilter(status)}
             >
               {status}
-            </Button>
+            </button>
           ))}
         </div>
 
-        <Button
+        <button
           type="button"
-          variant={liveTail ? 'secondary' : 'outline'}
-          size="sm"
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-[10px] font-medium ${
+            liveTail
+              ? 'bg-[color-mix(in_srgb,var(--status-success)_12%,transparent)] text-[var(--status-success)]'
+              : 'bg-[var(--surface-inset)] text-[var(--text-muted)]'
+          }`}
           onClick={() => setLiveTail((previous) => !previous)}
           disabled={sourceMode !== 'live'}
         >
-          Live tail {liveTail ? 'on' : 'off'}
-        </Button>
+          {liveTail ? (
+            <span className="inline-block h-1.5 w-1.5 animate-flow-pulse rounded-full bg-[var(--status-success)]" />
+          ) : null}
+          Live
+        </button>
 
-        <Toggle pressed={showAll} size="sm" onPressedChange={setShowAll} aria-label="Show all telemetry">
-          Show all
-        </Toggle>
       </div>
 
-      <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <CardContent className="flex min-h-0 flex-1 flex-col pt-3">
-          <ScrollArea
-            ref={scrollAreaRef}
-            className="min-h-0 flex-1"
-          >
-            <LogsTable
-              logs={filteredLogs}
-              nodeLabels={nodeLabels}
-              selectedTraceId={selectedTraceId}
-              onSelectLog={(entry) => {
-                const executionId = entry.runId ?? entry.traceId
-                if (executionId) {
-                  onSelectTrace(executionId)
-                }
-                if (entry.nodeId) {
-                  onSelectNode(entry.nodeId)
-                }
-              }}
-            />
-          </ScrollArea>
-        </CardContent>
-      </Card>
+      <ScrollArea
+        ref={scrollAreaRef}
+        className="min-h-0 flex-1"
+      >
+        {filteredLogs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+            <p className="text-sm text-[var(--text-secondary)]">{logsEmptyState.title}</p>
+            <p className="text-xs text-[var(--text-muted)]">{logsEmptyState.body}</p>
+          </div>
+        ) : (
+          <LogsTable
+            logs={filteredLogs}
+            nodeLabels={nodeLabels}
+            nodeFamilies={nodeFamilies}
+            selectedTraceId={selectedTraceId}
+            onSelectLog={(entry) => {
+              const executionId = entry.runId ?? entry.traceId
+              if (executionId) {
+                onSelectTrace(executionId)
+              }
+              if (entry.nodeId) {
+                onSelectNode(entry.nodeId)
+              }
+            }}
+          />
+        )}
+      </ScrollArea>
     </div>
   )
 }

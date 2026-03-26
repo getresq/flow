@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import { Inbox, Radio } from 'lucide-react'
+import { ChevronDown, Inbox, Radio, Search } from 'lucide-react'
 
 import {
   Button,
   Input,
   ScrollArea,
-  Separator,
   Tabs,
   TabsContent,
   TabsList,
@@ -15,7 +14,7 @@ import {
 } from '@/components/ui'
 
 import type { FlowConfig, LogEntry, TraceJourney } from '../types'
-import { isDefaultVisibleLogEntry } from '../telemetryClassification'
+import { formatRunLabel, formatStepDisplayLabel, isDefaultVisibleJourney } from '../runPresentation'
 import {
   DEFAULT_BOTTOM_PANEL_HEIGHT,
   MIN_BOTTOM_PANEL_HEIGHT,
@@ -36,10 +35,14 @@ interface BottomLogPanelProps {
 
 type PanelTab = 'logs' | 'traces'
 
-const MAX_HEIGHT_RATIO = 0.7
-
 function getScrollViewport(root: HTMLDivElement | null) {
   return root?.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement | null
+}
+
+function resolveSemanticFamily(semanticRole: string | undefined): string | undefined {
+  if (!semanticRole) return undefined
+  if (semanticRole === 'scheduler') return 'cron'
+  return semanticRole
 }
 
 export function BottomLogPanel({
@@ -55,16 +58,20 @@ export function BottomLogPanel({
   const tab = useLayoutStore((state) => state.bottomPanelTab)
   const setTab = useLayoutStore((state) => state.setBottomPanelTab)
   const [search, setSearch] = useState('')
-  const [activeNodeFilters, setActiveNodeFilters] = useState<Set<string>>(new Set())
+  const [statusFilter, setStatusFilter] = useState<'all' | 'error'>('all')
   const [pinnedTraceIds, setPinnedTraceIds] = useState<Set<string>>(new Set())
   const [liveTail, setLiveTail] = useState(true)
-  const [showAll, setShowAll] = useState(false)
+  const [showAllRuns, setShowAllRuns] = useState(false)
   const logsScrollAreaRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null)
   const previousExpandedHeightRef = useRef(Math.max(panelHeight, DEFAULT_BOTTOM_PANEL_HEIGHT))
 
   const collapsed = panelHeight <= MIN_BOTTOM_PANEL_HEIGHT
-  const maximized = typeof window !== 'undefined' && panelHeight >= window.innerHeight * MAX_HEIGHT_RATIO - 4
+
+  const flowLogs = useMemo(
+    () => globalLogs.filter((entry) => entry.eventType === 'log'),
+    [globalLogs],
+  )
 
   const nodeLabels = useMemo(() => {
     const map = new Map<string, string>()
@@ -74,23 +81,24 @@ export function BottomLogPanel({
     return map
   }, [flow.nodes])
 
-  const activeNodeIds = useMemo(
-    () => new Set(globalLogs.map((entry) => entry.nodeId).filter(Boolean) as string[]),
-    [globalLogs],
-  )
+  const nodeFamilies = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const node of flow.nodes) {
+      const family = resolveSemanticFamily(node.semanticRole)
+      if (family) map.set(node.id, family)
+    }
+    return map
+  }, [flow.nodes])
 
   const filteredLogs = useMemo(() => {
     const query = search.trim().toLowerCase()
-    return [...globalLogs]
+    return [...flowLogs]
       .filter((entry) => {
-        if (!showAll && !isDefaultVisibleLogEntry(entry)) {
-          return false
-        }
         const executionId = entry.runId ?? entry.traceId
         if (selectedTraceId && executionId !== selectedTraceId) {
           return false
         }
-        if (activeNodeFilters.size > 0 && (!entry.nodeId || !activeNodeFilters.has(entry.nodeId))) {
+        if (statusFilter !== 'all' && entry.level !== statusFilter) {
           return false
         }
         if (!query) {
@@ -99,7 +107,7 @@ export function BottomLogPanel({
         const nodeLabel = entry.nodeId ? nodeLabels.get(entry.nodeId) : undefined
         return buildLogSearchText(entry, nodeLabel).includes(query)
       })
-  }, [activeNodeFilters, globalLogs, nodeLabels, search, selectedTraceId, showAll])
+  }, [flowLogs, nodeLabels, search, selectedTraceId, statusFilter])
 
   const filteredJourneys = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -113,19 +121,57 @@ export function BottomLogPanel({
     })
 
     if (!query) {
-      return ordered
+      return showAllRuns ? ordered : ordered.filter((journey) => isDefaultVisibleJourney(journey))
     }
 
     return ordered.filter((journey) => {
+      if (!showAllRuns && !isDefaultVisibleJourney(journey)) {
+        return false
+      }
       const stage = journey.stages.at(-1)
       return (
         journey.traceId.toLowerCase().includes(query) ||
-        (journey.rootEntity?.toLowerCase().includes(query) ?? false) ||
-        (stage?.label.toLowerCase().includes(query) ?? false) ||
+        formatRunLabel(journey).toLowerCase().includes(query) ||
+        (stage ? formatStepDisplayLabel(stage).toLowerCase().includes(query) : false) ||
         (journey.errorSummary?.toLowerCase().includes(query) ?? false)
       )
     })
-  }, [journeys, pinnedTraceIds, search])
+  }, [journeys, pinnedTraceIds, search, showAllRuns])
+
+  const logsEmptyState = useMemo(() => {
+    if (flowLogs.length === 0) {
+      return {
+        title: 'Waiting for activity',
+        body: 'Logs will appear here when the flow runs.',
+      }
+    }
+
+    return {
+      title: 'No logs match the current filters',
+      body: 'Try clearing search to see more flow activity.',
+    }
+  }, [flowLogs.length])
+
+  const runsEmptyState = useMemo(() => {
+    if (journeys.length === 0) {
+      return {
+        title: 'Waiting for activity',
+        body: 'Runs will appear here when the flow runs.',
+      }
+    }
+
+    if (!showAllRuns) {
+      return {
+        title: 'No lifecycle runs yet',
+        body: 'Turn on Show all to inspect queue and worker runs.',
+      }
+    }
+
+    return {
+      title: 'No runs match the current filters',
+      body: 'Try clearing search to see more runs.',
+    }
+  }, [journeys.length, showAllRuns])
 
 
   useEffect(() => {
@@ -172,7 +218,7 @@ export function BottomLogPanel({
         if (!dragRef.current) {
           return
         }
-        const maxHeight = window.innerHeight * MAX_HEIGHT_RATIO
+        const maxHeight = window.innerHeight * 0.7
         const delta = dragRef.current.startY - moveEvent.clientY
         const nextHeight = Math.min(
           Math.max(dragRef.current.startHeight + delta, MIN_BOTTOM_PANEL_HEIGHT),
@@ -191,18 +237,6 @@ export function BottomLogPanel({
     [panelHeight, setPanelHeight],
   )
 
-  const toggleNodeFilter = useCallback((nodeId: string) => {
-    setActiveNodeFilters((previous) => {
-      const next = new Set(previous)
-      if (next.has(nodeId)) {
-        next.delete(nodeId)
-      } else {
-        next.add(nodeId)
-      }
-      return next
-    })
-  }, [])
-
   const togglePinnedTrace = useCallback((traceId: string) => {
     setPinnedTraceIds((previous) => {
       const next = new Set(previous)
@@ -214,11 +248,6 @@ export function BottomLogPanel({
       return next
     })
   }, [])
-
-  const clearFilters = useCallback(() => {
-    setActiveNodeFilters(new Set())
-    onSelectTrace(undefined)
-  }, [onSelectTrace])
 
   const displayHeight = collapsed ? MIN_BOTTOM_PANEL_HEIGHT : panelHeight
 
@@ -232,19 +261,6 @@ export function BottomLogPanel({
     setPanelHeight(MIN_BOTTOM_PANEL_HEIGHT)
   }, [collapsed, panelHeight, setPanelHeight])
 
-  const toggleMaximized = useCallback(() => {
-    const targetHeight = Math.round(window.innerHeight * MAX_HEIGHT_RATIO)
-    if (maximized) {
-      setPanelHeight(previousExpandedHeightRef.current || DEFAULT_BOTTOM_PANEL_HEIGHT)
-      return
-    }
-
-    if (panelHeight > MIN_BOTTOM_PANEL_HEIGHT) {
-      previousExpandedHeightRef.current = panelHeight
-    }
-    setPanelHeight(targetHeight)
-  }, [maximized, panelHeight, setPanelHeight])
-
   return (
     <motion.div
       initial={{ y: 18, opacity: 0, height: displayHeight }}
@@ -254,9 +270,11 @@ export function BottomLogPanel({
       style={{ minHeight: MIN_BOTTOM_PANEL_HEIGHT }}
     >
       <div
-        className="flex h-1 cursor-row-resize items-center justify-center bg-[var(--border-subtle)] hover:bg-[var(--border-accent)]"
+        className="flex h-5 cursor-row-resize items-center justify-center"
         onMouseDown={onDragStart}
-      />
+      >
+        <div className="h-[3px] w-8 rounded-full bg-[var(--text-muted)] opacity-30" />
+      </div>
 
       <Tabs
         value={tab}
@@ -267,66 +285,75 @@ export function BottomLogPanel({
           <TabsList className="shrink-0 border-0">
             <TabsTrigger value="logs" className="whitespace-nowrap">
               Logs
-              <span className="ml-1.5 text-[var(--text-secondary)]">· {filteredLogs.length}</span>
+              <span className="ml-1.5 rounded-[5px] bg-[var(--surface-inset)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-muted)]">
+                {filteredLogs.length}
+              </span>
             </TabsTrigger>
             <TabsTrigger value="traces" className="whitespace-nowrap">
               Runs
-              <span className="ml-1.5 text-[var(--text-secondary)]">· {filteredJourneys.length}</span>
+              <span className="ml-1.5 rounded-[5px] bg-[var(--surface-inset)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-muted)]">
+                {filteredJourneys.length}
+              </span>
             </TabsTrigger>
           </TabsList>
 
-          {tab === 'logs' ? (
-            <>
-              <Separator orientation="vertical" className="h-4 shrink-0" />
-              <div
-                className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto"
-                style={{ maskImage: 'linear-gradient(to right, black calc(100% - 24px), transparent)' }}
-              >
-                <Button
-                  type="button"
-                  variant={activeNodeFilters.size === 0 ? 'default' : 'outline'}
-                  size="sm"
-                  className="rounded-full"
-                  onClick={clearFilters}
-                >
-                  All
-                </Button>
-                {[...activeNodeIds].map((nodeId) => {
-                  const active = activeNodeFilters.has(nodeId)
-                  return (
-                    <Button
-                      key={nodeId}
-                      type="button"
-                      variant={active ? 'default' : 'outline'}
-                      size="sm"
-                      className="rounded-full"
-                      onClick={() => toggleNodeFilter(nodeId)}
-                    >
-                      {nodeLabels.get(nodeId) ?? nodeId}
-                    </Button>
-                  )
-                })}
-              </div>
-            </>
-          ) : null}
-
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            {tab === 'logs' ? (
-              <Toggle pressed={showAll} size="sm" onPressedChange={setShowAll} aria-label="Show all telemetry">
+            {tab === 'traces' ? (
+              <Toggle pressed={showAllRuns} size="sm" onPressedChange={setShowAllRuns} aria-label="Show all runs">
                 Show all
               </Toggle>
             ) : null}
-            <Input
-              placeholder={tab === 'logs' ? 'Search logs…' : 'Search runs…'}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className="h-9 w-48"
-            />
-            <Button type="button" variant="ghost" size="sm" onClick={toggleMaximized}>
-              {maximized ? 'Restore' : 'Maximize'}
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={toggleCollapsed}>
-              {collapsed ? 'Expand' : 'Collapse'}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
+              <Input
+                placeholder={tab === 'logs' ? 'Search logs…' : 'Search runs…'}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="h-9 w-48 border-0 bg-[var(--surface-inset)] pl-8 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+            </div>
+            {tab === 'logs' ? (
+              <div className="flex items-center overflow-hidden rounded-lg bg-[var(--surface-inset)]">
+                {(['all', 'error'] as const).map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    className={`px-3 py-1 text-[10px] font-medium capitalize ${
+                      statusFilter === status
+                        ? 'rounded-lg bg-[var(--text-primary)] text-[var(--surface-primary)]'
+                        : 'bg-transparent text-[var(--text-muted)]'
+                    }`}
+                    onClick={() => setStatusFilter(status)}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {tab === 'logs' ? (
+              <button
+                type="button"
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-[10px] font-medium ${
+                  liveTail
+                    ? 'bg-[color-mix(in_srgb,var(--status-success)_12%,transparent)] text-[var(--status-success)]'
+                    : 'bg-[var(--surface-inset)] text-[var(--text-muted)]'
+                }`}
+                onClick={() => setLiveTail((prev) => !prev)}
+              >
+                {liveTail ? (
+                  <span className="inline-block h-1.5 w-1.5 animate-flow-pulse rounded-full bg-[var(--status-success)]" />
+                ) : null}
+                Live
+              </button>
+            ) : null}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={toggleCollapsed}
+              aria-label={collapsed ? 'Expand panel' : 'Collapse panel'}
+            >
+              <ChevronDown className={`size-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
             </Button>
           </div>
         </div>
@@ -338,13 +365,14 @@ export function BottomLogPanel({
                 {filteredLogs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
                     <Radio className="size-8 text-[var(--text-muted)]" />
-                    <p className="text-sm text-[var(--text-secondary)]">No logs yet</p>
-                    <p className="text-xs text-[var(--text-muted)]">Logs will appear here as telemetry arrives.</p>
+                    <p className="text-sm text-[var(--text-secondary)]">{logsEmptyState.title}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{logsEmptyState.body}</p>
                   </div>
                 ) : (
                   <LogsTable
                     logs={filteredLogs}
                     nodeLabels={nodeLabels}
+                    nodeFamilies={nodeFamilies}
                     selectedTraceId={selectedTraceId}
                     onSelectLog={(entry) => {
                       const executionId = entry.runId ?? entry.traceId
@@ -382,8 +410,8 @@ export function BottomLogPanel({
                 {filteredJourneys.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
                     <Inbox className="size-8 text-[var(--text-muted)]" />
-                    <p className="text-sm text-[var(--text-secondary)]">No runs yet</p>
-                    <p className="text-xs text-[var(--text-muted)]">Runs will appear here as telemetry arrives.</p>
+                    <p className="text-sm text-[var(--text-secondary)]">{runsEmptyState.title}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{runsEmptyState.body}</p>
                   </div>
                 ) : (
                   <RunsTable
