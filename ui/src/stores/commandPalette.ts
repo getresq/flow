@@ -10,7 +10,6 @@ export interface CommandRunOption {
 interface CommandPaletteContextState {
   runOptions: CommandRunOption[]
   onSelectViewMode?: (view: FlowViewMode) => void
-  onToggleFocusMode?: () => void
   onClearSession?: () => void
   onLoadHistory?: () => void
   onEscape?: () => void
@@ -25,7 +24,6 @@ interface CommandPaletteContextState {
 const initialState: Omit<CommandPaletteContextState, 'registerContext' | 'clearContext'> = {
   runOptions: [],
   onSelectViewMode: undefined,
-  onToggleFocusMode: undefined,
   onClearSession: undefined,
   onLoadHistory: undefined,
   onEscape: undefined,

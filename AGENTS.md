@@ -14,7 +14,7 @@ resq-flow is a local dev-only real-time flow visualization tool with two service
 
 ### Running, testing, linting
 
-See `Makefile` for all standard commands (`make dev`, `make test`, `make replay`, `make replay-direct`).
+See `Makefile` for all standard commands (`make dev`, `make test`, `make replay`).
 
 - `cd relay && cargo test` — 4 integration tests (OTLP→WS, logs, broadcast).
 - `cd ui && bun test` — 15 Vitest tests (hooks, components, span mapping).
@@ -24,7 +24,6 @@ See `Makefile` for all standard commands (`make dev`, `make test`, `make replay`
 ### Non-obvious caveats
 
 - The Rust relay must be compiled before `make dev` will work; first run takes ~15s to compile dependencies.
-- The UI can be tested independently of the relay using `make replay-direct` (direct fixture replay mode).
 - `make replay` requires both the relay and UI to be running first — it sends fixture data through the relay WebSocket.
 - No Docker, databases, or external services are required.
 

@@ -119,7 +119,7 @@ export function eventMatchesFlow(event: FlowEvent, flowId: string): boolean {
     return event.matched_flow_ids.includes(flowId)
   }
 
-  return true
+  return false
 }
 
 function unwrapRelayPayload(payload: unknown): unknown[] {

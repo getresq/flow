@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from 'react'
 import { motion } from 'motion/react'
+import { X } from 'lucide-react'
 
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/utils'
@@ -50,8 +51,8 @@ export function InspectorPanel({
               </p>
             ) : null}
           </div>
-          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-            Close
+          <Button type="button" variant="ghost" size="icon" className="size-7 shrink-0" onClick={onClose} aria-label="Close">
+            <X className="size-4" />
           </Button>
         </div>
 

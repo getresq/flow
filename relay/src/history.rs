@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::time::Duration;
 
 use axum::Json;
-use axum::extract::{Query, State};
+use axum::extract::{Query, RawQuery, State};
 use axum::response::IntoResponse;
 use chrono::{DateTime, SecondsFormat, Utc};
 use serde::Deserialize;
@@ -87,8 +87,10 @@ struct JaegerProcess {
 pub async fn get_history(
     State(state): State<AppState>,
     Query(query): Query<HistoryQuery>,
+    RawQuery(raw_query): RawQuery,
 ) -> RelayResult<impl IntoResponse> {
     let (start, end) = resolve_history_range(&query)?;
+    let attr_filters = parse_history_attr_filters(raw_query.as_deref())?;
     let search = query
         .query
         .as_deref()
@@ -101,6 +103,7 @@ pub async fn get_history(
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(ToOwned::to_owned);
+    let logs_only = query.logs_only;
     let max_events = query
         .limit
         .unwrap_or(DEFAULT_HISTORY_LIMIT)
@@ -111,7 +114,11 @@ pub async fn get_history(
     let log_query = state
         .matcher
         .registry()
-        .history_log_query(selected_flow_id.as_deref(), search.as_deref());
+        .history_log_query(
+            selected_flow_id.as_deref(),
+            search.as_deref(),
+            &attr_filters,
+        );
 
     let log_future = async {
         let Some(log_query) = log_query.as_deref() else {
@@ -123,15 +130,21 @@ pub async fn get_history(
             end,
             log_query,
             search.as_deref(),
+            &attr_filters,
             max_events,
         )
         .await
     };
 
-    let (log_result, span_result) = tokio::join!(
-        log_future,
-        fetch_history_spans(&client, start, end, search.as_deref(), max_events),
-    );
+    let span_future = async {
+        if logs_only {
+            Ok(Vec::new())
+        } else {
+            fetch_history_spans(&client, start, end, search.as_deref(), max_events).await
+        }
+    };
+
+    let (log_result, span_result) = tokio::join!(log_future, span_future);
 
     let mut warnings = Vec::new();
     let mut events = Vec::new();
@@ -313,6 +326,7 @@ async fn fetch_history_logs(
     end: DateTime<Utc>,
     query: &str,
     search: Option<&str>,
+    attr_filters: &[(String, String)],
     limit: usize,
 ) -> Result<Vec<FlowEvent>, String> {
     let response = client
@@ -348,6 +362,9 @@ async fn fetch_history_logs(
             continue;
         };
         if !search_matches_event_map(search, &event.attributes, event.trace_id.as_deref()) {
+            continue;
+        }
+        if !matches_attribute_filters_in_event_map(attr_filters, &event.attributes) {
             continue;
         }
         events.push(event);
@@ -680,6 +697,57 @@ fn search_matches_event_map(
             || otel_value_as_string(value)
                 .map(|value| value.to_ascii_lowercase().contains(&search))
                 .unwrap_or(false)
+    })
+}
+
+fn parse_history_attr_filters(raw_query: Option<&str>) -> RelayResult<Vec<(String, String)>> {
+    let Some(raw_query) = raw_query else {
+        return Ok(Vec::new());
+    };
+
+    url::form_urlencoded::parse(raw_query.as_bytes())
+        .filter_map(|(key, value)| (key == "attr").then(|| value.into_owned()))
+        .map(|value| parse_history_attr_filter(&value))
+        .collect()
+}
+
+fn parse_history_attr_filter(raw: &str) -> RelayResult<(String, String)> {
+    let Some((key, value)) = raw.split_once('=') else {
+        return Err(RelayError::bad_request(format!(
+            "invalid attr filter `{raw}`: expected key=value"
+        )));
+    };
+
+    let key = key.trim();
+    let value = value.trim();
+    if key.is_empty() || value.is_empty() {
+        return Err(RelayError::bad_request(format!(
+            "invalid attr filter `{raw}`: expected key=value"
+        )));
+    }
+
+    if !key
+        .chars()
+        .all(|char| char.is_ascii_alphanumeric() || matches!(char, '_' | '-' | '.'))
+    {
+        return Err(RelayError::bad_request(format!(
+            "invalid attr key `{key}`: only letters, numbers, _, -, and . are supported"
+        )));
+    }
+
+    Ok((key.to_string(), value.to_string()))
+}
+
+fn matches_attribute_filters_in_event_map(
+    filters: &[(String, String)],
+    attributes: &Map<String, Value>,
+) -> bool {
+    filters.iter().all(|(key, expected)| {
+        attributes
+            .get(key)
+            .and_then(otel_value_as_string)
+            .map(|value| value == *expected)
+            .unwrap_or(false)
     })
 }
 

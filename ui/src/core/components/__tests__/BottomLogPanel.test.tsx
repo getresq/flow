@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BottomLogPanel } from '../BottomLogPanel'
 import type { FlowConfig, LogEntry, TraceJourney } from '../../types'
-import { MIN_BOTTOM_PANEL_HEIGHT, useLayoutStore } from '../../../stores/layout'
+import { useLayoutStore } from '../../../stores/layout'
 
 const flow: FlowConfig = {
   id: 'mail-pipeline',
@@ -82,15 +82,12 @@ describe('BottomLogPanel', () => {
   beforeEach(() => {
     useLayoutStore.setState({
       sidebarOpen: true,
-      focusMode: false,
       commandPaletteOpen: false,
-      bottomPanelHeight: DEFAULT_TEST_HEIGHT,
+      bottomPanelSnap: 'partial',
       bottomPanelTab: 'logs',
       theme: 'dark',
     })
   })
-
-  const DEFAULT_TEST_HEIGHT = 320
 
   it('shows emitted flow logs by default on the logs tab and keeps show all for runs only', async () => {
     const user = userEvent.setup()
@@ -114,8 +111,8 @@ describe('BottomLogPanel', () => {
     expect(screen.getByRole('button', { name: /show all runs/i })).toBeInTheDocument()
   })
 
-  it('collapses and restores the previous expanded height', async () => {
-    const user = userEvent.setup()
+  it('shows whisper state with minimal content', () => {
+    useLayoutStore.setState({ bottomPanelSnap: 'whisper' })
 
     render(
       <BottomLogPanel
@@ -127,12 +124,8 @@ describe('BottomLogPanel', () => {
       />,
     )
 
-    expect(screen.queryByRole('button', { name: /full height/i })).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: /collapse/i }))
-    expect(useLayoutStore.getState().bottomPanelHeight).toBe(MIN_BOTTOM_PANEL_HEIGHT)
-
-    await user.click(screen.getByRole('button', { name: /expand/i }))
-    expect(useLayoutStore.getState().bottomPanelHeight).toBe(DEFAULT_TEST_HEIGHT)
+    expect(screen.getByText('Logs')).toBeInTheDocument()
+    expect(screen.getByText('Runs')).toBeInTheDocument()
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
   })
 })

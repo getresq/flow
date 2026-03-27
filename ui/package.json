@@ -9,7 +9,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "replay": "bun run src/test/replay.ts",
-    "replay:direct": "bun run src/test/replay-direct.ts",
     "lint": "eslint .",
     "preview": "vite preview"
   },

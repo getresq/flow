@@ -709,7 +709,7 @@ export function FlowCanvas({
 
   if (!flow.hasGraph || flow.nodes.length === 0) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-slate-950 px-6 text-center">
+      <div className="flow-surface flex h-full w-full items-center justify-center px-6 text-center">
         <div className="max-w-xl rounded-2xl border border-slate-800 bg-slate-900/70 px-6 py-8 shadow-[0_24px_80px_rgba(2,6,23,0.45)]">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Headless flow</p>
           <h2 className="mt-3 text-2xl font-semibold text-slate-100">{flow.name}</h2>
@@ -725,7 +725,7 @@ export function FlowCanvas({
   return (
     <div className="relative h-full w-full">
       <TooltipProvider>
-        <div className="absolute left-3 top-3 z-20 flex items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-raised)]/80 p-1 shadow-sm backdrop-blur-md">
+        <div className="hud-pill absolute left-4 top-[52px] z-30 flex items-center gap-1 p-1">
           <Tooltip>
             <TooltipTrigger asChild>
               <Toggle
@@ -789,7 +789,7 @@ export function FlowCanvas({
         edgeTypes={edgeTypes}
         defaultEdgeOptions={{ zIndex: 5 }}
         proOptions={{ hideAttribution: true }}
-        className={`bg-slate-950 ${interactionMode === 'pointer' ? 'pointer-mode' : 'pan-mode'}`}
+        className={`flow-surface ${interactionMode === 'pointer' ? 'pointer-mode' : 'pan-mode'}`}
       >
         <Background
           variant={BackgroundVariant.Dots}

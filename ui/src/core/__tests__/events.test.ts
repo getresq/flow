@@ -145,7 +145,7 @@ describe('events helpers', () => {
         },
         'any-flow',
       ),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   it('uses run_id as the canonical execution key when present', () => {

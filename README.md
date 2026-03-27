@@ -163,6 +163,94 @@ make replay
 make replay-direct
 ```
 
+## CLI
+
+The CLI is the headless `resq-flow` interface for relay checks, flow log inspection, and ad hoc log emission.
+It lives in `cli/` and builds to `cli/dist/`.
+
+Scope is explicit:
+
+- a log belongs to a flow only when it explicitly declares that flow with `attributes.flow_id` or relay-assigned `matched_flow_ids`
+- unscoped logs are global
+- unscoped logs never appear in a specific flow UI
+
+Build and test it locally from the repo root:
+
+```bash
+make build-cli
+make test-cli
+```
+
+`make test-cli` runs both the fast CLI unit tests and the integration tests that boot a real relay on random local ports. If you only want the integration subset, run `make test-cli-integration`.
+
+Link it once if you want the normal executable name locally:
+
+```bash
+cd cli
+npm link
+```
+
+Then use the built CLI:
+
+```bash
+resq-flow --help
+resq-flow status
+resq-flow logs list --flow mail-pipeline
+resq-flow logs tail --flow mail-pipeline
+resq-flow logs emit --flow mail-pipeline --message "picked thread for analysis" --attr run_id=thread-301 --attr stage_id=analyze.decision
+```
+
+If you do not want to link it, the direct fallback still works:
+
+```bash
+node cli/dist/index.js --help
+```
+
+Available CLI commands:
+
+- `resq-flow status`
+- `resq-flow logs list (--flow <flow-id> | --all)`
+- `resq-flow logs tail (--flow <flow-id> | --all)`
+- `resq-flow logs emit (--flow <flow-id> | --global)`
+
+`logs list` supports:
+
+- exactly one of `--flow <flow-id>` or `--all`
+- `--window <duration>` where duration is `<number><unit>` and unit is `s`, `m`, or `h`
+- `--attr <key=value>` repeatable
+- `--query <text>`
+- `--limit <n>`
+- `--json`
+- `--jsonl`
+- `--url <base-url>`
+
+`logs tail` supports:
+
+- exactly one of `--flow <flow-id>` or `--all`
+- `--attr <key=value>` repeatable
+- `--query <text>`
+- `--jsonl`
+- `--url <base-url>`
+
+`logs emit` supports:
+
+- exactly one of `--flow <flow-id>` or `--global`
+- `--message <text>` required
+- `--attr <key=value>` repeatable
+- `--url <base-url>`
+
+Recommended flow-scoped attributes are:
+
+- `run_id`
+- `thread_id`
+- `stage_id`
+- `component_id`
+- `function_name`
+- `worker_name`
+- `status`
+
+If a flow-scoped log includes mappable fields such as `stage_id`, `component_id`, `function_name`, or `worker_name`, it continues to drive the existing flow logs and canvas activity.
+
 ## Validation
 
 Standard checks:

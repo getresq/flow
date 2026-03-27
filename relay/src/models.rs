@@ -114,6 +114,8 @@ pub struct HistoryQuery {
     pub to: Option<String>,
     pub window: Option<String>,
     pub query: Option<String>,
+    #[serde(default)]
+    pub logs_only: bool,
     pub limit: Option<usize>,
     pub flow_id: Option<String>,
 }

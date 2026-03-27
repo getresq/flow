@@ -122,7 +122,12 @@ impl FlowRegistry {
             .find(|contract| contract.id == flow_id)
     }
 
-    pub fn history_log_query(&self, flow_id: Option<&str>, search: Option<&str>) -> Option<String> {
+    pub fn history_log_query(
+        &self,
+        flow_id: Option<&str>,
+        search: Option<&str>,
+        attr_filters: &[(String, String)],
+    ) -> Option<String> {
         let log_events = self.log_events(flow_id);
         if log_events.is_empty() {
             return None;
@@ -138,13 +143,9 @@ impl FlowRegistry {
             format!("({})", clauses.join(" or "))
         };
 
-        if let Some(selected_flow_id) = flow_id.map(str::trim).filter(|value| !value.is_empty()) {
-            query.push_str(" and ");
-            query.push_str(&format!(
-                "flow_id:{}",
-                quote_logsql_string(selected_flow_id)
-            ));
-        }
+        // Keep the backend query broad and let relay-side contract matching decide flow
+        // ownership. History needs to surface matched_flow_ids-only logs too, not just logs
+        // with an explicit flow_id field already persisted in storage.
 
         if let Some(term) = search.map(str::trim).filter(|term| !term.is_empty()) {
             let quoted = quote_logsql_string(term);
@@ -166,6 +167,15 @@ impl FlowRegistry {
             query.push_str(" and (");
             query.push_str(&clauses.join(" or "));
             query.push(')');
+        }
+
+        if !attr_filters.is_empty() {
+            for (key, value) in attr_filters {
+                query.push_str(" and ");
+                query.push_str(key);
+                query.push(':');
+                query.push_str(&quote_logsql_string(value));
+            }
         }
 
         Some(query)
@@ -462,7 +472,7 @@ mod tests {
     }
 
     #[test]
-    fn selected_flow_history_query_scopes_shared_event_name_by_flow_id() {
+    fn selected_flow_history_query_keeps_shared_event_query_broad_for_post_filtering() {
         let registry = FlowRegistry {
             contracts: Arc::new(vec![
                 contract("mail-pipeline", &["flow_event"]),
@@ -471,10 +481,10 @@ mod tests {
         };
 
         let query = registry
-            .history_log_query(Some("mail-pipeline"), None)
+            .history_log_query(Some("mail-pipeline"), None, &[])
             .expect("query");
 
-        assert_eq!(query, r#"event:"flow_event" and flow_id:"mail-pipeline""#);
+        assert_eq!(query, r#"event:"flow_event""#);
     }
 
     #[test]
@@ -486,8 +496,31 @@ mod tests {
             ]),
         };
 
-        let query = registry.history_log_query(None, None).expect("query");
+        let query = registry.history_log_query(None, None, &[]).expect("query");
 
         assert_eq!(query, r#"event:"flow_event""#);
+    }
+
+    #[test]
+    fn selected_flow_history_query_appends_exact_attribute_filters() {
+        let registry = FlowRegistry {
+            contracts: Arc::new(vec![contract("mail-pipeline", &["flow_event"])]),
+        };
+
+        let query = registry
+            .history_log_query(
+                Some("mail-pipeline"),
+                None,
+                &[
+                    ("thread_id".to_string(), "thread-201".to_string()),
+                    ("status".to_string(), "error".to_string()),
+                ],
+            )
+            .expect("query");
+
+        assert_eq!(
+            query,
+            r#"event:"flow_event" and thread_id:"thread-201" and status:"error""#
+        );
     }
 }

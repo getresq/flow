@@ -18,12 +18,15 @@ relay/target/
 # Node / Bun
 ui/node_modules/
 ui/.bun/
+cli/node_modules/
+cli/.bun/
 
 # Frontend build/test outputs
 ui/dist/
 ui/coverage/
 ui/.vite/
+cli/dist/
+cli/coverage/
 
 # TypeScript incremental files
 *.tsbuildinfo
-

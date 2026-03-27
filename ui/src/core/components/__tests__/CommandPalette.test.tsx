@@ -11,9 +11,8 @@ describe('CommandPalette', () => {
   beforeEach(() => {
     useLayoutStore.setState({
       sidebarOpen: true,
-      focusMode: false,
       commandPaletteOpen: true,
-      bottomPanelHeight: 260,
+      bottomPanelSnap: 'partial',
       bottomPanelTab: 'logs',
       theme: 'dark',
     })

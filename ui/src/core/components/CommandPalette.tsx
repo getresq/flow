@@ -52,7 +52,6 @@ export function CommandPalette() {
   const setTheme = useLayoutStore((state) => state.setTheme)
 
   const runOptions = useCommandPaletteStore((state) => state.runOptions)
-  const onToggleFocusMode = useCommandPaletteStore((state) => state.onToggleFocusMode)
   const onClearSession = useCommandPaletteStore((state) => state.onClearSession)
   const onLoadHistory = useCommandPaletteStore((state) => state.onLoadHistory)
 
@@ -109,17 +108,6 @@ export function CommandPalette() {
               {theme === 'dark' ? 'Light' : 'Dark'}
             </span>
           </CommandItem>
-
-          {onToggleFocusMode ? (
-            <CommandItem
-              onSelect={() => {
-                onToggleFocusMode()
-                closePalette()
-              }}
-            >
-              Toggle focus mode
-            </CommandItem>
-          ) : null}
 
           {onClearSession ? (
             <CommandItem
