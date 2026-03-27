@@ -48,12 +48,12 @@ function resolveSemanticFamily(semanticRole: string | undefined): string | undef
 function snapToHeight(snap: BottomPanelSnap): number {
   if (snap === 'whisper') return WHISPER_HEIGHT
   if (snap === 'full') return typeof window !== 'undefined' ? window.innerHeight - HEADER_HEIGHT : 600
-  return typeof window !== 'undefined' ? Math.round(window.innerHeight * 0.3) : 240
+  return typeof window !== 'undefined' ? Math.round(window.innerHeight * 0.25) : 200
 }
 
 function resolveSnapFromHeight(height: number): BottomPanelSnap {
   const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800
-  const partialHeight = Math.round(viewportHeight * 0.3)
+  const partialHeight = Math.round(viewportHeight * 0.25)
   const fullHeight = viewportHeight - HEADER_HEIGHT
   const midToFull = partialHeight + (fullHeight - partialHeight) * 0.4
   const midToWhisper = WHISPER_HEIGHT + (partialHeight - WHISPER_HEIGHT) * 0.4

@@ -23,6 +23,8 @@ export function useKeyboardShortcuts() {
   const setCommandPaletteOpen = useLayoutStore((state) => state.setCommandPaletteOpen)
   const onSelectViewMode = useCommandPaletteStore((state) => state.onSelectViewMode)
   const onEscape = useCommandPaletteStore((state) => state.onEscape)
+  const bottomPanelSnap = useLayoutStore((state) => state.bottomPanelSnap)
+  const setBottomPanelSnap = useLayoutStore((state) => state.setBottomPanelSnap)
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -38,6 +40,12 @@ export function useKeyboardShortcuts() {
         if (commandPaletteOpen) {
           event.preventDefault()
           setCommandPaletteOpen(false)
+          return
+        }
+
+        if (bottomPanelSnap === 'full') {
+          event.preventDefault()
+          setBottomPanelSnap('partial')
           return
         }
 
@@ -71,5 +79,5 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [commandPaletteOpen, location.pathname, onEscape, onSelectViewMode, setCommandPaletteOpen])
+  }, [bottomPanelSnap, commandPaletteOpen, location.pathname, onEscape, onSelectViewMode, setBottomPanelSnap, setCommandPaletteOpen])
 }

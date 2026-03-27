@@ -474,19 +474,8 @@ export function FlowView() {
     )
   }
 
-  const isFullPanel = bottomPanelSnap === 'full'
-
   return (
     <div className="relative flex h-full w-full flex-col bg-[var(--surface-primary)] text-[var(--text-primary)]">
-      {isFullPanel ? (
-        <CanvasHud
-          variant="inline"
-          showCanvasControls
-          focusActivePath={focusActivePath}
-          {...hudSharedProps}
-        />
-      ) : null}
-
       <div className="relative min-h-0 flex-1">
         <FlowCanvas
           flow={currentFlow}
@@ -503,14 +492,23 @@ export function FlowView() {
           onSelectNode={handleSelectNode}
         />
 
-        {!isFullPanel ? (
+        {bottomPanelSnap === 'full' ? (
+          <div className="absolute inset-x-0 top-0 z-50">
+            <CanvasHud
+              variant="inline"
+              showCanvasControls
+              focusActivePath={focusActivePath}
+              {...hudSharedProps}
+            />
+          </div>
+        ) : (
           <CanvasHud
             variant="floating"
             showCanvasControls
             focusActivePath={focusActivePath}
             {...hudSharedProps}
           />
-        ) : null}
+        )}
       </div>
 
       <BottomLogPanel

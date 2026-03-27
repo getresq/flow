@@ -8,7 +8,7 @@ export type BottomPanelTab = 'logs' | 'traces'
 export type BottomPanelSnap = 'whisper' | 'partial' | 'full'
 
 export const SNAP_WHISPER = '48px' as const
-export const SNAP_PARTIAL = 0.3
+export const SNAP_PARTIAL = 0.25
 export const SNAP_FULL = 1
 
 export const SNAP_POINTS = [SNAP_WHISPER, SNAP_PARTIAL, SNAP_FULL] as const
@@ -35,7 +35,7 @@ export function snapToPoint(snap: BottomPanelSnap): SnapPoint {
 
 export function pointToSnap(point: SnapPoint | number | string | null): BottomPanelSnap {
   if (point === SNAP_FULL || point === 1) return 'full'
-  if (point === SNAP_PARTIAL || point === 0.3) return 'partial'
+  if (point === SNAP_PARTIAL || point === 0.25) return 'partial'
   return 'whisper'
 }
 
