@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -22,11 +22,14 @@ import { formatEasternTime } from '../time'
 import type { LogEntry } from '../types'
 import { DurationBadge } from './DurationBadge'
 
+const FRESH_BATCH_LIMIT = 20
+
 interface LogsTableProps {
   logs: LogEntry[]
   nodeLabels: Map<string, string>
   nodeFamilies: Map<string, string>
   selectedTraceId?: string
+  liveTail?: boolean
   onSelectLog: (entry: LogEntry) => void
 }
 
@@ -58,9 +61,38 @@ export function LogsTable({
   nodeLabels,
   nodeFamilies,
   selectedTraceId,
+  liveTail,
   onSelectLog,
 }: LogsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'time', desc: true }])
+
+  const prevMaxSeqRef = useRef<number | null>(null)
+
+  const freshSeqs = useMemo(() => {
+    if (prevMaxSeqRef.current === null || !liveTail) return new Set<number>()
+
+    const prevMax = prevMaxSeqRef.current
+    const fresh = new Set<number>()
+    for (const entry of logs) {
+      if (typeof entry.seq === 'number' && entry.seq > prevMax) {
+        fresh.add(entry.seq)
+      }
+    }
+
+    if (fresh.size > FRESH_BATCH_LIMIT) return new Set<number>()
+
+    return fresh
+  }, [logs, liveTail])
+
+  useEffect(() => {
+    let max = 0
+    for (const entry of logs) {
+      if (typeof entry.seq === 'number') {
+        max = Math.max(max, entry.seq)
+      }
+    }
+    prevMaxSeqRef.current = max
+  }, [logs])
 
   const data = useMemo<LogRowData[]>(
     () =>
@@ -217,11 +249,13 @@ export function LogsTable({
         ) : (
           table.getRowModel().rows.map((row) => {
             const selected = selectedTraceId && row.original.executionId === selectedTraceId
+            const isFresh = typeof row.original.entry.seq === 'number' && freshSeqs.has(row.original.entry.seq)
             return (
               <TableRow
                 key={row.id}
                 data-state={selected ? 'selected' : undefined}
                 data-level={row.original.entry.level}
+                data-fresh={isFresh ? '' : undefined}
                 onClick={() => onSelectLog(row.original.entry)}
               >
                 {row.getVisibleCells().map((cell) => (

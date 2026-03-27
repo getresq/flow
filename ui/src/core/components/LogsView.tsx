@@ -238,6 +238,7 @@ export function LogsView({
             nodeLabels={nodeLabels}
             nodeFamilies={nodeFamilies}
             selectedTraceId={selectedTraceId}
+            liveTail={liveTail && sourceMode === 'live'}
             onSelectLog={(entry) => {
               const executionId = entry.runId ?? entry.traceId
               if (executionId) {

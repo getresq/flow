@@ -167,6 +167,9 @@
   --chip-trigger-bg:   rgba(34, 197, 94, 0.10);   --chip-trigger-text:   #4ade80;
   --chip-decision-bg:  rgba(160, 100, 255, 0.10); --chip-decision-text:  #c4b5fd;
 
+  /* Log fresh-arrival highlight (subtle accent wash that fades out) */
+  --log-fresh-highlight: rgba(66, 165, 245, 0.06);
+
   /* Compatibility aliases for the current canvas implementation */
   --color-active: var(--status-active);
   --color-edge: #30363d;
@@ -321,6 +324,9 @@
   --chip-resource-bg:  rgba(0, 150, 150, 0.07);   --chip-resource-text:  #115e59;
   --chip-trigger-bg:   rgba(34, 197, 94, 0.07);   --chip-trigger-text:   #166534;
   --chip-decision-bg:  rgba(130, 70, 220, 0.07);  --chip-decision-text:  #6d28d9;
+
+  /* Log fresh-arrival highlight (stronger on white surface) */
+  --log-fresh-highlight: rgba(21, 101, 192, 0.12);
 
   /* Compatibility canvas aliases */
   --canvas-bg: var(--flow-surface-bg);
@@ -982,4 +988,17 @@ body[data-theme='light'] {
 [data-level='error'] td:first-child {
   border-left: 2px solid var(--status-error);
   padding-left: calc(var(--spacing) * 3 - 2px);
+}
+
+/* ── Log fresh-arrival highlight fade ── */
+
+@keyframes logFreshFade {
+  from { background-color: var(--log-fresh-highlight); }
+  to   { background-color: transparent; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  tr[data-fresh] {
+    animation: logFreshFade 2s ease-out forwards;
+  }
 }

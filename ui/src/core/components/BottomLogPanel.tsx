@@ -429,6 +429,7 @@ export function BottomLogPanel({
                   nodeLabels={nodeLabels}
                   nodeFamilies={nodeFamilies}
                   selectedTraceId={selectedTraceId}
+                  liveTail={liveTail}
                   onSelectLog={(entry) => {
                     const executionId = entry.runId ?? entry.traceId
                     if (executionId) {
