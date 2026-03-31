@@ -1,6 +1,6 @@
 ---
 name: flow-cli-write
-description: Use this skill when the user wants to add or change flow-visible logs for an existing flow, either by adding runtime logs in application code that should show up in resq-flow or by manually emitting one explicit debug log with the resq-flow CLI. It helps developers find the right existing flow, choose between canonical typed telemetry and ad hoc breadcrumbs, reuse the normal flow telemetry path, keep scope explicit, and validate the result with the resq-flow CLI. Do not use it for raw infrastructure logs or brand-new flow scaffolding.
+description: Use this skill when the user wants to add or change flow-visible logs for an existing flow, either by adding runtime logs in application code that should show up in resq-flow or by manually emitting one explicit debug log with the resq-flow CLI. It helps developers find the right existing flow, choose between node logs and stage logs, reuse the normal flow telemetry path, keep scope explicit, and validate the result with the resq-flow CLI. Do not use it for raw infrastructure logs or brand-new flow scaffolding.
 ---
 
 # resq-flow Runtime Logs
@@ -39,7 +39,7 @@ Prefer flow-scoped runtime logs.
 
 Treat global logs as a manual debugging fallback only:
 
-- `resq-flow logs emit --global` is fine for a quick local breadcrumb
+- `resq-flow logs emit --global` is fine for a quick local debug log
 - it is not the normal runtime instrumentation model
 
 ## First step
@@ -48,31 +48,37 @@ Figure out which of these the user wants:
 
 1. add runtime logs to an existing flow
 2. inspect whether an existing runtime log is already visible in a flow
-3. add a temporary manual debug breadcrumb instead of real instrumentation
+3. add a temporary manual debug log instead of real instrumentation
 
 If the user names a flow, use it.
 
 If the user does not name a flow, infer it from repo context when it is obvious. If not obvious, ask one short question.
 
-## Canonical vs ad hoc
+## Node logs vs stage logs
 
-This skill should choose between two producer-side patterns:
+This skill should choose between two structural log types:
 
-- canonical typed telemetry
-- ad hoc breadcrumbs
+- node logs
+- stage logs
 
-Use canonical typed telemetry when the event is part of the flow's stable backbone:
+Use node logs when the event defines the main flow structure:
 
 - queue enqueue
 - worker pickup or result
 - core stage outcomes such as `final_result`
-- stable business or lifecycle events the flow will rely on long-term
+- stable business or lifecycle events the flow will rely on long-term at the primary node level
 
-Use ad hoc breadcrumbs when the event is a small local visibility point:
+Use stage logs when the event is attached to a node and helps show what happened around that node's work:
 
 - one extra branch or decision log
-- one extra save or write breadcrumb
-- a useful incremental log that should stay flow-attached but does not need to expand the typed contract
+- one extra save or write log
+- a smaller local visibility point attached to a node
+
+Implementation rule:
+
+- node logs usually use the existing typed telemetry path
+- stage logs can use either the existing typed stage pattern or the small helper path
+- prefer the helper path when you are adding one incremental stage log and do not need to expand the typed contract
 
 The user usually should not have to choose. Infer the right path from the request.
 
@@ -82,10 +88,10 @@ The user usually should not have to choose. Infer the right path from the reques
 2. Reuse the normal flow telemetry path already used by that flow.
 3. Keep flow scope explicit with the existing flow identity and run identity.
 4. Choose the right log style:
-   - use canonical typed telemetry for stable lifecycle events
-   - use the ad hoc helper for incremental breadcrumbs
+   - use the existing typed path for node logs and stable stage logs
+   - use the helper path for simple new stage logs attached to an existing node
 5. Add a clear stage id and message. Let flow and node identity come from the bound context.
-5. Validate the result with `resq-flow`.
+6. Validate the result with `resq-flow`.
 
 ## Rules
 
@@ -93,7 +99,7 @@ The user usually should not have to choose. Infer the right path from the reques
 - Keep flow scope explicit.
 - Do not shell out to `resq-flow logs emit` from runtime code.
 - Do not create a second CLI-specific telemetry path.
-- Prefer existing bound flow or node contexts over ad hoc logging.
+- Prefer existing bound flow or node contexts over hand-rolled logging.
 - Do not pass `flow_id`, `run_id`, or `component_id` manually when the bound context already knows them.
 - Prefer the smallest callsite that still preserves correct scope.
 - Keep manual CLI attrs small, flat, and useful for filtering.
@@ -108,12 +114,12 @@ For runtime code, aim for a small, useful record:
 - stage
 - message
 
-For ad hoc breadcrumbs, prefer the tiny helper shape:
+For simple stage-log additions, prefer the tiny helper shape:
 
 - `ad_hoc_ok(stage_id, message)`
 - `ad_hoc_err(stage_id, message, error_message)`
 
-Use the existing typed telemetry pattern instead when the log is a canonical lifecycle event.
+Use the existing typed telemetry pattern instead when the log is a primary node event or an already-established typed stage event.
 
 ## Validation workflow
 
@@ -145,7 +151,7 @@ resq-flow logs emit --global --message "relay smoke check"
 
 Rules for manual emits:
 
-- use `--flow <flow-id>` when the breadcrumb should belong to a flow
+- use `--flow <flow-id>` when the debug log should belong to a flow
 - use `--global` only when the user explicitly wants it unscoped
 - remember that manual emits write to the live relay path, not application runtime code
 
@@ -157,12 +163,12 @@ If a change is mail-specific, default to `mail-pipeline` unless the code clearly
 
 For existing mail flow work:
 
-- use typed telemetry for queue, worker, and core stage lifecycle events
-- use the ad hoc helper for local breadcrumbs such as `resolve_identity`
+- use typed telemetry for queue, worker, and core node or stage lifecycle events
+- use the helper for simple stage logs such as `resolve_identity`
 
 ## Manual debug fallback
 
-If the user only wants a temporary local breadcrumb and does not need real runtime instrumentation, emit either:
+If the user only wants a temporary local debug log and does not need real runtime instrumentation, emit either:
 
 - `resq-flow logs emit --flow <flow-id>` for a manual flow-scoped debug log
 - `resq-flow logs emit --global` only when they explicitly want an unscoped debug log

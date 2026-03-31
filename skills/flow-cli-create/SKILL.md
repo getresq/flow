@@ -1,6 +1,6 @@
 ---
 name: flow-cli-create
-description: Use this skill when the user wants to create or scaffold a new flow that should show up in resq-flow. It helps developers define the flow boundary, choose flow and node names, add the core canonical telemetry the flow needs, add any clearly requested initial breadcrumbs, create the matching resq-flow contract, and validate the result with resq-flow. Do not use it for raw infrastructure logs or for simple log additions to an already existing flow.
+description: Use this skill when the user wants to create or scaffold a new flow that should show up in resq-flow. It helps developers define the flow boundary, choose flow and node names, add the core node logs the flow needs, add any clearly requested initial stage logs, create the matching resq-flow contract, and validate the result with resq-flow. Do not use it for raw infrastructure logs or for simple log additions to an already existing flow.
 ---
 
 # resq-flow Flow Creation
@@ -18,8 +18,8 @@ Use it to:
 
 - create a new flow boundary and flow identity
 - choose or confirm node and component names
-- add the core canonical telemetry the flow needs
-- add any clearly requested initial breadcrumbs
+- add the core node logs the flow needs
+- add any clearly requested initial stage logs
 - create the matching `resq-flow` contract
 - validate the result with `resq-flow`
 
@@ -42,7 +42,7 @@ Infer these from context when the codebase already makes them obvious. If someth
 
 ## Default rule
 
-When creating a new flow, add the canonical typed telemetry first.
+When creating a new flow, add the core node logs first.
 
 That means the stable backbone of the flow should exist from the start:
 
@@ -51,14 +51,14 @@ That means the stable backbone of the flow should exist from the start:
 - worker result
 - core stage outcomes such as `final_result`
 
-If the user also wants smaller local visibility points, add those as ad hoc breadcrumbs after the backbone exists.
+If the user also wants smaller local visibility points, add those as stage logs after the backbone exists.
 
-## Canonical vs breadcrumb during flow creation
+## Node logs vs stage logs during flow creation
 
 When a create-flow request includes both major flow stages and smaller local logs:
 
-- use canonical typed telemetry for the main flow backbone
-- use ad hoc breadcrumbs for the smaller local visibility points
+- use node logs for the main flow backbone
+- use stage logs for the smaller local visibility points
 
 The user should not have to split that request up manually. Do the decomposition in the implementation.
 
@@ -66,8 +66,8 @@ The user should not have to split that request up manually. Do the decomposition
 
 1. Find the nearest existing runtime and telemetry patterns in the producer repo.
 2. Choose a simple flow name and stable node names that match existing naming patterns.
-3. Add the producer-side flow context and core typed telemetry.
-4. Add one or more initial ad hoc breadcrumbs only when they were clearly requested or obviously useful.
+3. Add the producer-side flow context and core node logs.
+4. Add one or more initial stage logs only when they were clearly requested or obviously useful.
 5. Create the matching `resq-flow` contract.
 6. Validate the new flow with `resq-flow`.
 
@@ -78,8 +78,8 @@ The user should not have to split that request up manually. Do the decomposition
 - Keep flow scope explicit.
 - Keep `flow_id` simple and stable.
 - Keep node ownership explicit.
-- Treat canonical typed telemetry as the default for new-flow scaffolding.
-- Use ad hoc breadcrumbs only for smaller local visibility points, not as a replacement for the flow backbone.
+- Treat node logs as the default for new-flow scaffolding.
+- Use stage logs only for smaller local visibility points, not as a replacement for the flow backbone.
 
 ## Naming guidance
 
