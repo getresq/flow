@@ -4,6 +4,7 @@ import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { runLogsCommand, LOGS_HELP } from "./commands/logs.js";
+import { runRunsCommand, RUNS_HELP } from "./commands/runs.js";
 import { runStatusCommand, STATUS_HELP } from "./commands/status.js";
 import {
   EXIT_CODES,
@@ -27,6 +28,7 @@ const MAIN_HELP = renderHelp({
       lines: [
         "  status              Show relay status and ingest health",
         "  logs                List, tail, or emit logs",
+        "  runs                Explain a run from recent history",
       ],
     },
     {
@@ -78,6 +80,10 @@ export async function runCli(
           fetchImpl: runtime.fetchImpl,
           websocketFactory: runtime.websocketFactory,
         });
+      case "runs":
+        return await runRunsCommand(rest, io, {
+          fetchImpl: runtime.fetchImpl,
+        });
       default:
         throw new BadArgumentError(`unknown command: ${command}`);
     }
@@ -118,4 +124,4 @@ if (isCliEntrypoint(process.argv[1], import.meta.url)) {
   void main();
 }
 
-export { STATUS_HELP, LOGS_HELP, MAIN_HELP };
+export { STATUS_HELP, LOGS_HELP, RUNS_HELP, MAIN_HELP };

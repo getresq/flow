@@ -76,6 +76,113 @@ export function preferredStepLabel(row: CliLogRow): string {
   return row.stepId ?? row.stepName ?? row.componentId ?? "-";
 }
 
+export function normalizeIdentifierValue(value: JsonValue | undefined): string | undefined {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  const normalized = String(value).trim();
+  if (!normalized || normalized === "0") {
+    return undefined;
+  }
+
+  return normalized;
+}
+
+export function rowAttribute(row: CliLogRow, key: string): string | undefined {
+  return normalizeIdentifierValue(row.attributes[key]);
+}
+
+export function executionKeyForRow(row: CliLogRow): string | undefined {
+  return normalizeIdentifierValue(row.runId) ?? normalizeIdentifierValue(row.traceId);
+}
+
+export function compareLogRows(left: CliLogRow, right: CliLogRow): number {
+  const leftTime = Date.parse(left.timestamp);
+  const rightTime = Date.parse(right.timestamp);
+
+  if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
+    return leftTime - rightTime;
+  }
+
+  const leftSeq = left.seq;
+  const rightSeq = right.seq;
+  if (typeof leftSeq === "number" && typeof rightSeq === "number" && leftSeq !== rightSeq) {
+    return leftSeq - rightSeq;
+  }
+
+  return left.timestamp.localeCompare(right.timestamp);
+}
+
+export function sortLogRows(rows: CliLogRow[]): CliLogRow[] {
+  return [...rows].sort(compareLogRows);
+}
+
+export function groupRowsByExecutionKey(rows: CliLogRow[]): Map<string, CliLogRow[]> {
+  const groups = new Map<string, CliLogRow[]>();
+
+  for (const row of sortLogRows(rows)) {
+    const executionKey = executionKeyForRow(row);
+    if (!executionKey) {
+      continue;
+    }
+
+    const existing = groups.get(executionKey);
+    if (existing) {
+      existing.push(row);
+      continue;
+    }
+
+    groups.set(executionKey, [row]);
+  }
+
+  return groups;
+}
+
+export function selectLatestRunForThread(
+  rows: CliLogRow[],
+  threadId: string,
+): { runId: string; rows: CliLogRow[] } | undefined {
+  const normalizedThreadId = threadId.trim();
+  if (!normalizedThreadId) {
+    return undefined;
+  }
+
+  const matchingRows = rows.filter((row) => rowAttribute(row, "thread_id") === normalizedThreadId);
+  if (matchingRows.length === 0) {
+    return undefined;
+  }
+
+  let best:
+    | {
+        runId: string;
+        rows: CliLogRow[];
+        lastSeen: number;
+      }
+    | undefined;
+
+  for (const [runId, groupedRows] of groupRowsByExecutionKey(matchingRows)) {
+    const lastRow = groupedRows.at(-1);
+    const lastSeen = lastRow ? Date.parse(lastRow.timestamp) : Number.NEGATIVE_INFINITY;
+    if (!best || lastSeen >= best.lastSeen) {
+      best = {
+        runId,
+        rows: groupedRows,
+        lastSeen,
+      };
+    }
+  }
+
+  if (!best) {
+    return undefined;
+  }
+
+  return {
+    runId: best.runId,
+    rows: best.rows,
+  };
+}
+
 export function stringAttribute(value: JsonValue | undefined): string | undefined {
   if (typeof value === "string") {
     return value;

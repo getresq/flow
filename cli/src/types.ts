@@ -108,3 +108,45 @@ export interface CliLogRow {
   message: string;
   attributes: JsonObject;
 }
+
+export type RunExplainTarget =
+  | {
+      kind: "run";
+      runId: string;
+    }
+  | {
+      kind: "thread";
+      threadId: string;
+    };
+
+export type RunExplainOutcome =
+  | "completed"
+  | "failed"
+  | "queued"
+  | "in_progress"
+  | "stopped";
+
+export interface RunExplainEvidenceRow {
+  timestamp: string;
+  runId?: string | undefined;
+  componentId?: string | undefined;
+  stepId?: string | undefined;
+  status?: string | undefined;
+  message: string;
+  attributes: JsonObject;
+}
+
+export interface RunExplainSummary {
+  flowId: string;
+  runId: string;
+  target: RunExplainTarget;
+  outcome: RunExplainOutcome;
+  startedAt?: string | undefined;
+  endedAt?: string | undefined;
+  nodePath: string[];
+  furthestNode?: string | undefined;
+  terminalSignal?: string | undefined;
+  explanation: string[];
+  evidence: RunExplainEvidenceRow[];
+  rowCount: number;
+}

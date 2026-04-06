@@ -35,6 +35,7 @@ describe("CLI smoke", () => {
     expect(buffered.readStdout()).toContain("resq-flow <command> [options]");
     expect(buffered.readStdout()).toContain("status");
     expect(buffered.readStdout()).toContain("logs");
+    expect(buffered.readStdout()).toContain("runs");
     expect(buffered.readStderr()).toBe("");
   });
 
@@ -65,6 +66,15 @@ describe("CLI smoke", () => {
 
     expect(exitCode).toBe(0);
     expect(buffered.readStdout()).toContain("resq-flow logs <subcommand>");
+  });
+
+  it("shows runs command help", async () => {
+    const buffered = createBufferedIo();
+
+    const exitCode = await runCli(["runs", "--help"], buffered.io);
+
+    expect(exitCode).toBe(0);
+    expect(buffered.readStdout()).toContain("resq-flow runs <subcommand>");
   });
 
   it("shows status command help", async () => {

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "bun:test";
 
-import { fetchHistoryRows } from "../lib/history.js";
+import {
+  fetchHistoryRows,
+  groupRowsByExecutionKey,
+  normalizeIdentifierValue,
+  selectLatestRunForThread,
+  sortLogRows,
+} from "../lib/history.js";
 
 function createJsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -180,5 +186,77 @@ describe("history normalization", () => {
       "thread_id=thread-201",
       "status=error",
     ]);
+  });
+
+  it("normalizes placeholder identifiers the same way as the UI", () => {
+    expect(normalizeIdentifierValue(undefined)).toBeUndefined();
+    expect(normalizeIdentifierValue(null)).toBeUndefined();
+    expect(normalizeIdentifierValue(0)).toBeUndefined();
+    expect(normalizeIdentifierValue("  ")).toBeUndefined();
+    expect(normalizeIdentifierValue("thread-201")).toBe("thread-201");
+  });
+
+  it("groups rows by canonical execution key and sorts them", () => {
+    const groups = groupRowsByExecutionKey([
+      {
+        timestamp: "2026-03-23T18:41:09.901Z",
+        runId: "thread-201",
+        traceId: "trace-send-201",
+        stepId: "send.final_result",
+        message: "sent reply",
+        attributes: {},
+      },
+      {
+        timestamp: "2026-03-23T18:41:02.110Z",
+        runId: "thread-201",
+        traceId: "trace-send-201",
+        stepId: "incoming.fetch_threads",
+        message: "fetched threads",
+        attributes: {},
+      },
+      {
+        timestamp: "2026-03-23T18:41:10.000Z",
+        runId: undefined,
+        traceId: "trace-other",
+        stepId: "other.step",
+        message: "other flow row",
+        attributes: {},
+      },
+    ]);
+
+    expect([...groups.keys()]).toEqual(["thread-201", "trace-other"]);
+    expect(groups.get("thread-201")?.map((row) => row.message)).toEqual([
+      "fetched threads",
+      "sent reply",
+    ]);
+  });
+
+  it("selects the latest run for a thread", () => {
+    const rows = sortLogRows([
+      {
+        timestamp: "2026-03-23T18:41:02.110Z",
+        runId: "thread-201-old",
+        traceId: "trace-old",
+        stepId: "incoming.fetch_threads",
+        message: "older thread run",
+        attributes: {
+          thread_id: "thread-201",
+        },
+      },
+      {
+        timestamp: "2026-03-23T18:41:09.901Z",
+        runId: "thread-201-new",
+        traceId: "trace-new",
+        stepId: "send.final_result",
+        message: "newer thread run",
+        attributes: {
+          thread_id: "thread-201",
+        },
+      },
+    ]);
+
+    expect(selectLatestRunForThread(rows, "thread-201")).toMatchObject({
+      runId: "thread-201-new",
+    });
   });
 });
