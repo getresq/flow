@@ -29,6 +29,18 @@ Do not use it for:
 - Datadog or Victoria-only log searches
 - simple incremental logging changes inside an already existing flow; use `flow-cli-write`
 
+## Quick Context
+
+Start with the local repo docs:
+
+- `README.md`
+- `ARCHITECTURE.md`
+- `resq-flow.md`
+- `docs/shared-flow-event-contract.md`
+- `docs/adding-a-flow.md`
+- `docs/cli.md`
+- `ui/src/flow-contracts/*.json`
+
 ## First step
 
 Figure out the minimum flow definition:

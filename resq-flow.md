@@ -1,5 +1,13 @@
 # resq-flow Notes
 
+Quick local doc map:
+
+- `README.md`
+- `ARCHITECTURE.md`
+- `docs/shared-flow-event-contract.md`
+- `docs/adding-a-flow.md`
+- `docs/cli.md`
+
 ## Current Design
 
 `resq-flow` is a local live flow visualizer that sits behind the shared Vector pipeline.
@@ -124,10 +132,10 @@ The client ingests those envelopes append-only, keeps a bounded buffer, and igno
 
 ## CLI
 
-The CLI is the headless `resq-flow` surface for relay status checks plus `logs list`, `logs tail`, and `logs emit`.
+The CLI is the headless `resq-flow` surface for relay status checks plus `logs list`, `logs tail`, `logs emit`, and `runs explain`.
 It lives in `cli/` and uses the same relay APIs and WebSocket envelopes as the UI.
 Use it when you want quick terminal inspection, agent-friendly JSON/JSONL output, or ad hoc local logs without opening the browser.
-See the main `README.md` for build steps, command examples, and supported arguments.
+See `README.md` and `docs/cli.md` for build steps, command examples, and supported arguments.
 
 The CLI scope model is explicit and should stay explicit:
 
@@ -179,6 +187,8 @@ That keeps Victoria as the primary path even if the relay is unavailable.
 These are meant to be operational checks, not replacements for real producer traffic.
 
 ## Adding A New Flow
+
+See `docs/adding-a-flow.md` for the current contributor checklist and the split between `resq-agent` and `resq-flow`.
 
 1. Add `ui/src/flow-contracts/<flow-id>.json`.
 2. Add an optional `ui/src/flows/<flow-id>.ts` if the flow needs a graph view now.

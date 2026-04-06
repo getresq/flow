@@ -33,6 +33,18 @@ Do not use it for:
 - inventing a second telemetry pipeline
 - scaffolding a brand-new flow from scratch; use `flow-cli-create` for that
 
+## Quick Context
+
+Start with the local repo docs:
+
+- `README.md`
+- `ARCHITECTURE.md`
+- `resq-flow.md`
+- `docs/shared-flow-event-contract.md`
+- `docs/adding-a-flow.md`
+- `docs/cli.md`
+- `ui/src/flow-contracts/*.json`
+
 ## Default rule
 
 Prefer flow-scoped runtime logs.
@@ -129,6 +141,7 @@ After adding instrumentation, validate with `resq-flow`:
 resq-flow logs tail --flow mail-pipeline
 resq-flow logs list --flow mail-pipeline --query extract
 resq-flow logs list --flow mail-pipeline --attr thread_id=<thread_id> --jsonl
+resq-flow runs explain --flow mail-pipeline --thread <thread_id>
 ```
 
 Use `--all` only when the user explicitly wants to inspect global or cross-flow logs.

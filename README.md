@@ -137,6 +137,12 @@ These endpoints are for sending traces and logs to the relay, not for viewing st
 
 Key references in this repo:
 
+- `ARCHITECTURE.md`
+- `resq-flow.md`
+- `docs/shared-flow-event-contract.md`
+- `docs/adding-a-flow.md`
+- `docs/cli.md`
+- `skills/`
 - `ui/DESIGN-SYSTEM.md`
 - `examples/vector/resq-flow-fanout.yaml`
 
@@ -165,7 +171,7 @@ make replay-direct
 
 ## CLI
 
-The CLI is the headless `resq-flow` interface for relay checks, flow log inspection, and ad hoc log emission.
+The CLI is the headless `resq-flow` interface for relay checks, flow log inspection, run explanation, and ad hoc log emission.
 It lives in `cli/` and builds to `cli/dist/`.
 
 Scope is explicit:
@@ -197,6 +203,7 @@ resq-flow --help
 resq-flow status
 resq-flow logs list --flow mail-pipeline
 resq-flow logs tail --flow mail-pipeline
+resq-flow runs explain --flow mail-pipeline --thread <thread-id>
 resq-flow logs emit --flow mail-pipeline --message "picked thread for analysis" --attr run_id=thread-301 --attr step_id=analyze.decision
 ```
 
@@ -212,6 +219,7 @@ Available CLI commands:
 - `resq-flow logs list (--flow <flow-id> | --all)`
 - `resq-flow logs tail (--flow <flow-id> | --all)`
 - `resq-flow logs emit (--flow <flow-id> | --global)`
+- `resq-flow runs explain --flow <flow-id> (--run <run-id> | --thread <thread-id>)`
 
 `logs list` supports:
 

@@ -10,6 +10,7 @@ Use this skill when the task is about operating `resq-flow` from the terminal:
 - check relay status
 - inspect history with `logs list`
 - watch live logs with `logs tail`
+- explain why a run stopped, failed, or completed with `runs explain`
 - confirm whether a log belongs to a specific flow such as `mail-pipeline`
 
 Do not use this skill when the main task is to add durable runtime instrumentation in another repo or to manually emit a debug log. Use the producer-side write skill for those.
@@ -18,10 +19,14 @@ Do not use this skill when the main task is to add durable runtime instrumentati
 
 Start with the local docs and contract:
 
-- `README.md` for command examples and supported flags
-- `resq-flow.md` for CLI scope rules and flow semantics
+- `README.md` for the repo doc map and command examples
+- `ARCHITECTURE.md` for topology and ownership
+- `resq-flow.md` for contributor mental model and scope rules
+- `docs/cli.md` for command usage and examples
+- `docs/shared-flow-event-contract.md` for flow/run/node/step semantics
+- `docs/adding-a-flow.md` if the question touches flow authoring
 - `ui/src/flow-contracts/*.json` for valid flow IDs and telemetry matching rules
-- `cli/src/commands/logs.ts` if behavior needs confirmation
+- `cli/src/commands/logs.ts` and `cli/src/commands/runs.ts` if behavior needs confirmation
 
 If the user names a flow, use it. If the user names `resq-flow` but not the flow, infer it from context when that is obvious. If not, ask one short question.
 
@@ -44,14 +49,16 @@ If the user asks for "logs" without saying whether they want `resq-flow` or raw 
 1. Confirm or infer the target flow ID.
 2. For relay health, run `resq-flow status`.
 3. For historical inspection, use `resq-flow logs list`.
-4. For live inspection, use `resq-flow logs tail`.
-5. Report the exact command used, the scope chosen, and what you observed.
+4. For "why did this run stop or fail?", use `resq-flow runs explain`.
+5. For live inspection, use `resq-flow logs tail`.
+6. Report the exact command used, the scope chosen, and what you observed.
 
 ## Common Patterns
 
 ```bash
 resq-flow status
 resq-flow logs list --flow mail-pipeline --window 15m
+resq-flow runs explain --flow mail-pipeline --thread <thread_id>
 resq-flow logs list --all --limit 100
 resq-flow logs tail --flow mail-pipeline --attr thread_id=<thread_id>
 resq-flow logs tail --all --jsonl
@@ -61,6 +68,7 @@ resq-flow logs tail --all --jsonl
 
 - Prefer `logs tail` for "is it happening right now?"
 - Prefer `logs list` for "did it show up in history?"
+- Prefer `runs explain` for "why did this stop, fail, or complete?"
 - When checking a specific execution, filter with `thread_id`, `run_id`, `step_id`, or `status` when available.
 - If a log does not appear in a flow, check whether the wrong scope was used before assuming relay or UI bugs.
 - Remember that ordinary unmatched runtime logs are not the main thing `resq-flow` surfaces today; flow logs are the normal path.

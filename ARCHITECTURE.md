@@ -167,3 +167,12 @@ That means:
 ## Operational Rule Of Thumb
 
 If telemetry is emitted once, routed cleanly, stored in Victoria, and then visualized in `resq-flow`, the architecture is doing the right thing.
+
+## Related repo docs
+
+For contributor-facing details that build on this architecture, see:
+
+- `resq-flow.md`
+- `docs/shared-flow-event-contract.md`
+- `docs/adding-a-flow.md`
+- `docs/cli.md`
