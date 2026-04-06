@@ -20,14 +20,13 @@ curl -sG 'http://localhost:10428/select/logsql/query' \
   --data-urlencode 'limit=50'
 ```
 
-Expected: trace span rows with matching `resource_attr:*` IDs and stage tags.
+Expected: trace span rows with matching `resource_attr:*` IDs and step tags.
 
 ## resq-flow Relay Stream
 
 ```bash
 bun run /tmp/step4-relay-capture.ts
-THREAD_ID='<thread_id>' jq -r '.[] | select(.attributes.thread_id == env.THREAD_ID) | [.seq,.type,.event_kind,.node_key,.attributes.stage_id] | @tsv' /tmp/step4-relay-events.json
+THREAD_ID='<thread_id>' jq -r '.[] | select(.attributes.thread_id == env.THREAD_ID) | [.seq,.type,.event_kind,.node_key,.attributes.step_id] | @tsv' /tmp/step4-relay-events.json
 ```
 
 Expected: deterministic `seq` order and matching `thread_id/job_id/reply_draft_id` across span/log events.
-

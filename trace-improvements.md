@@ -66,8 +66,8 @@ Repo audited:
 - Example candidates to add: `thread_id`, `reply_draft_id`, `s3_key`, `content_hash`.
 - These IDs exist in job payloads, but are not consistently present in the `mail_e2e_event` schema.
 
-5. Stage semantics are implicit.
-- We infer stage from `action + function_name + queue_name`, but there is no first-class `stage_id` emitted from workers.
+5. Step semantics are implicit.
+- We infer step from `action + function_name + queue_name`, but there is no first-class `step_id` emitted from workers.
 
 ---
 
@@ -76,7 +76,7 @@ Repo audited:
 Today, with current setup, you can usually see significant flow activity, but:
 
 - You may not get a single clean, continuous trace from start to finish for one email/thread.
-- Some useful events are visible only as logs, not as trace stages.
+- Some useful events are visible only as logs, not as trace steps.
 - Node-level traces in UI can feel repetitive/fragmented because we don't yet present a "trace journey" abstraction.
 
 So: good foundation, not yet "top notch trace storytelling."
@@ -94,12 +94,12 @@ Create a domain-shaped model in UI:
   - `rootEntity` (thread/mailbox/draft when available)
   - `startedAt`, `endedAt`, `durationMs`
   - `status` (`running|success|error|partial`)
-  - `stages: TraceStage[]`
+  - `steps: TraceStep[]`
   - `nodePath: string[]`
   - `errorSummary`
 
-- `TraceStage`
-  - `stageId` (normalized, deterministic key)
+- `TraceStep`
+  - `stepId` (normalized, deterministic key)
   - `label`
   - `nodeId`
   - `startSeq`, `endSeq`
@@ -122,7 +122,7 @@ In/near `BottomLogPanel`:
 - Traces table columns:
   - Trace
   - Entity (thread/mailbox/draft)
-  - Current stage
+  - Current step
   - Status
   - Duration
   - Last update
@@ -139,7 +139,7 @@ Interactions:
 
 Add trace-focused drawer view:
 
-- Tab 1: `Timeline` (human-readable stage list, durations, attempts, errors)
+- Tab 1: `Timeline` (human-readable step list, durations, attempts, errors)
 - Tab 2: `Attributes` (raw telemetry for deep debugging)
 - Chips when present:
   - `mailbox_owner`
@@ -153,8 +153,8 @@ Add trace-focused drawer view:
 ## 3.4 Determinism rules
 
 1. Always order by `seq` first, timestamp second.
-2. Stage transitions should use explicit event kind + known mappings.
-3. Avoid time-window heuristics for stage ordering.
+2. Step transitions should use explicit event kind + known mappings.
+3. Avoid time-window heuristics for step ordering.
 4. Keep queue depth visual independent from trace journey status.
 
 ## 3.5 Mapping upgrades needed in `resq-flow`
@@ -200,9 +200,9 @@ Repository for all changes in this section:
   - `content_hash`
 - Keep existing fields (`queue_name`, `function_name`, `worker_name`, `job_id`, `request_id`, etc.).
 
-3. Emit explicit stage tags.
-- Add `stage_id` and `stage_name` to key events/spans.
-- Initial stage set:
+3. Emit explicit step tags.
+- Add `step_id` and `step_name` to key events/spans.
+- Initial step set:
   - `incoming.write_threads`
   - `incoming.write_metadata`
   - `incoming.cursor_update`
@@ -236,7 +236,7 @@ Repository for all changes in this section:
 
 1. Enqueue propagation test: enqueue includes W3C trace context headers.
 2. Queue-hop continuity test: downstream worker span links to upstream trace.
-3. Event schema test: new IDs and stage tags appear in emitted `mail_e2e_event` logs.
+3. Event schema test: new IDs and step tags appear in emitted `mail_e2e_event` logs.
 4. Local smoke test: single email can be queried in both Victoria and `resq-flow` with matching identifiers.
 
 ---
@@ -354,7 +354,7 @@ Do:
 1. Implement all items in `4.2 Required changes (P0)`:
    - queue trace continuity across enqueue/pickup hops
    - expanded `mail_e2e_event` IDs
-   - explicit `stage_id` / `stage_name`
+   - explicit `step_id` / `step_name`
    - `make dev-mail` ergonomics for `MAIL_E2E_EVENT_LOGS`
 2. Keep schema changes additive/backward-compatible.
 
@@ -415,12 +415,12 @@ Exit criteria:
 
 Do:
 
-1. Wire new stage tags and IDs from `resq-agent` into stage rows/chips.
+1. Wire new step tags and IDs from `resq-agent` into step rows/chips.
 2. Improve error cards using standardized fields (`error_class`, `error_code`, `retryable`).
 
 Exit criteria:
 
-1. Operator can identify failing stage + key IDs in one view, without opening raw JSON.
+1. Operator can identify failing step + key IDs in one view, without opening raw JSON.
 
 ### Step 7: Optional P1/P2 Hardening
 
@@ -455,10 +455,10 @@ Exit criteria:
 For a single sent email, an operator should be able to:
 
 1. Search/select one trace or journey and see only relevant nodes/edges.
-2. See clear stage progression from incoming -> analyze/extract -> send.
-3. Identify exact failing stage + error summary in under 10 seconds.
+2. See clear step progression from incoming -> analyze/extract -> send.
+3. Identify exact failing step + error summary in under 10 seconds.
 4. Confirm key IDs (thread/draft/mailbox) without opening raw VMUI JSON.
-5. Replay events deterministically with identical stage ordering each run.
+5. Replay events deterministically with identical step ordering each run.
 
 ---
 
@@ -476,8 +476,8 @@ Goal: smallest reliable set of tests that gives high confidence live flow will w
 
 ### 9.1 Unit tests (fast)
 
-1. `resq-agent`: stage mapping and emitted field shaping (`stage_id`, IDs, outcome flags).
-2. `resq-flow`: trace journey derivation from relay events (`seq` ordering and stage status resolution).
+1. `resq-agent`: step mapping and emitted field shaping (`step_id`, IDs, outcome flags).
+2. `resq-flow`: trace journey derivation from relay events (`seq` ordering and step status resolution).
 3. `resq-flow`: deterministic edge/node highlight reducer logic.
 
 Pass rule:
@@ -488,7 +488,7 @@ Pass rule:
 
 1. Queue enqueue includes trace context headers.
 2. Worker pickup span continues the same trace.
-3. `mail_e2e_event` schema contains required IDs/stage tags when present.
+3. `mail_e2e_event` schema contains required IDs/step tags when present.
 4. Relay ingest maps spans/logs to expected node keys.
 
 Pass rule:
