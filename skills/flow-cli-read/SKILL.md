@@ -14,7 +14,7 @@ Use this skill when the task is about operating `resq-flow` from the terminal:
 - explain why a run stopped, failed, or completed with `runs explain`
 - confirm whether a log belongs to a specific flow such as `mail-pipeline`
 
-Do not use this skill when the main task is to add durable runtime instrumentation in another repo or to manually emit a debug log. Use the producer-side write skill for those.
+Do not use this skill when the main task is to add durable runtime instrumentation in another repo. Use the producer-side write skill for that.
 
 ## Quick Context
 
@@ -76,6 +76,7 @@ resq-flow logs tail --all --jsonl
 - Prefer `runs explain` for "why did this stop, fail, or complete?"
 - If `logs errors` is empty, do not keep retrying the same narrow command shape. Broaden to `logs list`, then `runs explain` or `logs tail` as appropriate.
 - If the flow-aware `resq-flow` views still do not explain the issue, explicitly recommend widening to regular Victoria or raw service logs.
+- If the work is really about adding or changing instrumentation, stop and route back to `flow-cli-write`.
 - When checking a specific execution, filter with `thread_id`, `run_id`, `step_id`, or `status` when available.
 - `logs errors` is the default command when the user asks for failures, retries, or critical conditions.
 - Keep the distinction clear:

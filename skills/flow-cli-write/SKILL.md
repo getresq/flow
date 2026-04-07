@@ -1,16 +1,11 @@
 ---
 name: flow-cli-write
-description: Use this skill when the user wants to add or change flow-visible logs for an existing flow, either by adding runtime logs in application code that should show up in resq-flow or by manually emitting one explicit debug log with the resq-flow CLI. It helps developers find the right existing flow, choose between node logs and step logs, reuse the normal flow telemetry path, keep scope explicit, and validate the result with the resq-flow CLI. Do not use it for raw infrastructure logs or brand-new flow scaffolding.
+description: Use this skill when the user wants to add or change flow-visible logs for an existing flow. It helps developers find the right existing flow, choose between node logs and step logs, reuse the normal flow telemetry path, keep scope explicit, and validate the result with the resq-flow CLI. Do not use it for raw infrastructure logs or brand-new flow scaffolding.
 ---
 
 # resq-flow Runtime Logs
 
 Use this skill when the task is about writing logs into `resq-flow`.
-
-This includes two write paths:
-
-- runtime instrumentation in app code
-- manual CLI emits for quick local debugging
 
 This is the producer-side companion to `flow-cli-read`.
 
@@ -20,7 +15,6 @@ Use it to:
 
 - add flow-visible runtime logs in existing code for an existing flow
 - change existing flow-visible runtime logs
-- emit one manual debug log with the CLI
 - identify the right existing flow and flow context
 - choose the right log style for the change
 - keep flow scope explicit
@@ -32,6 +26,7 @@ Do not use it for:
 - Datadog or Victoria-only log searches
 - inventing a second telemetry pipeline
 - scaffolding a brand-new flow from scratch; use `flow-cli-create` for that
+- logging work that should stay outside `resq-flow`
 
 ## Quick Context
 
@@ -44,26 +39,23 @@ Start with the local repo docs:
 - `docs/cli.md`
 - `ui/src/flow-contracts/*.json`
 
-## Default rule
-
-Prefer flow-scoped runtime logs.
-
-Treat global logs as a manual debugging fallback only:
-
-- `resq-flow logs emit --global` is fine for a quick local debug log
-- it is not the normal runtime instrumentation model
-
 ## First step
 
 Figure out which of these the user wants:
 
 1. add runtime logs to an existing flow
 2. inspect whether an existing runtime log is already visible in a flow
-3. add a temporary manual debug log instead of real instrumentation
+3. add ordinary logs that should not be flow-visible
 
 If the user names a flow, use it.
 
 If the user does not name a flow, infer it from repo context when it is obvious. If not obvious, ask one short question.
+
+Routing rule:
+
+- if the request clearly needs a brand-new flow, stop and use `flow-cli-create`
+- if an existing flow already fits, continue with this skill
+- if no existing flow fits and the user does not want a new one, stop and treat it as ordinary application logging, not `resq-flow`
 
 ## Node logs vs step logs
 
@@ -112,11 +104,11 @@ The user usually should not have to choose. Infer the right path from the reques
 - Keep flow scope explicit.
 - Do not shell out to `resq-flow logs emit` from runtime code.
 - Do not create a second CLI-specific telemetry path.
+- Do not route to `flow-cli-create` when the user explicitly does not want a new flow.
+- Do not force generic application logs into `resq-flow` when no existing flow fits.
 - Prefer existing bound flow or node contexts over hand-rolled logging.
 - Do not pass `flow_id`, `run_id`, or `component_id` manually when the bound context already knows them.
 - Prefer the smallest callsite that still preserves correct scope.
-- Keep manual CLI attrs small, flat, and useful for filtering.
-- Do not overwrite reserved flow fields such as `flow_id`, `run_id`, `component_id`, `status`, `step_id`, or `message` with extra attrs.
 
 ## Good runtime log shape
 
@@ -134,6 +126,24 @@ For simple step-log additions, prefer the tiny helper shape:
 
 Use the existing typed telemetry pattern instead when the log is a primary node event or an already-established typed step event.
 
+## CLI validation prereqs
+
+Before validating with the CLI, make sure the local tools are available:
+
+1. check whether the command already works:
+   - `resq-flow --help`
+2. if not, build it:
+   - `make build-cli`
+3. either link it once:
+   - `cd cli && npm link`
+4. or use the built entrypoint directly:
+   - `node cli/dist/index.js --help`
+5. make sure the relay is running:
+   - `make dev-relay`
+   - or `make dev`
+6. sanity check:
+   - `resq-flow status`
+
 ## Validation workflow
 
 After adding instrumentation, validate with `resq-flow`:
@@ -147,28 +157,6 @@ resq-flow runs explain --flow mail-pipeline --thread <thread_id>
 
 Use `--all` only when the user explicitly wants to inspect global or cross-flow logs.
 
-## Manual CLI emit workflow
-
-Use `logs emit` when the user wants one quick explicit debug signal in the live relay path.
-
-Flow-scoped manual emit:
-
-```bash
-resq-flow logs emit --flow mail-pipeline --message "analyze finalized reply branch" --attr run_id=thread-301 --attr component_id=analyze-decision --attr step_id=final-result
-```
-
-Unscoped manual emit:
-
-```bash
-resq-flow logs emit --global --message "relay smoke check"
-```
-
-Rules for manual emits:
-
-- use `--flow <flow-id>` when the debug log should belong to a flow
-- use `--global` only when the user explicitly wants it unscoped
-- remember that manual emits write to the live relay path, not application runtime code
-
 ## Mail-focused first pass
 
 For `resq-mail`, prefer the existing mail telemetry path and node context helpers. The normal path is already flow-scoped and is what should power mail runtime logs in `resq-flow`.
@@ -179,12 +167,3 @@ For existing mail flow work:
 
 - use typed telemetry for queue, worker, and core node or step lifecycle events
 - use the helper for simple step logs such as `resolve-identity`
-
-## Manual debug fallback
-
-If the user only wants a temporary local debug log and does not need real runtime instrumentation, emit either:
-
-- `resq-flow logs emit --flow <flow-id>` for a manual flow-scoped debug log
-- `resq-flow logs emit --global` only when they explicitly want an unscoped debug log
-
-That fallback is for manual debugging, not durable app instrumentation.

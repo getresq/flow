@@ -237,7 +237,6 @@ resq-flow logs errors --flow mail-pipeline
 resq-flow logs list --flow mail-pipeline
 resq-flow logs tail --flow mail-pipeline
 resq-flow runs explain --flow mail-pipeline --thread <thread-id>
-resq-flow logs emit --flow mail-pipeline --message "analyze finalized reply branch" --attr run_id=thread-301 --attr component_id=analyze-decision --attr step_id=final-result
 ```
 
 If you do not want to link it, the direct fallback still works:
@@ -252,7 +251,6 @@ Available CLI commands:
 - `resq-flow logs errors (--flow <flow-id> | --all)`
 - `resq-flow logs list (--flow <flow-id> | --all)`
 - `resq-flow logs tail (--flow <flow-id> | --all)`
-- `resq-flow logs emit (--flow <flow-id> | --global)`
 - `resq-flow runs explain --flow <flow-id> (--run <run-id> | --thread <thread-id>)`
 
 `logs errors` supports:
@@ -287,13 +285,6 @@ Available CLI commands:
 - `--jsonl`
 - `--url <base-url>`
 
-`logs emit` supports:
-
-- exactly one of `--flow <flow-id>` or `--global`
-- `--message <text>` required
-- `--attr <key=value>` repeatable
-- `--url <base-url>`
-
 Recommended flow-scoped attributes are:
 
 - `run_id`
@@ -303,6 +294,23 @@ Recommended flow-scoped attributes are:
 - `function_name`
 - `worker_name`
 - `status`
+
+Recommended skill routing:
+
+- new first-class flow in `resq-flow`
+  - use `skills/flow-cli-create/SKILL.md`
+- durable logging changes for an existing flow
+  - use `skills/flow-cli-write/SKILL.md`
+- validation and troubleshooting for an existing flow
+  - use `skills/flow-cli-read/SKILL.md`
+- ordinary application logs that should not become flow-visible
+  - do not use the `resq-flow` skills
+
+Principle:
+
+- do not create a new flow unless the user clearly wants a new first-class flow
+- if an existing flow fits, add logs there
+- if no existing flow fits and the user does not want a new one, this is ordinary logging work outside `resq-flow`
 
 Troubleshooting flow for agents:
 
@@ -316,6 +324,8 @@ resq-flow runs explain --flow mail-pipeline --thread <thread-id>
 `logs errors` is the default first stop for "what failed or needs attention?" It returns hard errors via `status=error`, `error_type`, or `error_message`, plus retryable critical rows via `retryable=true`. Use `--hard-only` when you only want terminal-looking failures.
 
 If `logs errors` is empty or inconclusive, broaden to `logs list`, then `runs explain` or `logs tail` depending on whether the problem is historical or live. If the flow-aware `resq-flow` views still do not explain the problem, widen to regular Victoria or raw service logs in your normal tooling.
+
+`logs emit` still exists as a low-level manual utility, but it is not part of the recommended create/write/read workflow.
 
 If a flow-scoped log includes mappable fields such as `step_id`, `component_id`, `function_name`, or `worker_name`, it continues to drive the existing flow logs and canvas activity.
 

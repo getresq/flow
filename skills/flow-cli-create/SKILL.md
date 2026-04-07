@@ -28,6 +28,7 @@ Do not use it for:
 - raw Docker or service logs
 - Datadog or Victoria-only log searches
 - simple incremental logging changes inside an already existing flow; use `flow-cli-write`
+- requests that explicitly do not want a new flow
 
 ## Quick Context
 
@@ -50,6 +51,11 @@ Figure out the minimum flow definition:
 4. what execution identity scopes the flow, such as thread, run, job, or request
 
 Infer these from context when the codebase already makes them obvious. If something important is still unclear, ask one short question.
+
+Before proceeding, confirm that this really is a new-flow task:
+
+- if an existing flow already fits, stop and use `flow-cli-write`
+- if the user says they do not want a new flow, stop and use `flow-cli-write` or ordinary app logging instead
 
 ## Default rule
 
@@ -92,6 +98,7 @@ The user should not have to split that request up manually. Do the decomposition
 
 - Reuse the normal flow telemetry path in the producer app.
 - Do not create a second telemetry pipeline.
+- Do not create a new flow unless the user clearly wants a new first-class `resq-flow` flow.
 - Keep flow scope explicit.
 - Keep `flow_id` simple and stable.
 - Keep node ownership explicit.

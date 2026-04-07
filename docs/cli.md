@@ -8,7 +8,6 @@ Use it when you want to:
 - inspect recent flow logs from a terminal
 - tail live flow logs while you replay traffic or debug a worker
 - explain what happened in a specific run without manually scanning logs
-- emit one quick structured debug log for local validation
 - give an agent stable JSON or JSONL instead of browser state
 
 ## What the CLI is for
@@ -57,7 +56,6 @@ resq-flow status
 resq-flow logs errors --flow <flow-id>
 resq-flow logs list --flow <flow-id>
 resq-flow logs tail --flow <flow-id>
-resq-flow logs emit --flow <flow-id> --message "<text>"
 resq-flow runs explain --flow <flow-id> --run <run-id>
 resq-flow runs explain --flow <flow-id> --thread <thread-id>
 ```
@@ -66,8 +64,7 @@ resq-flow runs explain --flow <flow-id> --thread <thread-id>
 
 Scope stays explicit:
 
-- `logs list` and `logs tail` require exactly one of `--flow <id>` or `--all`
-- `logs emit` requires exactly one of `--flow <id>` or `--global`
+- `logs errors`, `logs list`, and `logs tail` require exactly one of `--flow <id>` or `--all`
 - `runs explain` requires `--flow <id>` plus exactly one of `--run <run-id>` or `--thread <thread-id>`
 
 A log belongs to a flow only if it explicitly declares that flow through:
@@ -89,10 +86,29 @@ Unscoped logs are global and do not silently belong to a flow.
   use for live flow activity
 - `resq-flow runs explain`
   use for "why did this run stop, fail, or complete?"
-- `resq-flow logs emit`
-  use for one manual local debug log
 - regular Victoria or raw service logs
   use when the flow-aware `resq-flow` views do not surface enough evidence and you need broader infrastructure or service context
+
+## Developer workflows
+
+Use `resq-flow` with three primary workflows:
+
+- new first-class flow in `resq-flow`
+  - use the `flow-cli-create` skill
+- durable logging changes for an existing flow
+  - use the `flow-cli-write` skill
+- validation and troubleshooting for an existing flow
+  - use the `flow-cli-read` skill
+
+If the work is only "add some logs" and the user does not want a new flow:
+
+- use `flow-cli-write` only when an existing flow already fits
+- otherwise treat it as ordinary application logging, not a `resq-flow` task
+
+Principle:
+
+- do not create a new flow unless the user clearly wants a new first-class flow
+- do not force generic application logs into `resq-flow`
 
 ## Error troubleshooting
 
@@ -145,6 +161,24 @@ Why this escalation exists:
 - it is good at surfacing the execution spine and the most relevant flow logs
 - it is not intended to replace broad raw log investigation for every infrastructure or service-level issue
 
+## CLI setup for validation
+
+Before using the CLI for validation or troubleshooting:
+
+1. check whether the command already works:
+   - `resq-flow --help`
+2. if not, build it:
+   - `make build-cli`
+3. either link it once:
+   - `cd cli && npm link`
+4. or use the built entrypoint directly:
+   - `node cli/dist/index.js --help`
+5. make sure the relay is running:
+   - `make dev-relay`
+   - or `make dev`
+6. sanity check:
+   - `resq-flow status`
+
 ## Explain command
 
 `runs explain` is deterministic and rules-based in v1.
@@ -164,9 +198,11 @@ resq-flow runs explain --flow mail-pipeline --thread 19d637994c1a7912
 resq-flow runs explain --flow mail-pipeline --thread 19d637994c1a7912 --json
 ```
 
-## Manual debug logs
+## Advanced manual utility
 
-Use `logs emit` only for manual debugging.
+`logs emit` still exists as a low-level manual utility, but it is not part of the recommended create/write/read workflow.
+
+Use it only for one-off local debugging when you intentionally want to inject a live relay log without changing producer code.
 
 Flow-scoped example:
 
