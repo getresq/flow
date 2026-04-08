@@ -278,7 +278,7 @@ export function useFlowAnimations({
 
         const isError = inferErrorState(event)
         updateNodeStatus(mappedNodeId, (previous) => ({
-          status: isError ? 'error' : 'success',
+          status: isError ? 'error' : 'active',
           counter: previous?.counter,
           durationMs,
           durationVisibleUntil: nowMs() + resolvedTimings.durationVisibleMs,
@@ -287,7 +287,7 @@ export function useFlowAnimations({
         }))
 
         if (!isError) {
-          scheduleNodeIdle(mappedNodeId, resolvedTimings.nodeSuccessResetMs)
+          scheduleNodeIdle(mappedNodeId, resolvedTimings.nodePulseResetMs)
         }
 
         continue

@@ -1,9 +1,7 @@
-import clsx from 'clsx'
 import type { NodeProps } from '@xyflow/react'
 
 import { renderHandles, resolveSvgTone, statusGlowClass } from './nodePrimitives'
 import type { FlowNode } from './types'
-import type { NodeStatus } from '../types'
 
 const defaultHandles = [
   { position: 'top', type: 'both' },
@@ -18,21 +16,6 @@ const resourceRoleTags: Record<string, string> = {
   redis: 'REDIS',
 }
 
-function CylinderStatusDot({ status }: { status: NodeStatus }) {
-  const dotColor = {
-    idle:    'bg-[var(--status-idle)]',
-    active:  'bg-[var(--status-active)]',
-    success: 'bg-[var(--status-success)]',
-    error:   'bg-[var(--status-error)]',
-  }[status]
-
-  return (
-    <span
-      className={clsx('size-1.5 shrink-0 rounded-full', dotColor, status === 'active' && 'node-dot-pulse')}
-      data-testid={`status-badge-${status}`}
-    />
-  )
-}
 
 export function CylinderNode({ id, data }: NodeProps<FlowNode>) {
   const status = data.status?.status ?? 'idle'
@@ -66,7 +49,7 @@ export function CylinderNode({ id, data }: NodeProps<FlowNode>) {
           fillOpacity="1"
         />
       </svg>
-      {/* Card overlay — role tag + title + status dot */}
+      {/* Card overlay — role tag + title */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 pt-4">
         <span
           className="text-[8px] font-semibold uppercase tracking-[0.12em] opacity-55"
@@ -82,7 +65,6 @@ export function CylinderNode({ id, data }: NodeProps<FlowNode>) {
             {data.label}
           </p>
         ) : null}
-        <CylinderStatusDot status={status} />
       </div>
     </div>
   )

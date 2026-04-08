@@ -1,6 +1,5 @@
 import clsx from 'clsx'
 
-import type { NodeStatus } from '../types'
 import type { FlowNodeData } from './types'
 
 interface StandardNodeContentProps {
@@ -39,24 +38,8 @@ function resolveRoleTag(semanticRole: string | undefined, color: string | undefi
   return entry ? entry[1] : null
 }
 
-function StatusDot({ status }: { status: NodeStatus }) {
-  const dotColor = {
-    idle:    'bg-[var(--status-idle)]',
-    active:  'bg-[var(--status-active)]',
-    success: 'bg-[var(--status-success)]',
-    error:   'bg-[var(--status-error)]',
-  }[status]
-
-  return (
-    <span
-      className={clsx('size-1.5 shrink-0 rounded-full', dotColor, status === 'active' && 'node-dot-pulse')}
-      data-testid={`status-badge-${status}`}
-    />
-  )
-}
 
 export function StandardNodeContent({ data, compact = false }: StandardNodeContentProps) {
-  const status = data.status?.status ?? 'idle'
   const color = data.style?.color
   // semanticRole is authoritative; color is a fallback for nodes without factory wiring
   const isFirstClass = data.semanticRole
@@ -76,20 +59,15 @@ export function StandardNodeContent({ data, compact = false }: StandardNodeConte
   // First-class: role tag + title + optional subtitle + status
   return (
     <div className={clsx('flex flex-col gap-1', compact ? 'px-3 py-2' : 'px-3.5 py-2.5')}>
-      {/* Header row: role tag left, status right */}
-      <div className="flex items-center justify-between gap-2">
-        {roleTag ? (
-          <span
-            className="node-role-tag text-[9px] font-semibold uppercase tracking-[0.12em] opacity-55"
-            style={{ color: 'var(--node-accent)' }}
-          >
-            {roleTag}
-          </span>
-        ) : (
-          <span />
-        )}
-        <StatusDot status={status} />
-      </div>
+      {/* Header row: role tag */}
+      {roleTag ? (
+        <span
+          className="node-role-tag text-[9px] font-semibold uppercase tracking-[0.12em] opacity-55"
+          style={{ color: 'var(--node-accent)' }}
+        >
+          {roleTag}
+        </span>
+      ) : null}
 
       {/* Title */}
       <p className="truncate text-[12px] font-medium leading-snug text-[var(--text-primary)]">

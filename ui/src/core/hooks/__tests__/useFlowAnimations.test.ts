@@ -12,7 +12,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 describe('useFlowAnimations', () => {
-  it('activates a node on span_start then marks success and clears to idle', async () => {
+  it('activates a node on span_start then marks active on finish and clears to idle', async () => {
     const start: FlowEvent = {
       type: 'span_start',
       timestamp: '2026-03-03T12:00:00.000Z',
@@ -67,7 +67,7 @@ describe('useFlowAnimations', () => {
     })
 
     const status = result.current.nodeStatuses.get('extract-worker')
-    expect(status?.status).toBe('success')
+    expect(status?.status).toBe('active')
     expect(status?.durationMs).toBe(1_200)
 
     await act(async () => {
@@ -137,7 +137,7 @@ describe('useFlowAnimations', () => {
     })
 
     const status = result.current.nodeStatuses.get('incoming-worker')
-    expect(status?.status).toBe('success')
+    expect(status?.status).toBe('active')
     expect(status?.durationMs).toBe(250)
   })
 

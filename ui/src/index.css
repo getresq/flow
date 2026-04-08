@@ -891,22 +891,6 @@ body[data-theme='light'] {
   transition: box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
-/* Success: transient green bloom with elevation */
-.node-glow-success {
-  box-shadow:
-    0 0 24px rgba(0, 220, 130, 0.35),
-    0 6px 20px rgba(0, 0, 0, 0.55),
-    0 2px 6px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(0, 220, 130, 0.18);
-  transition: box-shadow 300ms ease-out;
-}
-:root[data-theme='light'] .node-glow-success {
-  box-shadow:
-    0 0 0 2.5px rgba(26, 140, 58, 0.35),
-    0 0 16px rgba(26, 140, 58, 0.18),
-    0 4px 12px rgba(0, 0, 0, 0.06);
-}
-
 /* Error: full red override — semantic color suppressed, elevation preserved */
 .node-glow-error {
   box-shadow:
@@ -955,18 +939,6 @@ body[data-theme='light'] {
     drop-shadow(0 0 3px var(--node-accent, #38B6FF))
     drop-shadow(0 0 10px var(--node-accent, #38B6FF)) !important;
   transition: filter 0ms !important;
-}
-
-/* Active pulse: dot only, gate on prefers-reduced-motion */
-@media (prefers-reduced-motion: no-preference) {
-  .node-dot-pulse {
-    animation: nodeDotPulse 2s ease-in-out infinite;
-  }
-}
-
-@keyframes nodeDotPulse {
-  0%, 100% { opacity: 0.6; }
-  50%       { opacity: 1.0; }
 }
 
 /* ── Node handles: hidden by default, visible on hover ── */

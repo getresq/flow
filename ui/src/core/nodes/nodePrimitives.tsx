@@ -118,10 +118,7 @@ export function statusGlowClass(status: NodeStatus | undefined): string {
   if (status === 'active') {
     return 'node-glow-active node-ping-active'
   }
-  if (status === 'success') {
-    return 'node-glow-success'
-  }
-  if (status === 'error') {
+if (status === 'error') {
     return 'node-glow-error'
   }
   return 'node-glow-idle'

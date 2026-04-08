@@ -51,12 +51,11 @@ function renderNode(component: ReactElement) {
 }
 
 describe('shape nodes', () => {
-  it('renders rectangle node content and status badge', () => {
+  it('renders rectangle node content', () => {
     renderNode(<RectangleNode {...baseNodeProps({ style: { color: 'worker' } })} />)
 
     expect(screen.getByText('Node Label')).toBeInTheDocument()
     expect(screen.getByText('Node sublabel')).toBeInTheDocument()
-    expect(screen.getByTestId('status-badge-active')).toBeInTheDocument()
   })
 
   it('renders rounded rectangle, diamond, circle, pill, badge, octagon, group, and annotation nodes', () => {
@@ -83,21 +82,20 @@ describe('shape nodes', () => {
     expect(screen.getByText('Annotation text block')).toBeInTheDocument()
   })
 
-  it('renders badge classes for each status', () => {
+  it('renders nodes for each status without error', () => {
     const withWorker = (status: Parameters<typeof baseNodeProps>[0]) =>
       baseNodeProps({ style: { color: 'worker' }, ...status })
 
     renderNode(
       <>
         <RectangleNode {...withWorker({ status: { status: 'idle', updatedAt: Date.now() } })} />
-        <RectangleNode {...withWorker({ status: { status: 'success', updatedAt: Date.now() } })} />
+        <RectangleNode {...withWorker({ status: { status: 'active', updatedAt: Date.now() } })} />
         <RectangleNode {...withWorker({ status: { status: 'error', updatedAt: Date.now() } })} />
       </>,
     )
 
-    expect(screen.getByTestId('status-badge-idle')).toBeInTheDocument()
-    expect(screen.getByTestId('status-badge-success')).toBeInTheDocument()
-    expect(screen.getByTestId('status-badge-error')).toBeInTheDocument()
+    // Glow is applied via CSS classes on the container — just verify the nodes render
+    expect(screen.getAllByText('Node Label')).toHaveLength(3)
   })
 
   it('renders cylinders with concrete resource tags and hides duplicate titles', () => {
