@@ -22,7 +22,6 @@ export function CircleNode({ id, data }: NodeProps<FlowNode>) {
         className={`${nodeContainerClass({
           color: data.style?.color,
           status,
-          borderStyle: data.style?.borderStyle,
         })} flex h-full w-full flex-col items-center justify-center rounded-full p-3 text-center`}
       >
         {icon ? (

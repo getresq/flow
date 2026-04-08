@@ -20,7 +20,6 @@ export function DiamondNode({ id, data }: NodeProps<FlowNode>) {
         className={`${nodeContainerClass({
           color: data.style?.color ?? 'decision',
           status,
-          borderStyle: data.style?.borderStyle,
         })} flex h-full w-full rotate-45 items-center justify-center`}
       >
         <div className="-rotate-45 px-2 text-center">

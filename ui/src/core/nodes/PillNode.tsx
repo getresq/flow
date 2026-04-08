@@ -14,7 +14,6 @@ export function PillNode({ id, data }: NodeProps<FlowNode>) {
       className={`${nodeContainerClass({
         color: data.style?.color,
         status,
-        borderStyle: data.style?.borderStyle,
       })} relative rounded-full`}
     >
       {renderHandles(id, data.handles, [...defaultHandles])}

@@ -6,23 +6,23 @@ export interface NodeSize {
 }
 
 const shapeSizeDefaults: Partial<Record<NodeShape, NodeSize>> = {
-  rectangle: { width: 240, height: 72 },
-  roundedRect: { width: 240, height: 72 },
+  rectangle: { width: 180, height: 72 },
+  roundedRect: { width: 180, height: 72 },
   diamond: { width: 144, height: 144 },
   circle: { width: 112, height: 112 },
   cylinder: { width: 112, height: 128 },
-  pill: { width: 240, height: 44 },
-  badge: { width: 200, height: 44 },
+  pill: { width: 180, height: 44 },
+  badge: { width: 150, height: 44 },
   octagon: { width: 160, height: 70 },
 }
 
 const roleSizeDefaults: Partial<Record<NodeSemanticRole, NodeSize>> = {
-  trigger: { width: 240, height: 44 },
-  queue: { width: 240, height: 72 },
-  worker: { width: 240, height: 72 },
-  scheduler: { width: 240, height: 72 },
-  process: { width: 200, height: 72 },
-  detail: { width: 200, height: 44 },
+  trigger: { width: 180, height: 52 },
+  queue: { width: 180, height: 72 },
+  worker: { width: 180, height: 72 },
+  scheduler: { width: 180, height: 72 },
+  process: { width: 180, height: 72 },
+  detail: { width: 150, height: 44 },
   decision: { width: 144, height: 144 },
   resource: { width: 112, height: 128 },
 }

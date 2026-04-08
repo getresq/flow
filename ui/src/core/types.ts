@@ -18,7 +18,6 @@ export type NodeStatus = 'idle' | 'active' | 'success' | 'error'
 export interface NodeStyle {
   color?: string
   icon?: string
-  borderStyle?: 'solid' | 'dashed'
 }
 
 export type NodeSemanticRole =
@@ -97,7 +96,7 @@ export interface FlowEdgeConfig {
   sourceHandle?: string
   targetHandle?: string
   label?: string
-  type?: 'animated' | 'dashed'
+  type?: 'animated'
   animated?: boolean
 }
 

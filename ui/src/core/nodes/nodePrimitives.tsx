@@ -186,23 +186,20 @@ const firstClassColors = new Set(['queue', 'worker', 'cron', 'process', 'trigger
 export function nodeContainerClass({
   color,
   status,
-  borderStyle,
 }: {
   color?: string
   status?: NodeStatus
-  borderStyle?: 'solid' | 'dashed'
 }) {
   const tone = resolveTone(color)
   const isFirstClass = color ? firstClassColors.has(color) : false
 
   return clsx(
-    isFirstClass ? 'border-[1.5px]' : 'border-[0.5px]',
+    isFirstClass ? 'border-[1.5px]' : 'border',
     'text-[11px] node-transition',
     tone.border,
     tone.bg,
     tone.text,
     statusGlowClass(status),
     tone.glow,
-    borderStyle === 'dashed' && 'border-dashed',
   )
 }

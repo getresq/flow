@@ -64,11 +64,11 @@ export function StandardNodeContent({ data, compact = false }: StandardNodeConte
     : color ? firstClassColors.has(color) : false
   const roleTag = resolveRoleTag(data.semanticRole, color, data.style?.icon)
 
-  // Detail / non-first-class: minimal — label only, no role tag, no status
+  // Detail / non-first-class: minimal — label only, centered, no role tag, no status
   if (!isFirstClass) {
     return (
-      <div className={clsx('px-2.5 py-1.5')}>
-        <p className="truncate text-[11px] leading-tight opacity-80">{data.label}</p>
+      <div className="px-3 py-2 text-center">
+        <p className="truncate text-[11px] font-medium leading-tight">{data.label}</p>
       </div>
     )
   }

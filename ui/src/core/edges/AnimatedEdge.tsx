@@ -63,7 +63,7 @@ export function AnimatedEdge({
         markerEnd={markerEnd}
         style={{
           stroke: isActive ? 'var(--color-active)' : 'var(--color-edge)',
-          strokeWidth: isActive ? 1.8 : 1.2,
+          strokeWidth: isActive ? 1.5 : 1,
           opacity: isDimmed ? 0.2 : 1,
           transition: 'stroke 300ms ease, stroke-width 300ms ease, opacity 220ms ease',
         }}

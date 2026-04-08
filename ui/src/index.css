@@ -106,10 +106,10 @@
   --node-trigger-accent: #22C55E;
 
   /* Detail — Muted, non-first-class */
-  --node-detail-border: rgba(148, 163, 184, 0.14);
-  --node-detail-bg: rgba(148, 163, 184, 0.03);
-  --node-detail-text: #64748b;
-  --node-detail-accent: #475569;
+  --node-detail-border: rgba(148, 163, 184, 0.38);
+  --node-detail-bg: rgba(148, 163, 184, 0.09);
+  --node-detail-text: #94a3b8;
+  --node-detail-accent: #94a3b8;
 
   /* Group — Transparent container */
   --node-group-border: rgba(255, 255, 255, 0.12);
@@ -172,11 +172,9 @@
 
   /* Compatibility aliases for the current canvas implementation */
   --color-active: var(--status-active);
-  --color-edge: #2a2a2e;
-  --color-edge-dimmed: #1e1e22;
-  --color-edge-dashed: var(--status-warning);
-  --color-marker: var(--text-muted);
-  --color-marker-dashed: var(--text-secondary);
+  --color-edge: #3f3f46;
+  --color-edge-dimmed: #27272a;
+  --color-marker: #3f3f46;
   --color-canvas-dot: var(--canvas-dot);
 }
 
@@ -273,8 +271,8 @@
   --node-trigger-accent: #16A34A;
 
   /* Detail — Muted */
-  --node-detail-border: rgba(148, 163, 184, 0.22);
-  --node-detail-bg: rgba(0, 0, 0, 0.02);
+  --node-detail-border: rgba(100, 116, 139, 0.32);
+  --node-detail-bg: rgba(100, 116, 139, 0.05);
   --node-detail-text: #64748b;
   --node-detail-accent: #94A3B8;
 
@@ -332,11 +330,9 @@
   --canvas-bg: var(--flow-surface-bg);
   --canvas-dot: rgba(0, 0, 0, 0.07);
   --color-active: var(--status-active);
-  --color-edge: #90caf9;
-  --color-edge-dimmed: #bbdefb;
-  --color-edge-dashed: var(--status-warning);
-  --color-marker: var(--text-muted);
-  --color-marker-dashed: var(--accent-primary);
+  --color-edge: #D1D5DB;
+  --color-edge-dimmed: #E5E7EB;
+  --color-marker: #D1D5DB;
   --color-canvas-dot: var(--canvas-dot);
 }
 
@@ -422,11 +418,6 @@ body[data-theme='light'] {
   }
 }
 
-@keyframes marchingDash {
-  to {
-    stroke-dashoffset: -24;
-  }
-}
 
 .animate-flow-pulse {
   animation: flowPulse 2s ease-in-out infinite;
@@ -667,14 +658,25 @@ body[data-theme='light'] {
   background: linear-gradient(160deg, #10301a 0%, #08210f 100%);
 }
 
-/* ── Detail / Group — no glow, no gradient, no shadow ── */
+/* ── Detail — subtle elevation only; no color glow (subordinate tier) ── */
 .node-family-detail {
-  --node-accent:       var(--node-detail-accent);
-  --node-border-color: var(--node-detail-border);
-  --node-glow-rest:    none;
-  --node-glow-hover:   none;
-  --node-glow-selected: none;
+  --node-accent:        var(--node-detail-accent);
+  --node-border-color:  var(--node-detail-border);
+  --node-glow-rest:
+    0 2px 6px rgba(0, 0, 0, 0.28),
+    0 1px 3px rgba(0, 0, 0, 0.18);
+  --node-glow-hover:
+    0 0 12px rgba(148, 163, 184, 0.18),
+    0 4px 12px rgba(0, 0, 0, 0.40),
+    0 1px 4px rgba(0, 0, 0, 0.24);
+  --node-glow-selected:
+    0 0 0 2px rgba(148, 163, 184, 0.22),
+    0 0 18px rgba(148, 163, 184, 0.22),
+    0 4px 12px rgba(0, 0, 0, 0.44),
+    0 1px 4px rgba(0, 0, 0, 0.28);
 }
+.react-flow__node:hover .node-family-detail   { --node-border-color: rgba(148, 163, 184, 0.55); }
+.react-flow__node.selected .node-family-detail { --node-border-color: rgba(148, 163, 184, 0.75); }
 .node-family-group {
   --node-accent:        var(--node-group-accent);
   --node-border-color:  var(--node-group-border);
@@ -881,7 +883,22 @@ body[data-theme='light'] {
   background: linear-gradient(160deg, #e9fce9 0%, #dcfce7 100%);
 }
 
-:root[data-theme='light'] .node-family-detail { --node-border-color: var(--node-detail-border); }
+:root[data-theme='light'] .node-family-detail {
+  --node-border-color: var(--node-detail-border);
+  --node-glow-rest:
+    0 1px 4px rgba(0, 0, 0, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+  --node-glow-hover:
+    0 0 8px rgba(100, 116, 139, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.05);
+  --node-glow-selected:
+    0 0 0 2px rgba(100, 116, 139, 0.18),
+    0 0 14px rgba(100, 116, 139, 0.16),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+}
+:root[data-theme='light'] .react-flow__node:hover .node-family-detail   { --node-border-color: rgba(100, 116, 139, 0.50); }
+:root[data-theme='light'] .react-flow__node.selected .node-family-detail { --node-border-color: rgba(100, 116, 139, 0.70); }
 :root[data-theme='light'] .node-family-group  { --node-border-color: var(--node-group-border); }
 
 /* ── Node glow classes ── */

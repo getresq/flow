@@ -82,6 +82,7 @@ Graph blocks should stay short and easy to scan.
 - block face = short title + optional short subtitle only
 - titles should usually be 1 to 3 words
 - process titles should usually be verb-first
+- process blocks should usually omit subtitles
 - decision titles should usually be short questions
 - subtitles are optional and should show a short normalized technical alias when they add value
 - do not put long business-rule sentences on the face of a block
@@ -118,10 +119,17 @@ Use a small size system, not one-off widths.
 
 Rules:
 
-- do not widen blocks to fit long prose
-- shorten the title first
+- do not widen blocks to fit long prose — shorten the title first
+- queue / worker / scheduler titles should be ≤28 characters
+- process titles should be ≤24 characters
 - use `description` in the sidebar for longer explanation
 - use explicit per-node widths only when a real layout need remains after label cleanup
+- branch outcome nodes (terminal states, simple write operations, error fallbacks) should use `detail`, not `process` — they should visually recede so the primary flow spine stands out
+
+Grouped internals:
+
+- inside groups, default child nodes to the detail family
+- only promote a grouped child to a first-class process when users truly need to reason about it as a standalone step
 
 ---
 

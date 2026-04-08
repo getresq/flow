@@ -20,7 +20,6 @@ export function OctagonNode({ id, data }: NodeProps<FlowNode>) {
         className={`${nodeContainerClass({
           color: data.style?.color ?? 'detail',
           status,
-          borderStyle: data.style?.borderStyle,
         })} flex h-full w-full items-center justify-center px-4 text-center`}
         style={{ clipPath: 'polygon(18% 0%, 82% 0%, 100% 18%, 100% 82%, 82% 100%, 18% 100%, 0% 82%, 0% 18%)' }}
       >

@@ -97,7 +97,8 @@ Useful focused checks:
 
 - Use shadcn components from `@/components/ui/` for standard UI primitives.
 - Use `ui/DESIGN-SYSTEM.md` for palette, spacing, and language rules.
-- Keep graph block titles short, keep subtitles optional and technically useful, and put longer explanation in sidebar `description` instead of on the block face.
+- Keep graph block titles short. Process blocks should usually be title-only; use subtitles only when a short technical alias clearly helps. Put longer explanation in sidebar `description` instead of on the block face.
 - Keep graph block sizes on the shared width tiers; do not hand-tune one-off widths unless a real layout need survives after title cleanup.
+- Inside groups, default child nodes to the `detail` family unless they truly need to stand on their own as first-class steps.
 - Prefer `Flow`, `Run`, `Node`, `Logs`, `Status`, and `Timing` in the main UI.
 - Reserve lower-level telemetry words like `trace`, `span`, and `event` for advanced views.

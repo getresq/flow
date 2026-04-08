@@ -13,11 +13,13 @@ import {
 
 import type { FlowConfig, LogEntry, TraceJourney } from '../types'
 import { formatRunLabel, formatStepDisplayLabel, isDefaultVisibleJourney } from '../runPresentation'
-import {
-  type BottomPanelSnap,
-  useLayoutStore,
-} from '../../stores/layout'
+import { useLayoutStore } from '../../stores/layout'
 import { buildLogSearchText } from '../logPresentation'
+import {
+  bottomPanelSizing,
+  getBottomPanelSnapFromHeight,
+  getBottomPanelSnapHeight,
+} from './bottomPanelSizing'
 import { LogsTable } from './LogsTable'
 import { RunsTable } from './RunsTable'
 
@@ -32,9 +34,6 @@ interface BottomLogPanelProps {
 
 type PanelTab = 'logs' | 'traces'
 
-const WHISPER_HEIGHT = 38
-const HEADER_HEIGHT = 48
-
 function getScrollViewport(root: HTMLDivElement | null) {
   return root?.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement | null
 }
@@ -43,23 +42,6 @@ function resolveSemanticFamily(semanticRole: string | undefined): string | undef
   if (!semanticRole) return undefined
   if (semanticRole === 'scheduler') return 'cron'
   return semanticRole
-}
-
-function snapToHeight(snap: BottomPanelSnap): number {
-  if (snap === 'whisper') return WHISPER_HEIGHT
-  if (snap === 'full') return typeof window !== 'undefined' ? window.innerHeight - HEADER_HEIGHT : 600
-  return typeof window !== 'undefined' ? Math.round(window.innerHeight * 0.25) : 200
-}
-
-function resolveSnapFromHeight(height: number): BottomPanelSnap {
-  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800
-  const partialHeight = Math.round(viewportHeight * 0.25)
-  const fullHeight = viewportHeight - HEADER_HEIGHT
-  const midToFull = partialHeight + (fullHeight - partialHeight) * 0.4
-  const midToWhisper = WHISPER_HEIGHT + (partialHeight - WHISPER_HEIGHT) * 0.4
-  if (height >= midToFull) return 'full'
-  if (height <= midToWhisper) return 'whisper'
-  return 'partial'
 }
 
 export function BottomLogPanel({
@@ -83,10 +65,15 @@ export function BottomLogPanel({
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null)
   const [dragHeight, setDragHeight] = useState<number | null>(null)
   const [customHeight, setCustomHeight] = useState<number | null>(null)
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800
 
   const isWhisper = snap === 'whisper'
   const isFull = snap === 'full'
-  const displayHeight = dragHeight ?? (snap === 'partial' && customHeight !== null ? customHeight : snapToHeight(snap))
+  const displayHeight =
+    dragHeight ??
+    (snap === 'partial' && customHeight !== null
+      ? customHeight
+      : getBottomPanelSnapHeight(snap, viewportHeight))
 
   const flowLogs = useMemo(
     () => globalLogs.filter((entry) => entry.eventType === 'log'),
@@ -235,7 +222,10 @@ export function BottomLogPanel({
       if (target.closest('button, input, [role="tab"], [role="tablist"]')) return
       event.preventDefault()
       target.setPointerCapture(event.pointerId)
-      const startHeight = snap === 'partial' && customHeight !== null ? customHeight : snapToHeight(snap)
+      const startHeight =
+        snap === 'partial' && customHeight !== null
+          ? customHeight
+          : getBottomPanelSnapHeight(snap, window.innerHeight)
       dragRef.current = { startY: event.clientY, startHeight }
       let moved = false
 
@@ -244,8 +234,11 @@ export function BottomLogPanel({
         const delta = dragRef.current.startY - moveEvent.clientY
         if (!moved && Math.abs(delta) < TAP_THRESHOLD) return
         moved = true
-        const maxHeight = window.innerHeight - HEADER_HEIGHT
-        const nextHeight = Math.min(Math.max(dragRef.current.startHeight + delta, WHISPER_HEIGHT), maxHeight)
+        const maxHeight = window.innerHeight - bottomPanelSizing.appHeaderHeight
+        const nextHeight = Math.min(
+          Math.max(dragRef.current.startHeight + delta, bottomPanelSizing.whisperHeight),
+          maxHeight,
+        )
         setDragHeight(nextHeight)
       }
 
@@ -255,7 +248,10 @@ export function BottomLogPanel({
         if (!dragRef.current) return
 
         const delta = dragRef.current.startY - upEvent.clientY
-        const finalHeight = Math.max(dragRef.current.startHeight + delta, WHISPER_HEIGHT)
+        const finalHeight = Math.max(
+          dragRef.current.startHeight + delta,
+          bottomPanelSizing.whisperHeight,
+        )
         dragRef.current = null
         setDragHeight(null)
 
@@ -267,7 +263,7 @@ export function BottomLogPanel({
           return
         }
 
-        const resolved = resolveSnapFromHeight(finalHeight)
+        const resolved = getBottomPanelSnapFromHeight(finalHeight, window.innerHeight)
         if (resolved === 'whisper' || resolved === 'full') {
           setSnap(resolved)
           setCustomHeight(null)

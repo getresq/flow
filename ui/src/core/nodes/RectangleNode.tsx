@@ -17,7 +17,6 @@ export function RectangleNode({ id, data }: NodeProps<FlowNode>) {
       className={`${nodeContainerClass({
         color: data.style?.color,
         status,
-        borderStyle: data.style?.borderStyle,
       })} rounded-xl`}
     >
       {renderHandles(id, data.handles, [...defaultHandles])}
