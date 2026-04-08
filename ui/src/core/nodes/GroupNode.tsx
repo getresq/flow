@@ -1,17 +1,13 @@
 import { NodeResizer, type NodeProps } from '@xyflow/react'
 
-import { renderHandles, resolveTone } from './nodePrimitives'
+import { renderHandles } from './nodePrimitives'
 import type { FlowNode } from './types'
 
 const defaultHandles = [] as const
 
 export function GroupNode({ id, data, selected }: NodeProps<FlowNode>) {
-  const tone = resolveTone(data.style?.color)
-
   return (
-    <div
-      className={`h-full w-full rounded-[20px] border border-dashed ${tone.border} ${tone.bg} px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] ${tone.text}`}
-    >
+    <div className="relative h-full w-full">
       {renderHandles(id, data.handles, [...defaultHandles])}
       {data.resizable ? (
         <NodeResizer
@@ -22,7 +18,11 @@ export function GroupNode({ id, data, selected }: NodeProps<FlowNode>) {
           handleClassName="!h-2.5 !w-2.5 !rounded-md !border !border-[var(--border-default)] !bg-[var(--accent-primary)]"
         />
       ) : null}
-      {data.label ? data.label : null}
+      {data.label ? (
+        <span className="pointer-events-none absolute left-0 top-0 text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-[var(--node-group-text)] opacity-45">
+          {data.label}
+        </span>
+      ) : null}
     </div>
   )
 }

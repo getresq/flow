@@ -111,9 +111,7 @@
   --node-detail-text: #94a3b8;
   --node-detail-accent: #94a3b8;
 
-  /* Group — Transparent container */
-  --node-group-border: rgba(255, 255, 255, 0.12);
-  --node-group-bg: transparent;
+  /* Group — label-only section header */
   --node-group-text: #64748b;
   --node-group-accent: #64748b;
 
@@ -276,9 +274,7 @@
   --node-detail-text: #64748b;
   --node-detail-accent: #94A3B8;
 
-  /* Group — Subtle container */
-  --node-group-border: rgba(0, 0, 0, 0.10);
-  --node-group-bg: rgba(0, 0, 0, 0.018);
+  /* Group — label-only section header */
   --node-group-text: #64748b;
   --node-group-accent: #94a3b8;
 
@@ -693,14 +689,6 @@ body[data-theme='light'] {
 }
 .react-flow__node:hover .node-family-detail   { --node-border-color: rgba(148, 163, 184, 0.55); }
 .react-flow__node.selected .node-family-detail { --node-border-color: rgba(148, 163, 184, 0.75); }
-.node-family-group {
-  --node-accent:        var(--node-group-accent);
-  --node-border-color:  var(--node-group-border);
-  --node-glow-rest:     none;
-  --node-glow-hover:    none;
-  --node-glow-selected: none;
-}
-
 /* ── Light mode overrides for first-class families ── */
 
 :root[data-theme='light'] .node-family-queue {
@@ -872,7 +860,6 @@ body[data-theme='light'] {
 }
 :root[data-theme='light'] .react-flow__node:hover .node-family-detail   { --node-border-color: rgba(100, 116, 139, 0.50); }
 :root[data-theme='light'] .react-flow__node.selected .node-family-detail { --node-border-color: rgba(100, 116, 139, 0.70); }
-:root[data-theme='light'] .node-family-group  { --node-border-color: var(--node-group-border); }
 
 /* ── Node glow classes ── */
 

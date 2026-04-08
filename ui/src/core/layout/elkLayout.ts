@@ -43,10 +43,10 @@ function groupLayoutOptions(mode: GroupLayoutMode = 'stack') {
 
   return {
     ...baseLayoutOptions(),
-    'elk.padding': '[top=24,left=24,bottom=24,right=24]',
-    'elk.layered.spacing.nodeNodeBetweenLayers': '44',
-    'elk.layered.spacing.edgeNodeBetweenLayers': '24',
-    'elk.spacing.nodeNode': '28',
+    'elk.padding': '[top=22,left=4,bottom=4,right=4]',
+    'elk.layered.spacing.nodeNodeBetweenLayers': '20',
+    'elk.layered.spacing.edgeNodeBetweenLayers': '12',
+    'elk.spacing.nodeNode': '14',
   } as const
 }
 
