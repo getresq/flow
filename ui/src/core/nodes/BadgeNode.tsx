@@ -16,7 +16,7 @@ export function BadgeNode({ id, data }: NodeProps<FlowNode>) {
       className={`${nodeContainerClass({
         color: data.style?.color ?? 'detail',
         status,
-      })} relative rounded-md px-2.5 py-1.5`}
+      })} relative rounded-md px-3 py-2`}
     >
       {renderHandles(id, data.handles, [...defaultHandles])}
       <p className="truncate text-[11px] leading-tight opacity-80">{data.label}</p>

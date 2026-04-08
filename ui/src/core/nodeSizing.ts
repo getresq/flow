@@ -12,7 +12,7 @@ const shapeSizeDefaults: Partial<Record<NodeShape, NodeSize>> = {
   circle: { width: 112, height: 112 },
   cylinder: { width: 112, height: 128 },
   pill: { width: 180, height: 44 },
-  badge: { width: 150, height: 44 },
+  badge: { width: 150, height: 52 },
   octagon: { width: 160, height: 70 },
 }
 
@@ -22,7 +22,7 @@ const roleSizeDefaults: Partial<Record<NodeSemanticRole, NodeSize>> = {
   worker: { width: 180, height: 72 },
   scheduler: { width: 180, height: 72 },
   process: { width: 180, height: 72 },
-  detail: { width: 150, height: 44 },
+  detail: { width: 150, height: 52 },
   decision: { width: 144, height: 144 },
   resource: { width: 112, height: 128 },
 }
