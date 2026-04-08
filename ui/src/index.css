@@ -900,6 +900,13 @@ body[data-theme='light'] {
   --xy-node-boxshadow-selected-default: none;
 }
 
+/* Suppress React Flow's default border/bg on group nodes — label-only design */
+.react-flow__node-group {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 /* Selected: full depth stack from --node-glow-selected (includes focus ring) */
 .react-flow__node.selected .node-glow-idle:not(.node-glow-svg),
 .react-flow__node.selected .node-glow-active:not(.node-glow-svg) {
