@@ -787,8 +787,8 @@ export function FlowCanvas({
       >
         <Background
           variant={BackgroundVariant.Dots}
-          gap={26}
-          size={1.2}
+          gap={44}
+          size={2}
           color={'var(--color-canvas-dot)'}
         />
       </ReactFlow>

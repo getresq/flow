@@ -52,7 +52,7 @@
 
   /* Canvas */
   --canvas-bg: var(--flow-surface-bg);
-  --canvas-dot: rgba(255, 255, 255, 0.05);
+  --canvas-dot: rgba(255, 255, 255, 0.28);
 
   /* ── Node semantic color roles — Design Contract v1.0 ── */
 
@@ -186,7 +186,7 @@
   --surface-primary: #ffffff;
   --surface-raised: #ffffff;
   --surface-overlay: #f0f0f2;
-  --surface-inset: #f5f5f7;
+  --surface-inset: #f2f2f4;
   --flow-surface-bg: #ffffff;
 
   /* Borders */
@@ -222,57 +222,57 @@
   /* ── Node semantic color roles — Design Contract v1.0 (light) ── */
 
   /* Queue — Amber */
-  --node-queue-border: rgba(220, 130, 0, 0.45);
+  --node-queue-border: rgba(200, 120, 0, 0.55);
   --node-queue-border-selected: #DC8200;
-  --node-queue-bg: rgba(255, 149, 0, 0.03);
+  --node-queue-bg: rgba(255, 149, 0, 0.05);
   --node-queue-text: #92400e;
   --node-queue-accent: #DC8200;
 
   /* Worker — Ocean blue */
-  --node-worker-border: rgba(0, 140, 240, 0.45);
+  --node-worker-border: rgba(0, 120, 220, 0.55);
   --node-worker-border-selected: #008CF0;
-  --node-worker-bg: rgba(0, 122, 255, 0.03);
+  --node-worker-bg: rgba(0, 122, 255, 0.05);
   --node-worker-text: #1e3a5f;
   --node-worker-accent: #008CF0;
 
   /* Cron / Scheduler — neutral slate */
-  --node-cron-border: rgba(100, 116, 139, 0.35);
+  --node-cron-border: rgba(100, 116, 139, 0.45);
   --node-cron-border-selected: #64748B;
-  --node-cron-bg: rgba(142, 142, 147, 0.03);
+  --node-cron-bg: rgba(142, 142, 147, 0.05);
   --node-cron-text: #475569;
   --node-cron-accent: #64748B;
 
   /* Process — Quiet blue */
-  --node-process-border: rgba(59, 130, 246, 0.24);
+  --node-process-border: rgba(59, 130, 246, 0.38);
   --node-process-border-selected: #3B82F6;
-  --node-process-bg: rgba(88, 86, 214, 0.03);
+  --node-process-bg: rgba(88, 86, 214, 0.05);
   --node-process-text: #1e3a8a;
   --node-process-accent: #60A5FA;
 
   /* Decision — Violet */
-  --node-decision-border: rgba(130, 70, 220, 0.45);
+  --node-decision-border: rgba(130, 70, 220, 0.55);
   --node-decision-border-selected: #8246DC;
-  --node-decision-bg: rgba(130, 70, 220, 0.03);
+  --node-decision-bg: rgba(130, 70, 220, 0.05);
   --node-decision-text: #4c1d95;
   --node-decision-accent: #8246DC;
 
   /* Resource — Slate-teal */
-  --node-resource-border: rgba(0, 150, 150, 0.40);
+  --node-resource-border: rgba(0, 140, 140, 0.50);
   --node-resource-border-selected: #009696;
-  --node-resource-bg: rgba(0, 150, 150, 0.03);
+  --node-resource-bg: rgba(0, 150, 150, 0.05);
   --node-resource-text: #155e75;
   --node-resource-accent: #009696;
 
   /* Trigger — Green */
-  --node-trigger-border: rgba(22, 163, 74, 0.35);
+  --node-trigger-border: rgba(22, 150, 70, 0.48);
   --node-trigger-border-selected: #16A34A;
-  --node-trigger-bg: rgba(34, 197, 94, 0.03);
+  --node-trigger-bg: rgba(34, 197, 94, 0.05);
   --node-trigger-text: #166534;
   --node-trigger-accent: #16A34A;
 
   /* Detail — Muted */
-  --node-detail-border: rgba(100, 116, 139, 0.32);
-  --node-detail-bg: rgba(100, 116, 139, 0.05);
+  --node-detail-border: rgba(100, 116, 139, 0.40);
+  --node-detail-bg: rgba(100, 116, 139, 0.06);
   --node-detail-text: #64748b;
   --node-detail-accent: #94A3B8;
 
@@ -283,33 +283,33 @@
   --node-group-accent: #94a3b8;
 
   /* ── Per-family glow tokens (light) ── */
-  --glow-queue-rest:     0 0 10px rgba(220, 130, 0, 0.10);
-  --glow-queue-hover:    0 0 18px rgba(220, 130, 0, 0.18);
-  --glow-queue-selected: 0 0 26px rgba(220, 130, 0, 0.25);
+  --glow-queue-rest:     0 0 12px rgba(200, 120, 0, 0.14);
+  --glow-queue-hover:    0 0 20px rgba(200, 120, 0, 0.22);
+  --glow-queue-selected: 0 0 30px rgba(200, 120, 0, 0.30);
 
-  --glow-worker-rest:     0 0 10px rgba(0, 140, 240, 0.10);
-  --glow-worker-hover:    0 0 18px rgba(0, 140, 240, 0.18);
-  --glow-worker-selected: 0 0 26px rgba(0, 140, 240, 0.25);
+  --glow-worker-rest:     0 0 12px rgba(0, 120, 220, 0.14);
+  --glow-worker-hover:    0 0 20px rgba(0, 120, 220, 0.22);
+  --glow-worker-selected: 0 0 30px rgba(0, 120, 220, 0.30);
 
-  --glow-cron-rest:     0 0 10px rgba(100, 116, 139, 0.10);
-  --glow-cron-hover:    0 0 18px rgba(100, 116, 139, 0.18);
-  --glow-cron-selected: 0 0 26px rgba(100, 116, 139, 0.25);
+  --glow-cron-rest:     0 0 12px rgba(100, 116, 139, 0.12);
+  --glow-cron-hover:    0 0 20px rgba(100, 116, 139, 0.20);
+  --glow-cron-selected: 0 0 30px rgba(100, 116, 139, 0.28);
 
-  --glow-process-rest:     0 0 8px rgba(59, 130, 246, 0.08);
-  --glow-process-hover:    0 0 14px rgba(59, 130, 246, 0.15);
-  --glow-process-selected: 0 0 22px rgba(59, 130, 246, 0.24);
+  --glow-process-rest:     0 0 10px rgba(59, 130, 246, 0.12);
+  --glow-process-hover:    0 0 18px rgba(59, 130, 246, 0.20);
+  --glow-process-selected: 0 0 26px rgba(59, 130, 246, 0.28);
 
-  --glow-decision-rest:     0 0 10px rgba(130, 70, 220, 0.10);
-  --glow-decision-hover:    0 0 18px rgba(130, 70, 220, 0.18);
-  --glow-decision-selected: 0 0 26px rgba(130, 70, 220, 0.25);
+  --glow-decision-rest:     0 0 12px rgba(130, 70, 220, 0.14);
+  --glow-decision-hover:    0 0 20px rgba(130, 70, 220, 0.22);
+  --glow-decision-selected: 0 0 30px rgba(130, 70, 220, 0.30);
 
-  --glow-resource-rest:     0 0 8px rgba(0, 150, 150, 0.08);
-  --glow-resource-hover:    0 0 16px rgba(0, 150, 150, 0.15);
-  --glow-resource-selected: 0 0 22px rgba(0, 150, 150, 0.22);
+  --glow-resource-rest:     0 0 10px rgba(0, 140, 140, 0.12);
+  --glow-resource-hover:    0 0 18px rgba(0, 140, 140, 0.20);
+  --glow-resource-selected: 0 0 26px rgba(0, 140, 140, 0.26);
 
-  --glow-trigger-rest:     0 0 10px rgba(22, 163, 74, 0.10);
-  --glow-trigger-hover:    0 0 18px rgba(22, 163, 74, 0.18);
-  --glow-trigger-selected: 0 0 26px rgba(22, 163, 74, 0.25);
+  --glow-trigger-rest:     0 0 12px rgba(22, 150, 70, 0.14);
+  --glow-trigger-hover:    0 0 20px rgba(22, 150, 70, 0.22);
+  --glow-trigger-selected: 0 0 30px rgba(22, 150, 70, 0.30);
 
   --node-handle-border: rgba(0, 0, 0, 0.12);
   --node-handle-bg: #c4cdd6;
@@ -328,7 +328,7 @@
 
   /* Compatibility canvas aliases */
   --canvas-bg: var(--flow-surface-bg);
-  --canvas-dot: transparent;
+  --canvas-dot: rgba(0, 0, 0, 0.15);
   --color-active: var(--status-active);
   --color-edge: #B0B8C4;
   --color-edge-dimmed: #D1D5DB;
@@ -382,10 +382,11 @@ body[data-theme='light'] {
 }
 
 :root[data-theme='light'] .hud-pill {
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.82);
   border-color: rgba(0, 0, 0, 0.06);
   box-shadow:
-    0 1px 8px rgba(0, 0, 0, 0.06),
+    0 1px 8px rgba(0, 0, 0, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.04),
     0 0 0 1px rgba(0, 0, 0, 0.03);
 }
 
@@ -707,171 +708,173 @@ body[data-theme='light'] {
   --node-border-color: var(--node-queue-border);
   --node-glow-rest:
     0 1px 3px rgba(0, 0, 0, 0.06),
-    0 4px 12px rgba(220, 130, 0, 0.06),
-    0 0 0 1px rgba(220, 130, 0, 0.10);
+    0 4px 14px rgba(200, 120, 0, 0.10),
+    0 0 0 1px rgba(200, 120, 0, 0.12);
   --node-glow-hover:
-    0 2px 6px rgba(0, 0, 0, 0.08),
-    0 6px 18px rgba(220, 130, 0, 0.12),
-    0 0 0 1px rgba(220, 130, 0, 0.16);
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 8px 22px rgba(200, 120, 0, 0.16),
+    0 0 0 1px rgba(200, 120, 0, 0.20);
   --node-glow-selected:
-    0 0 0 2.5px rgba(220, 130, 0, 0.22),
-    0 4px 16px rgba(220, 130, 0, 0.16),
-    0 8px 24px rgba(0, 0, 0, 0.10);
-  background: linear-gradient(160deg, #FFF8ED 0%, #FFF2E0 100%);
+    0 0 0 2.5px rgba(200, 120, 0, 0.26),
+    0 6px 20px rgba(200, 120, 0, 0.20),
+    0 10px 28px rgba(0, 0, 0, 0.10);
+  background: linear-gradient(160deg, #FFF5E1 0%, #FFEDCC 100%);
 }
-:root[data-theme='light'] .react-flow__node:hover .node-family-queue { --node-border-color: rgba(220, 130, 0, 0.75); }
+:root[data-theme='light'] .react-flow__node:hover .node-family-queue { --node-border-color: rgba(200, 120, 0, 0.80); }
 :root[data-theme='light'] .react-flow__node.selected .node-family-queue {
   --node-border-color: #DC8200;
-  background: linear-gradient(160deg, #FFF0D9 0%, #FFE8C8 100%);
+  background: linear-gradient(160deg, #FFEDC4 0%, #FFE2AE 100%);
 }
 
 :root[data-theme='light'] .node-family-worker {
   --node-border-color: var(--node-worker-border);
   --node-glow-rest:
     0 1px 3px rgba(0, 0, 0, 0.06),
-    0 4px 12px rgba(0, 122, 255, 0.06),
-    0 0 0 1px rgba(0, 122, 255, 0.10);
+    0 4px 14px rgba(0, 110, 220, 0.10),
+    0 0 0 1px rgba(0, 110, 220, 0.12);
   --node-glow-hover:
-    0 2px 6px rgba(0, 0, 0, 0.08),
-    0 6px 18px rgba(0, 122, 255, 0.12),
-    0 0 0 1px rgba(0, 122, 255, 0.16);
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 8px 22px rgba(0, 110, 220, 0.16),
+    0 0 0 1px rgba(0, 110, 220, 0.20);
   --node-glow-selected:
-    0 0 0 2.5px rgba(0, 122, 255, 0.22),
-    0 4px 16px rgba(0, 122, 255, 0.16),
-    0 8px 24px rgba(0, 0, 0, 0.10);
-  background: linear-gradient(160deg, #F0F4FF 0%, #E6EEFF 100%);
+    0 0 0 2.5px rgba(0, 110, 220, 0.26),
+    0 6px 20px rgba(0, 110, 220, 0.20),
+    0 10px 28px rgba(0, 0, 0, 0.10);
+  background: linear-gradient(160deg, #EBF0FF 0%, #DFEBFF 100%);
 }
-:root[data-theme='light'] .react-flow__node:hover .node-family-worker { --node-border-color: rgba(0, 140, 240, 0.75); }
+:root[data-theme='light'] .react-flow__node:hover .node-family-worker { --node-border-color: rgba(0, 120, 220, 0.80); }
 :root[data-theme='light'] .react-flow__node.selected .node-family-worker {
   --node-border-color: #008CF0;
-  background: linear-gradient(160deg, #E2EAFF 0%, #D6E2FF 100%);
+  background: linear-gradient(160deg, #D8E6FF 0%, #CCDDFF 100%);
 }
 
 :root[data-theme='light'] .node-family-cron {
   --node-border-color: var(--node-cron-border);
   --node-glow-rest:
     0 1px 3px rgba(0, 0, 0, 0.06),
-    0 4px 12px rgba(100, 116, 139, 0.05),
-    0 0 0 1px rgba(100, 116, 139, 0.08);
+    0 4px 14px rgba(100, 116, 139, 0.08),
+    0 0 0 1px rgba(100, 116, 139, 0.10);
   --node-glow-hover:
-    0 2px 6px rgba(0, 0, 0, 0.08),
-    0 6px 18px rgba(100, 116, 139, 0.10),
-    0 0 0 1px rgba(100, 116, 139, 0.14);
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 8px 22px rgba(100, 116, 139, 0.14),
+    0 0 0 1px rgba(100, 116, 139, 0.18);
   --node-glow-selected:
-    0 0 0 2.5px rgba(100, 116, 139, 0.20),
-    0 4px 16px rgba(100, 116, 139, 0.14),
-    0 8px 24px rgba(0, 0, 0, 0.10);
-  background: linear-gradient(160deg, #F2F4F7 0%, #E8ECF0 100%);
+    0 0 0 2.5px rgba(100, 116, 139, 0.22),
+    0 6px 20px rgba(100, 116, 139, 0.16),
+    0 10px 28px rgba(0, 0, 0, 0.10);
+  background: linear-gradient(160deg, #EDEEF2 0%, #E4E7ED 100%);
 }
-:root[data-theme='light'] .react-flow__node:hover .node-family-cron { --node-border-color: rgba(100, 116, 139, 0.65); }
+:root[data-theme='light'] .react-flow__node:hover .node-family-cron { --node-border-color: rgba(100, 116, 139, 0.70); }
 :root[data-theme='light'] .react-flow__node.selected .node-family-cron {
   --node-border-color: #64748B;
-  background: linear-gradient(160deg, #E4E8EE 0%, #D8DFE8 100%);
+  background: linear-gradient(160deg, #DFE3EA 0%, #D4DAE4 100%);
 }
 
 :root[data-theme='light'] .node-family-process {
   --node-border-color: var(--node-process-border);
   --node-glow-rest:
     0 1px 3px rgba(0, 0, 0, 0.05),
-    0 4px 10px rgba(59, 130, 246, 0.05),
-    0 0 0 1px rgba(59, 130, 246, 0.07);
+    0 4px 12px rgba(59, 130, 246, 0.08),
+    0 0 0 1px rgba(59, 130, 246, 0.10);
   --node-glow-hover:
-    0 2px 6px rgba(0, 0, 0, 0.07),
-    0 6px 16px rgba(59, 130, 246, 0.10),
-    0 0 0 1px rgba(59, 130, 246, 0.12);
+    0 2px 8px rgba(0, 0, 0, 0.07),
+    0 8px 20px rgba(59, 130, 246, 0.14),
+    0 0 0 1px rgba(59, 130, 246, 0.16);
   --node-glow-selected:
-    0 0 0 2.5px rgba(59, 130, 246, 0.18),
-    0 4px 16px rgba(59, 130, 246, 0.14),
-    0 8px 24px rgba(0, 0, 0, 0.10);
-  background: linear-gradient(160deg, #EFF4FF 0%, #E4ECFF 100%);
+    0 0 0 2.5px rgba(59, 130, 246, 0.22),
+    0 6px 20px rgba(59, 130, 246, 0.18),
+    0 10px 28px rgba(0, 0, 0, 0.10);
+  background: linear-gradient(160deg, #EAF0FF 0%, #DDE8FF 100%);
 }
-:root[data-theme='light'] .react-flow__node:hover .node-family-process { --node-border-color: rgba(59, 130, 246, 0.42); }
+:root[data-theme='light'] .react-flow__node:hover .node-family-process { --node-border-color: rgba(59, 130, 246, 0.55); }
 :root[data-theme='light'] .react-flow__node.selected .node-family-process {
   --node-border-color: #3B82F6;
-  background: linear-gradient(160deg, #E0EAFF 0%, #D4E0FE 100%);
+  background: linear-gradient(160deg, #D6E2FF 0%, #CBDAFE 100%);
 }
 
 :root[data-theme='light'] .node-family-decision {
   --node-border-color: var(--node-decision-border);
   --node-glow-rest:
     0 1px 3px rgba(0, 0, 0, 0.06),
-    0 4px 12px rgba(130, 70, 220, 0.06),
-    0 0 0 1px rgba(130, 70, 220, 0.10);
+    0 4px 14px rgba(130, 70, 220, 0.10),
+    0 0 0 1px rgba(130, 70, 220, 0.12);
   --node-glow-hover:
-    0 2px 6px rgba(0, 0, 0, 0.08),
-    0 6px 18px rgba(130, 70, 220, 0.12),
-    0 0 0 1px rgba(130, 70, 220, 0.16);
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 8px 22px rgba(130, 70, 220, 0.16),
+    0 0 0 1px rgba(130, 70, 220, 0.20);
   --node-glow-selected:
-    0 0 0 2.5px rgba(130, 70, 220, 0.22),
-    0 4px 16px rgba(130, 70, 220, 0.16),
-    0 8px 24px rgba(0, 0, 0, 0.10);
-  background: linear-gradient(160deg, #F5F0FF 0%, #ECE4FF 100%);
+    0 0 0 2.5px rgba(130, 70, 220, 0.26),
+    0 6px 20px rgba(130, 70, 220, 0.20),
+    0 10px 28px rgba(0, 0, 0, 0.10);
+  background: linear-gradient(160deg, #F0E8FF 0%, #E6DAFF 100%);
 }
-:root[data-theme='light'] .react-flow__node:hover .node-family-decision { --node-border-color: rgba(130, 70, 220, 0.75); }
+:root[data-theme='light'] .react-flow__node:hover .node-family-decision { --node-border-color: rgba(130, 70, 220, 0.80); }
 :root[data-theme='light'] .react-flow__node.selected .node-family-decision {
   --node-border-color: #8246DC;
-  background: linear-gradient(160deg, #EAE0FF 0%, #DED0FF 100%);
+  background: linear-gradient(160deg, #E4D6FF 0%, #D8C8FF 100%);
 }
 
 :root[data-theme='light'] .node-family-resource {
   --node-border-color: var(--node-resource-border);
   --node-glow-rest:
     0 1px 3px rgba(0, 0, 0, 0.05),
-    0 4px 10px rgba(0, 150, 150, 0.05),
-    0 0 0 1px rgba(0, 150, 150, 0.08);
+    0 4px 12px rgba(0, 140, 140, 0.08),
+    0 0 0 1px rgba(0, 140, 140, 0.10);
   --node-glow-hover:
-    0 2px 6px rgba(0, 0, 0, 0.07),
-    0 6px 16px rgba(0, 150, 150, 0.10),
-    0 0 0 1px rgba(0, 150, 150, 0.14);
+    0 2px 8px rgba(0, 0, 0, 0.07),
+    0 8px 20px rgba(0, 140, 140, 0.14),
+    0 0 0 1px rgba(0, 140, 140, 0.18);
   --node-glow-selected:
-    0 0 0 2.5px rgba(0, 150, 150, 0.20),
-    0 4px 16px rgba(0, 150, 150, 0.14),
-    0 8px 24px rgba(0, 0, 0, 0.10);
-  background: linear-gradient(160deg, #EEFAF9 0%, #E2F5F4 100%);
+    0 0 0 2.5px rgba(0, 140, 140, 0.22),
+    0 6px 20px rgba(0, 140, 140, 0.16),
+    0 10px 28px rgba(0, 0, 0, 0.10);
+  background: linear-gradient(160deg, #E8F7F6 0%, #DCF2F0 100%);
 }
-:root[data-theme='light'] .react-flow__node:hover .node-family-resource { --node-border-color: rgba(0, 150, 150, 0.65); }
+:root[data-theme='light'] .react-flow__node:hover .node-family-resource { --node-border-color: rgba(0, 140, 140, 0.70); }
 :root[data-theme='light'] .react-flow__node.selected .node-family-resource {
   --node-border-color: #009696;
-  background: linear-gradient(160deg, #E0F4F3 0%, #D0ECEB 100%);
+  background: linear-gradient(160deg, #D6EFED 0%, #C8E8E5 100%);
 }
 
 :root[data-theme='light'] .node-family-trigger {
   --node-border-color: var(--node-trigger-border);
   --node-glow-rest:
     0 1px 3px rgba(0, 0, 0, 0.06),
-    0 4px 12px rgba(22, 163, 74, 0.06),
-    0 0 0 1px rgba(22, 163, 74, 0.10);
+    0 4px 14px rgba(22, 150, 70, 0.10),
+    0 0 0 1px rgba(22, 150, 70, 0.12);
   --node-glow-hover:
-    0 2px 6px rgba(0, 0, 0, 0.08),
-    0 6px 18px rgba(22, 163, 74, 0.12),
-    0 0 0 1px rgba(22, 163, 74, 0.16);
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 8px 22px rgba(22, 150, 70, 0.16),
+    0 0 0 1px rgba(22, 150, 70, 0.20);
   --node-glow-selected:
-    0 0 0 2.5px rgba(22, 163, 74, 0.22),
-    0 4px 16px rgba(22, 163, 74, 0.16),
-    0 8px 24px rgba(0, 0, 0, 0.10);
-  background: linear-gradient(160deg, #EEFBF0 0%, #E2F7E6 100%);
+    0 0 0 2.5px rgba(22, 150, 70, 0.26),
+    0 6px 20px rgba(22, 150, 70, 0.20),
+    0 10px 28px rgba(0, 0, 0, 0.10);
+  background: linear-gradient(160deg, #E8F8EA 0%, #DCF3E0 100%);
 }
-:root[data-theme='light'] .react-flow__node:hover .node-family-trigger { --node-border-color: rgba(22, 163, 74, 0.65); }
+:root[data-theme='light'] .react-flow__node:hover .node-family-trigger { --node-border-color: rgba(22, 150, 70, 0.72); }
 :root[data-theme='light'] .react-flow__node.selected .node-family-trigger {
   --node-border-color: #16A34A;
-  background: linear-gradient(160deg, #E0F5E2 0%, #D2EED6 100%);
+  background: linear-gradient(160deg, #D8F1DC 0%, #CCE9D2 100%);
 }
 
 :root[data-theme='light'] .node-family-detail {
   --node-border-color: var(--node-detail-border);
   --node-glow-rest:
     0 1px 3px rgba(0, 0, 0, 0.05),
-    0 0 0 1px rgba(100, 116, 139, 0.06);
+    0 4px 10px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(100, 116, 139, 0.08);
   --node-glow-hover:
-    0 2px 6px rgba(0, 0, 0, 0.07),
-    0 0 0 1px rgba(100, 116, 139, 0.12);
+    0 2px 8px rgba(0, 0, 0, 0.07),
+    0 6px 16px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(100, 116, 139, 0.14);
   --node-glow-selected:
-    0 0 0 2px rgba(100, 116, 139, 0.18),
-    0 4px 12px rgba(100, 116, 139, 0.10),
+    0 0 0 2px rgba(100, 116, 139, 0.20),
+    0 6px 16px rgba(100, 116, 139, 0.12),
     0 2px 6px rgba(0, 0, 0, 0.06);
 }
-:root[data-theme='light'] .react-flow__node:hover .node-family-detail   { --node-border-color: rgba(100, 116, 139, 0.50); }
-:root[data-theme='light'] .react-flow__node.selected .node-family-detail { --node-border-color: rgba(100, 116, 139, 0.70); }
+:root[data-theme='light'] .react-flow__node:hover .node-family-detail   { --node-border-color: rgba(100, 116, 139, 0.55); }
+:root[data-theme='light'] .react-flow__node.selected .node-family-detail { --node-border-color: rgba(100, 116, 139, 0.75); }
 :root[data-theme='light'] .node-family-group  { --node-border-color: var(--node-group-border); }
 
 /* ── Node glow classes ── */
