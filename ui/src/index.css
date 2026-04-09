@@ -53,7 +53,7 @@
 
   /* Canvas */
   --canvas-bg: var(--flow-surface-bg);
-  --canvas-dot: rgba(255, 255, 255, 0.28);
+  --canvas-dot: rgba(255, 255, 255, 0.42);
 
   /* ── Node semantic color roles — Design Contract v1.0 ── */
 

@@ -5,12 +5,14 @@ import type { FlowViewMode } from '../types'
 
 export type SourceMode = 'live' | 'history'
 
+export type InspectorPanel = 'run'
+
 interface UrlStateUpdate {
   node?: string | null
   run?: string | null
   log?: string | null
   runTab?: string | null
-  panel?: string | null
+  panel?: InspectorPanel | null
   mode?: SourceMode | null
   view?: FlowViewMode | null
 }
@@ -49,7 +51,7 @@ export function useUrlState() {
   const selectedTraceId = searchParams.get('run') ?? undefined
   const selectedLogSeq = searchParams.get('log') ?? undefined
   const runTab = searchParams.get('runTab') ?? undefined
-  const panel = searchParams.get('panel') ?? undefined
+  const panel = (searchParams.get('panel') ?? undefined) as InspectorPanel | undefined
   const sourceMode = resolveSourceMode(searchParams.get('mode'))
   const viewMode = resolveViewMode(searchParams.get('view'))
 
