@@ -5,7 +5,6 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
-  type Row,
   type SortingState,
 } from '@tanstack/react-table'
 
@@ -27,6 +26,7 @@ import {
   getJourneySummaryStep,
 } from '../runPresentation'
 import { DurationBadge } from './DurationBadge'
+import { sortIndicator } from './tableUtils'
 
 interface RunsTableProps {
   journeys: TraceJourney[]
@@ -45,17 +45,11 @@ interface RunRowData {
   issue: string
 }
 
-function statusVariant(status: TraceStatus) {
-  if (status === 'error') {
-    return 'destructive' as const
-  }
-  if (status === 'success') {
-    return 'success' as const
-  }
-  if (status === 'partial') {
-    return 'warning' as const
-  }
-  return 'default' as const
+const STATUS_CLASSES: Record<TraceStatus, string> = {
+  error:   'bg-[color-mix(in_srgb,var(--status-error)_12%,transparent)] text-[var(--status-error)]',
+  success: 'bg-[color-mix(in_srgb,var(--status-success)_12%,transparent)] text-[var(--status-success)]',
+  partial: 'bg-[color-mix(in_srgb,var(--status-warning)_12%,transparent)] text-[var(--status-warning)]',
+  running: 'bg-[var(--surface-inset)] text-[var(--text-muted)]',
 }
 
 function statusRank(status: TraceStatus) {
@@ -71,15 +65,6 @@ function statusRank(status: TraceStatus) {
   return 3
 }
 
-function sortIndicator(direction: false | 'asc' | 'desc') {
-  if (direction === 'asc') {
-    return '↑'
-  }
-  if (direction === 'desc') {
-    return '↓'
-  }
-  return ''
-}
 
 export function RunsTable({
   journeys,
@@ -140,22 +125,13 @@ export function RunsTable({
             <span>{sortIndicator(column.getIsSorted())}</span>
           </button>
         ),
-        sortingFn: (rowA: Row<RunRowData>, rowB: Row<RunRowData>) =>
+        sortingFn: (rowA, rowB) =>
           statusRank(rowA.original.status) - statusRank(rowB.original.status),
-        cell: ({ row }) => {
-          const variant = statusVariant(row.original.status)
-          const colorMap = {
-            destructive: 'bg-[color-mix(in_srgb,var(--status-error)_12%,transparent)] text-[var(--status-error)]',
-            success: 'bg-[color-mix(in_srgb,var(--status-success)_12%,transparent)] text-[var(--status-success)]',
-            warning: 'bg-[color-mix(in_srgb,var(--status-warning)_12%,transparent)] text-[var(--status-warning)]',
-            default: 'bg-[var(--surface-inset)] text-[var(--text-muted)]',
-          }
-          return (
-            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${colorMap[variant]}`}>
-              {row.original.status}
-            </span>
-          )
-        },
+        cell: ({ row }) => (
+          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${STATUS_CLASSES[row.original.status]}`}>
+            {row.original.status}
+          </span>
+        ),
       },
       {
         id: 'duration',
@@ -170,7 +146,7 @@ export function RunsTable({
             <span>{sortIndicator(column.getIsSorted())}</span>
           </button>
         ),
-        sortingFn: (rowA: Row<RunRowData>, rowB: Row<RunRowData>) =>
+        sortingFn: (rowA, rowB) =>
           (rowA.original.durationMs ?? -1) - (rowB.original.durationMs ?? -1),
         cell: ({ row }) => <DurationBadge durationMs={row.original.durationMs} />,
       },
@@ -187,7 +163,7 @@ export function RunsTable({
             <span>{sortIndicator(column.getIsSorted())}</span>
           </button>
         ),
-        sortingFn: (rowA: Row<RunRowData>, rowB: Row<RunRowData>) =>
+        sortingFn: (rowA, rowB) =>
           Date.parse(rowA.original.updatedAt) - Date.parse(rowB.original.updatedAt),
         cell: ({ row }) => (
           <span className="font-mono text-xs text-[var(--text-muted)]">

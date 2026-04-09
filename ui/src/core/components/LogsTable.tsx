@@ -21,6 +21,7 @@ import { getLogDisplayMessage } from '../logPresentation'
 import { formatEasternTime } from '../time'
 import type { LogEntry } from '../types'
 import { DurationBadge } from './DurationBadge'
+import { sortIndicator } from './tableUtils'
 
 const FRESH_BATCH_LIMIT = 20
 
@@ -46,15 +47,6 @@ interface LogRowData {
   entry: LogEntry
 }
 
-function sortIndicator(direction: false | 'asc' | 'desc') {
-  if (direction === 'asc') {
-    return '↑'
-  }
-  if (direction === 'desc') {
-    return '↓'
-  }
-  return ''
-}
 
 export function LogsTable({
   logs,
