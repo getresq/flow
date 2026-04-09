@@ -12,68 +12,20 @@ import { InspectorPanel } from './InspectorPanel'
 import { LogsView } from './LogsView'
 import { getNodeInspectorPresentation } from './NodeInspectorPresentation'
 import { getTraceInspectorPresentation } from './TraceInspectorPresentation'
-import { useEventPlayback } from '../hooks/useEventPlayback'
 import { NodeDetailContent } from './NodeDetailPanel'
 import { TraceDetailContent } from './TraceDetailPanel'
 import { useFlowAnimations } from '../hooks/useFlowAnimations'
 import { useLogStream } from '../hooks/useLogStream'
 import { DEFAULT_RELAY_WS_URL, useRelayConnection } from '../hooks/useRelayConnection'
 import { formatRunLabel } from '../runPresentation'
-import { formatEasternTime } from '../time'
 import { useTraceJourney } from '../hooks/useTraceJourney'
 import { useTraceTimeline } from '../hooks/useTraceTimeline'
 import { useUrlState } from '../hooks/useUrlState'
-import type { FlowEvent, LogEntry } from '../types'
+import type { LogEntry } from '../types'
 import { flows } from '../../flows'
 import { useCommandPaletteStore } from '../../stores/commandPalette'
 import { useLayoutStore } from '../../stores/layout'
 
-const DEFAULT_HISTORY_WINDOW = '30m'
-
-const HISTORY_WINDOW_OPTIONS: Record<string, number> = {
-  '15m': 15 * 60,
-  '30m': 30 * 60,
-  '1h': 60 * 60,
-  '6h': 6 * 60 * 60,
-  '24h': 24 * 60 * 60,
-}
-
-interface HistoryResponse {
-  from: string
-  to: string
-  flow_id?: string
-  events: FlowEvent[]
-  log_count: number
-  span_count: number
-  truncated: boolean
-  warnings?: string[]
-}
-
-function windowToSeconds(window: string): number {
-  return HISTORY_WINDOW_OPTIONS[window] ?? HISTORY_WINDOW_OPTIONS[DEFAULT_HISTORY_WINDOW]
-}
-
-function toHttpBase(wsUrl: string): string {
-  try {
-    const url = new URL(wsUrl)
-    if (url.protocol === 'ws:') {
-      url.protocol = 'http:'
-    }
-    if (url.protocol === 'wss:') {
-      url.protocol = 'https:'
-    }
-    url.pathname = ''
-    url.search = ''
-    url.hash = ''
-    return url.toString().replace(/\/$/, '')
-  } catch {
-    return 'http://localhost:4200'
-  }
-}
-
-function formatWindowSummary(fromIso: string, toIso: string): string {
-  return `${formatEasternTime(fromIso)} → ${formatEasternTime(toIso)}`
-}
 
 export function FlowView() {
   const navigate = useNavigate()
@@ -101,22 +53,6 @@ export function FlowView() {
   const clearCommandContext = useCommandPaletteStore((state) => state.clearContext)
 
   const [resetLayoutKey, setResetLayoutKey] = useState(0)
-  const [historyState, setHistoryState] = useState<{ events: FlowEvent[]; resetKey: number }>({
-    events: [],
-    resetKey: 0,
-  })
-  const [historyWindow, setHistoryWindow] = useState(DEFAULT_HISTORY_WINDOW)
-  const [historyQuery, setHistoryQuery] = useState('')
-  const [historyLoading, setHistoryLoading] = useState(false)
-  const [historyError, setHistoryError] = useState<string | undefined>()
-  const [historySummary, setHistorySummary] = useState<{
-    from: string
-    to: string
-    logCount: number
-    spanCount: number
-    truncated: boolean
-    warnings: string[]
-  }>()
 
   const relayWsUrl = DEFAULT_RELAY_WS_URL
   const {
@@ -132,7 +68,6 @@ export function FlowView() {
     [flowIdParam],
   )
 
-  const previousFlowIdRef = useRef(currentFlow.id)
   const previousSessionKeyRef = useRef<string | undefined>(undefined)
 
   useEffect(() => {
@@ -183,13 +118,8 @@ export function FlowView() {
     () => relayEvents.filter((event) => eventMatchesFlow(event, currentFlow.id)),
     [currentFlow.id, relayEvents],
   )
-  const historyEvents = useMemo(
-    () => historyState.events.filter((event) => eventMatchesFlow(event, currentFlow.id)),
-    [currentFlow.id, historyState.events],
-  )
-  const historyPlayback = useEventPlayback(historyEvents, { resetKey: historyState.resetKey })
-  const runtimeSessionKey = `${sourceMode}:${currentFlow.id}:${sourceMode === 'history' ? historyState.resetKey : relayResetKey}`
-  const displayedEvents = sourceMode === 'history' ? historyPlayback.events : liveEvents
+  const runtimeSessionKey = `${sourceMode}:${currentFlow.id}:${relayResetKey}`
+  const displayedEvents = liveEvents
 
   const animations = useFlowAnimations({
     events: displayedEvents,
@@ -238,21 +168,6 @@ export function FlowView() {
   }, [currentFlow.edges, selectedJourney])
 
   useEffect(() => {
-    if (previousFlowIdRef.current === currentFlow.id) {
-      return
-    }
-
-    previousFlowIdRef.current = currentFlow.id
-    setHistoryState((previous) => ({
-      events: [],
-      resetKey: previous.resetKey + 1,
-    }))
-    setHistoryLoading(false)
-    setHistoryError(undefined)
-    setHistorySummary(undefined)
-  }, [currentFlow.id])
-
-  useEffect(() => {
     if (previousSessionKeyRef.current === runtimeSessionKey) {
       return
     }
@@ -267,71 +182,7 @@ export function FlowView() {
   const clearAll = useCallback(() => {
     clearRelayEvents()
     updateUrlState({ node: null, run: null, log: null, mode: 'live' }, { replace: true })
-    setHistoryState({ events: [], resetKey: 0 })
-    setHistoryLoading(false)
-    setHistoryError(undefined)
-    setHistorySummary(undefined)
   }, [clearRelayEvents, updateUrlState])
-
-  const loadHistory = useCallback(async () => {
-    const now = new Date()
-    const seconds = windowToSeconds(historyWindow)
-    const from = new Date(now.getTime() - seconds * 1_000)
-    const relayHttpBase = toHttpBase(relayWsUrl)
-
-    const url = new URL('/v1/history', relayHttpBase)
-    url.searchParams.set('from', from.toISOString())
-    url.searchParams.set('to', now.toISOString())
-    url.searchParams.set('window', historyWindow)
-    url.searchParams.set('limit', '12000')
-    url.searchParams.set('flow_id', currentFlow.id)
-    if (historyQuery.trim()) {
-      url.searchParams.set('query', historyQuery.trim())
-    }
-
-    setHistoryLoading(true)
-    setHistoryError(undefined)
-    setHistorySummary(undefined)
-
-    try {
-      const response = await fetch(url.toString())
-      if (!response.ok) {
-        const body = await response.text()
-        throw new Error(body || `history request failed (${response.status})`)
-      }
-      const payload = (await response.json()) as HistoryResponse
-      const events = Array.isArray(payload.events) ? payload.events : []
-
-      setHistoryState((previous) => ({
-        events,
-        resetKey: previous.resetKey + 1,
-      }))
-      setSourceMode('history', { replace: true })
-      setHistorySummary({
-        from: payload.from,
-        to: payload.to,
-        logCount: payload.log_count,
-        spanCount: payload.span_count,
-        truncated: payload.truncated,
-        warnings: payload.warnings ?? [],
-      })
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'failed to load history'
-      setHistoryError(message)
-    } finally {
-      setHistoryLoading(false)
-    }
-  }, [currentFlow.id, historyQuery, historyWindow, relayWsUrl, setSourceMode])
-
-  const exitHistoryMode = useCallback(() => {
-    setSourceMode('live', { replace: true })
-    setHistoryState((previous) => ({
-      events: [],
-      resetKey: previous.resetKey + 1,
-    }))
-    setHistoryError(undefined)
-    setHistorySummary(undefined)
-  }, [setSourceMode])
 
   const handleSelectViewMode = useCallback(
     (mode: 'canvas' | 'metrics' | 'logs') => {
@@ -543,6 +394,7 @@ export function FlowView() {
       {(() => {
         if (selectedJourney) {
           const presentation = getTraceInspectorPresentation(selectedJourney)
+          const canGoBack = Boolean(selectedLogSeq || selectedNodeId)
 
           return (
             <AnimatePresence initial={false}>
@@ -550,6 +402,7 @@ export function FlowView() {
                 title={presentation.title}
                 description={presentation.description}
                 headerContent={presentation.headerContent}
+                onBack={canGoBack ? () => updateUrlState({ run: null }, { replace: true }) : undefined}
                 onClose={() => setSelectedTraceId(undefined, { replace: true })}
               >
                 <TraceDetailContent
