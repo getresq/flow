@@ -52,8 +52,7 @@ export function CommandPalette() {
   const setTheme = useLayoutStore((state) => state.setTheme)
 
   const runOptions = useCommandPaletteStore((state) => state.runOptions)
-  const onClearSession = useCommandPaletteStore((state) => state.onClearSession)
-  const onLoadHistory = useCommandPaletteStore((state) => state.onLoadHistory)
+  const onClearLogs = useCommandPaletteStore((state) => state.onClearLogs)
 
   const currentFlow = useMemo(
     () => currentFlowFromPath(location.pathname),
@@ -109,25 +108,14 @@ export function CommandPalette() {
             </span>
           </CommandItem>
 
-          {onClearSession ? (
+          {onClearLogs ? (
             <CommandItem
               onSelect={() => {
-                onClearSession()
+                onClearLogs()
                 closePalette()
               }}
             >
-              Clear session
-            </CommandItem>
-          ) : null}
-
-          {onLoadHistory ? (
-            <CommandItem
-              onSelect={() => {
-                onLoadHistory()
-                closePalette()
-              }}
-            >
-              Load history
+              Clear logs
             </CommandItem>
           ) : null}
         </CommandGroup>

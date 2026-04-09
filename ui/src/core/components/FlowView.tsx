@@ -4,6 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 
 import { BottomLogPanel } from './BottomLogPanel'
 import { CanvasHud } from './CanvasHud'
+import { EventDetailContent } from './EventDetailContent'
+import { getEventInspectorPresentation } from './EventInspectorPresentation'
 import { eventMatchesFlow } from '../events'
 import { FlowCanvas } from './FlowCanvas'
 import { InspectorPanel } from './InspectorPanel'
@@ -21,7 +23,7 @@ import { formatEasternTime } from '../time'
 import { useTraceJourney } from '../hooks/useTraceJourney'
 import { useTraceTimeline } from '../hooks/useTraceTimeline'
 import { useUrlState } from '../hooks/useUrlState'
-import type { FlowEvent } from '../types'
+import type { FlowEvent, LogEntry } from '../types'
 import { flows } from '../../flows'
 import { useCommandPaletteStore } from '../../stores/commandPalette'
 import { useLayoutStore } from '../../stores/layout'
@@ -81,10 +83,12 @@ export function FlowView() {
     hasViewParam,
     selectedNodeId,
     selectedTraceId,
+    selectedLogSeq,
     sourceMode,
     viewMode,
     updateUrlState,
     setSelectedNodeId,
+    setSelectedLogSeq,
     setSelectedTraceId,
     setSourceMode,
     setViewMode,
@@ -96,7 +100,6 @@ export function FlowView() {
   const registerCommandContext = useCommandPaletteStore((state) => state.registerContext)
   const clearCommandContext = useCommandPaletteStore((state) => state.clearContext)
 
-  const [focusActivePath, setFocusActivePath] = useState(false)
   const [resetLayoutKey, setResetLayoutKey] = useState(0)
   const [historyState, setHistoryState] = useState<{ events: FlowEvent[]; resetKey: number }>({
     events: [],
@@ -174,7 +177,6 @@ export function FlowView() {
     if (viewMode === 'logs') {
       setBottomPanelSnap('full')
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFlow.hasGraph, setBottomPanelSnap, viewMode])
 
   const liveEvents = useMemo(
@@ -203,6 +205,10 @@ export function FlowView() {
   const selectedJourney = useMemo(
     () => (selectedTraceId ? traceJourney.journeyByTraceId.get(selectedTraceId) : undefined),
     [selectedTraceId, traceJourney.journeyByTraceId],
+  )
+  const selectedLogEntry = useMemo(
+    () => logStream.globalLogs.find((entry) => String(entry.seq) === selectedLogSeq),
+    [logStream.globalLogs, selectedLogSeq],
   )
 
   const traceFocus = useMemo(() => {
@@ -244,7 +250,6 @@ export function FlowView() {
     setHistoryLoading(false)
     setHistoryError(undefined)
     setHistorySummary(undefined)
-    setFocusActivePath(false)
   }, [currentFlow.id])
 
   useEffect(() => {
@@ -253,7 +258,7 @@ export function FlowView() {
     }
 
     if (previousSessionKeyRef.current !== undefined) {
-      updateUrlState({ node: null, run: null }, { replace: true })
+      updateUrlState({ node: null, run: null, log: null }, { replace: true })
     }
 
     previousSessionKeyRef.current = runtimeSessionKey
@@ -261,7 +266,7 @@ export function FlowView() {
 
   const clearAll = useCallback(() => {
     clearRelayEvents()
-    updateUrlState({ node: null, run: null, mode: 'live' }, { replace: true })
+    updateUrlState({ node: null, run: null, log: null, mode: 'live' }, { replace: true })
     setHistoryState({ events: [], resetKey: 0 })
     setHistoryLoading(false)
     setHistoryError(undefined)
@@ -349,6 +354,7 @@ export function FlowView() {
         {
           node: nodeId ?? null,
           run: nodeId ? null : undefined,
+          log: nodeId ? null : undefined,
         },
         { replace: true },
       )
@@ -362,11 +368,34 @@ export function FlowView() {
         {
           node: traceId ? null : undefined,
           run: traceId ?? null,
+          log: traceId ? null : undefined,
         },
         { replace: true },
       )
     },
     [updateUrlState],
+  )
+
+  const handleSelectLog = useCallback(
+    (entry: LogEntry) => {
+      if (entry.seq != null) {
+        updateUrlState(
+          {
+            log: String(entry.seq),
+            node: null,
+            run: null,
+          },
+          { replace: true },
+        )
+        return
+      }
+
+      const executionId = entry.runId ?? entry.traceId
+      if (executionId) {
+        handleSelectTrace(executionId)
+      }
+    },
+    [handleSelectTrace, updateUrlState],
   )
 
   const handleNavigateBack = useCallback(() => {
@@ -377,6 +406,13 @@ export function FlowView() {
   const selectedNodeStatus = selectedNodeId ? animations.nodeStatuses.get(selectedNodeId) : undefined
   const selectedNodeLogs = selectedNodeId ? logStream.nodeLogMap.get(selectedNodeId) ?? [] : []
   const selectedNodeSpans = selectedNodeId ? traceTimeline.nodeSpans.get(selectedNodeId) ?? [] : []
+  const selectedLogNode = selectedLogEntry
+    ? currentFlow.nodes.find((node) => node.id === selectedLogEntry.nodeId) ?? null
+    : null
+  const selectedLogExecutionId = selectedLogEntry?.runId ?? selectedLogEntry?.traceId
+  const selectedLogHasJourney = selectedLogExecutionId
+    ? traceJourney.journeyByTraceId.has(selectedLogExecutionId)
+    : false
   const commandRunOptions = useMemo(
     () =>
       traceJourney.journeys.slice(0, 12).map((journey) => ({
@@ -385,10 +421,12 @@ export function FlowView() {
       })),
     [traceJourney.journeys],
   )
-  const handleCommandPaletteLoadHistory = useCallback(() => {
-    void loadHistory()
-  }, [loadHistory])
   const handleCommandPaletteEscape = useCallback(() => {
+    if (selectedLogEntry) {
+      setSelectedLogSeq(undefined, { replace: true })
+      return
+    }
+
     if (selectedJourney) {
       setSelectedTraceId(undefined, { replace: true })
       return
@@ -398,9 +436,11 @@ export function FlowView() {
       setSelectedNodeId(undefined, { replace: true })
     }
   }, [
+    selectedLogEntry,
     selectedJourney,
     selectedNode,
     setSelectedNodeId,
+    setSelectedLogSeq,
     setSelectedTraceId,
   ])
 
@@ -408,8 +448,7 @@ export function FlowView() {
     registerCommandContext({
       runOptions: commandRunOptions,
       onSelectViewMode: handleSelectViewMode,
-      onClearSession: clearAll,
-      onLoadHistory: handleCommandPaletteLoadHistory,
+      onClearLogs: clearAll,
       onEscape: handleCommandPaletteEscape,
     })
 
@@ -419,14 +458,9 @@ export function FlowView() {
     clearCommandContext,
     commandRunOptions,
     handleCommandPaletteEscape,
-    handleCommandPaletteLoadHistory,
     handleSelectViewMode,
     registerCommandContext,
   ])
-
-  const hudHistorySummary = historySummary
-    ? `${formatWindowSummary(historySummary.from, historySummary.to)} · ${historySummary.logCount} logs · ${historySummary.spanCount} spans${historySummary.truncated ? ' · truncated' : ''}${historySummary.warnings[0] ? ` · ${historySummary.warnings[0]}` : ''}`
-    : undefined
 
   const hudSharedProps = {
     flowName: currentFlow.name,
@@ -434,21 +468,10 @@ export function FlowView() {
     reconnecting: relayReconnecting,
     relayWsUrl,
     theme,
-    historyMode: sourceMode === 'history',
-    historyLoading,
-    historyWindow,
-    historyQuery,
-    historySummary: hudHistorySummary,
-    historyError,
     onNavigateBack: handleNavigateBack,
-    onToggleFocusActivePath: () => setFocusActivePath((previous) => !previous),
     onToggleTheme: () => setTheme(theme === 'dark' ? 'light' : 'dark'),
     onResetLayout: () => setResetLayoutKey((k) => k + 1),
-    onHistoryWindowChange: setHistoryWindow,
-    onHistoryQueryChange: setHistoryQuery,
-    onLoadHistory: () => { void loadHistory() },
-    onExitHistory: exitHistoryMode,
-    onClearSession: clearAll,
+    onClearLogs: clearAll,
   } as const
 
   if (!currentFlow.hasGraph) {
@@ -457,7 +480,6 @@ export function FlowView() {
         <CanvasHud
           variant="inline"
           showCanvasControls={false}
-          focusActivePath={false}
           {...hudSharedProps}
         />
         <div className="relative min-h-0 flex-1">
@@ -481,7 +503,6 @@ export function FlowView() {
           flow={currentFlow}
           nodeStatuses={animations.nodeStatuses}
           activeEdges={animations.activeEdges}
-          focusActivePath={focusActivePath}
           traceFocusNodeIds={traceFocus.nodeIds}
           traceFocusEdgeIds={traceFocus.edgeIds}
           theme={theme}
@@ -497,7 +518,6 @@ export function FlowView() {
             <CanvasHud
               variant="inline"
               showCanvasControls
-              focusActivePath={focusActivePath}
               {...hudSharedProps}
             />
           </div>
@@ -505,7 +525,6 @@ export function FlowView() {
           <CanvasHud
             variant="floating"
             showCanvasControls
-            focusActivePath={focusActivePath}
             {...hudSharedProps}
           />
         )}
@@ -517,6 +536,7 @@ export function FlowView() {
         journeys={traceJourney.journeys}
         selectedTraceId={selectedTraceId}
         onSelectNode={handleSelectNode}
+        onSelectLog={handleSelectLog}
         onSelectTrace={handleSelectTrace}
       />
 
@@ -543,8 +563,29 @@ export function FlowView() {
           )
         }
 
+        if (selectedLogEntry) {
+          const presentation = getEventInspectorPresentation(selectedLogEntry, selectedLogNode?.label)
+
+          return (
+            <AnimatePresence initial={false}>
+              <InspectorPanel
+                title={presentation.title}
+                description={presentation.description}
+                headerContent={presentation.headerContent}
+                onClose={() => setSelectedLogSeq(undefined, { replace: true })}
+              >
+                <EventDetailContent
+                  entry={selectedLogEntry}
+                  hasJourney={selectedLogHasJourney}
+                  onOpenRun={(traceId) => updateUrlState({ run: traceId, node: null }, { replace: true })}
+                />
+              </InspectorPanel>
+            </AnimatePresence>
+          )
+        }
+
         if (selectedNode) {
-          const presentation = getNodeInspectorPresentation(selectedNode, selectedNodeStatus)
+          const presentation = getNodeInspectorPresentation(selectedNode)
 
           return (
             <AnimatePresence initial={false}>
@@ -560,6 +601,7 @@ export function FlowView() {
                   status={selectedNodeStatus}
                   logs={selectedNodeLogs}
                   spans={selectedNodeSpans}
+                  onOpenRun={(traceId) => updateUrlState({ run: traceId, log: null }, { replace: true })}
                 />
               </InspectorPanel>
             </AnimatePresence>

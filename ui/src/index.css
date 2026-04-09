@@ -16,7 +16,8 @@
   /* Surfaces */
   --surface-primary: #0a0a0c;
   --surface-raised: #111114;
-  --surface-overlay: #1a1a1e;
+  --surface-overlay: #222228;
+  --surface-hover: #2a2a30;
   --surface-inset: #08080a;
   --flow-surface-bg: #0e0e10;
 
@@ -186,6 +187,7 @@
   --surface-primary: #ffffff;
   --surface-raised: #ffffff;
   --surface-overlay: #f0f0f2;
+  --surface-hover: #e4e4e8;
   --surface-inset: #f2f2f4;
   --flow-surface-bg: #ffffff;
 

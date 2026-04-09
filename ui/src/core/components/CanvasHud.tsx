@@ -13,23 +13,11 @@ interface CanvasHudProps {
   reconnecting: boolean
   relayWsUrl: string
   showCanvasControls: boolean
-  focusActivePath: boolean
   theme: ThemeMode
-  historyMode: boolean
-  historyLoading: boolean
-  historyWindow: string
-  historyQuery: string
-  historySummary?: string
-  historyError?: string
   onNavigateBack: () => void
-  onToggleFocusActivePath: () => void
   onToggleTheme: () => void
   onResetLayout: () => void
-  onHistoryWindowChange: (window: string) => void
-  onHistoryQueryChange: (query: string) => void
-  onLoadHistory: () => void
-  onExitHistory: () => void
-  onClearSession: () => void
+  onClearLogs: () => void
 }
 
 export function CanvasHud({
@@ -39,43 +27,19 @@ export function CanvasHud({
   reconnecting,
   relayWsUrl,
   showCanvasControls,
-  focusActivePath,
   theme,
-  historyMode,
-  historyLoading,
-  historyWindow,
-  historyQuery,
-  historySummary,
-  historyError,
   onNavigateBack,
-  onToggleFocusActivePath,
   onToggleTheme,
   onResetLayout,
-  onHistoryWindowChange,
-  onHistoryQueryChange,
-  onLoadHistory,
-  onExitHistory,
-  onClearSession,
+  onClearLogs,
 }: CanvasHudProps) {
   const controlsPill = (
     <HudControlsPill
       showCanvasControls={showCanvasControls}
-      focusActivePath={focusActivePath}
       theme={theme}
-      historyMode={historyMode}
-      historyLoading={historyLoading}
-      historyWindow={historyWindow}
-      historyQuery={historyQuery}
-      historySummary={historySummary}
-      historyError={historyError}
-      onToggleFocusActivePath={onToggleFocusActivePath}
       onToggleTheme={onToggleTheme}
       onResetLayout={onResetLayout}
-      onHistoryWindowChange={onHistoryWindowChange}
-      onHistoryQueryChange={onHistoryQueryChange}
-      onLoadHistory={onLoadHistory}
-      onExitHistory={onExitHistory}
-      onClearSession={onClearSession}
+      onClearLogs={onClearLogs}
     />
   )
 

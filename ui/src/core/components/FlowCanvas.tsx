@@ -12,10 +12,8 @@ import {
   type NodeMouseHandler,
   type Viewport,
 } from '@xyflow/react'
-import { Hand, MousePointer2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { Toggle, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui'
 
 import { edgeTypes } from '../edges'
 import { applyBranchTemplatePositions } from '../layout/branchPlacement'
@@ -67,78 +65,29 @@ function areSetsEqual<T>(left: ReadonlySet<T>, right: ReadonlySet<T>): boolean {
 
 function resolveFocusState(
   flow: FlowConfig,
-  nodeStatuses: Map<string, NodeRuntimeStatus>,
-  activeEdges: Set<string>,
-  focusActivePath: boolean,
-  selectedNodeIds?: Set<string>,
   traceFocusNodeIds?: Set<string>,
   traceFocusEdgeIds?: Set<string>,
 ): FocusState {
-  if (traceFocusNodeIds && traceFocusNodeIds.size > 0) {
-    const nodeIds = new Set(traceFocusNodeIds)
-    const edgeIds = new Set<string>()
-    const allowedEdgeIds = traceFocusEdgeIds ?? null
-
-    for (const edge of flow.edges) {
-      if (allowedEdgeIds && !allowedEdgeIds.has(edge.id)) {
-        continue
-      }
-      if (nodeIds.has(edge.source) || nodeIds.has(edge.target)) {
-        edgeIds.add(edge.id)
-        nodeIds.add(edge.source)
-        nodeIds.add(edge.target)
-      }
-    }
-
-    return { nodeIds, edgeIds }
-  }
-
-  if (!focusActivePath) {
+  if (!traceFocusNodeIds || traceFocusNodeIds.size === 0) {
     return { nodeIds: null, edgeIds: null }
   }
 
-  const focusNodeIds = new Set<string>()
+  const nodeIds = new Set(traceFocusNodeIds)
+  const edgeIds = new Set<string>()
+  const allowedEdgeIds = traceFocusEdgeIds ?? null
 
-  if (selectedNodeIds && selectedNodeIds.size > 0) {
-    for (const nodeId of selectedNodeIds.values()) {
-      focusNodeIds.add(nodeId)
-    }
-  }
-
-  for (const [nodeId, status] of nodeStatuses.entries()) {
-    if (status.status !== 'idle') {
-      focusNodeIds.add(nodeId)
-    }
-  }
-
-  const edgeLookup = new Map(flow.edges.map((edge) => [edge.id, edge]))
-  for (const edgeId of activeEdges.values()) {
-    const edge = edgeLookup.get(edgeId)
-    if (!edge) {
+  for (const edge of flow.edges) {
+    if (allowedEdgeIds && !allowedEdgeIds.has(edge.id)) {
       continue
     }
-    focusNodeIds.add(edge.source)
-    focusNodeIds.add(edge.target)
-  }
-
-  if (focusNodeIds.size === 0) {
-    return { nodeIds: null, edgeIds: null }
-  }
-
-  const expandedNodeIds = new Set(focusNodeIds)
-  const focusEdgeIds = new Set<string>()
-  for (const edge of flow.edges) {
-    if (activeEdges.has(edge.id) || focusNodeIds.has(edge.source) || focusNodeIds.has(edge.target)) {
-      focusEdgeIds.add(edge.id)
-      expandedNodeIds.add(edge.source)
-      expandedNodeIds.add(edge.target)
+    if (nodeIds.has(edge.source) || nodeIds.has(edge.target)) {
+      edgeIds.add(edge.id)
+      nodeIds.add(edge.source)
+      nodeIds.add(edge.target)
     }
   }
 
-  return {
-    nodeIds: expandedNodeIds,
-    edgeIds: focusEdgeIds,
-  }
+  return { nodeIds, edgeIds }
 }
 
 function nodeDimensions(node: FlowConfig['nodes'][number]) {
@@ -364,7 +313,6 @@ interface FlowCanvasProps {
   flow: FlowConfig
   nodeStatuses: Map<string, NodeRuntimeStatus>
   activeEdges: Set<string>
-  focusActivePath: boolean
   traceFocusNodeIds?: Set<string>
   traceFocusEdgeIds?: Set<string>
   theme: ThemeMode
@@ -379,7 +327,6 @@ export function FlowCanvas({
   flow,
   nodeStatuses,
   activeEdges,
-  focusActivePath,
   traceFocusNodeIds,
   traceFocusEdgeIds,
   theme,
@@ -522,19 +469,11 @@ export function FlowCanvas({
     () =>
       resolveFocusState(
         flow,
-        nodeStatuses,
-        activeEdges,
-        focusActivePath,
-        selectedNodeIds,
         traceFocusNodeIds,
         traceFocusEdgeIds,
       ),
     [
-      activeEdges,
       flow,
-      focusActivePath,
-      nodeStatuses,
-      selectedNodeIds,
       traceFocusEdgeIds,
       traceFocusNodeIds,
     ],
@@ -718,41 +657,6 @@ export function FlowCanvas({
 
   return (
     <div className="relative h-full w-full">
-      <TooltipProvider>
-        <div className="hud-pill absolute left-4 top-[52px] z-30 flex items-center gap-1 p-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Toggle
-                type="button"
-                size="sm"
-                pressed={interactionMode === 'pointer'}
-                className="size-8 p-0 transition-all duration-100 active:scale-[0.88] data-[state=off]:bg-transparent data-[state=off]:text-[var(--text-muted)]"
-                onClick={() => setInteractionMode('pointer')}
-                aria-label="Pointer mode (V)"
-              >
-                <MousePointer2 className="size-3.5" />
-              </Toggle>
-            </TooltipTrigger>
-            <TooltipContent>Pointer (V)</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Toggle
-                type="button"
-                size="sm"
-                pressed={interactionMode === 'pan'}
-                className="size-8 p-0 transition-all duration-100 active:scale-[0.88] data-[state=off]:bg-transparent data-[state=off]:text-[var(--text-muted)]"
-                onClick={() => setInteractionMode('pan')}
-                aria-label="Pan mode (H)"
-              >
-                <Hand className="size-3.5" />
-              </Toggle>
-            </TooltipTrigger>
-            <TooltipContent>Pan (H)</TooltipContent>
-          </Tooltip>
-        </div>
-      </TooltipProvider>
-
       <ReactFlow
         colorMode={theme}
         defaultViewport={savedViewport ?? undefined}
@@ -787,7 +691,7 @@ export function FlowCanvas({
       >
         <Background
           variant={BackgroundVariant.Dots}
-          gap={44}
+          gap={72}
           size={2}
           color={'var(--color-canvas-dot)'}
         />

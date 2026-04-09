@@ -26,10 +26,10 @@ describe('CommandPalette', () => {
 
   it('filters command results by search text', async () => {
     const user = userEvent.setup()
-    const clearSession = vi.fn()
+    const clearLogs = vi.fn()
 
     useCommandPaletteStore.getState().registerContext({
-      onClearSession: clearSession,
+      onClearLogs: clearLogs,
     })
 
     render(
@@ -40,7 +40,7 @@ describe('CommandPalette', () => {
 
     await user.type(screen.getByRole('combobox'), 'clear')
 
-    expect(screen.getByText('Clear session')).toBeVisible()
+    expect(screen.getByText('Clear logs')).toBeVisible()
   })
 
   it('supports keyboard navigation to a flow command', async () => {
