@@ -37,6 +37,12 @@ Which run or journey this record belongs to.
 
 Use it to group one concrete execution path across multiple nodes.
 
+This is required for run-backed events.
+
+It may be absent for ambient flow-visible activity that belongs to the flow but
+does not represent a concrete top-level run, such as polling, scheduler
+activity, or other pre-work checks.
+
 ### `component_id`
 
 The canonical identity of the first-class node.
