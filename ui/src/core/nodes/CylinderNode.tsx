@@ -27,7 +27,7 @@ export function CylinderNode({ id, data }: NodeProps<FlowNode>) {
   const showTitle = normalizedLabel !== normalizedRoleTag
 
   return (
-    <div className={`relative h-28 w-24 ${familyClass}`} style={{ '--node-accent': svgTone.accent } as React.CSSProperties}>
+    <div className={`relative h-28 w-24 ${familyClass}`} style={{ '--node-accent': svgTone.accent, background: 'transparent' } as React.CSSProperties}>
       {renderHandles(id, data.handles, [...defaultHandles])}
       <svg
         viewBox="0 0 96 112"
