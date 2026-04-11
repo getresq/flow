@@ -155,6 +155,7 @@ export function TraceDetailContent({ journey, spans = [], initialTab, onTabChang
   const identifierEntries = useMemo(() => [
     ['mailbox_owner', journey.identifiers.mailboxOwner],
     ['provider', journey.identifiers.provider],
+    ['run_id', journey.identifiers.runId],
     ['thread_id', journey.identifiers.threadId],
     ['reply_draft_id', journey.identifiers.replyDraftId],
     ['job_id', journey.identifiers.jobId],
