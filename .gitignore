@@ -30,3 +30,6 @@ cli/coverage/
 
 # TypeScript incremental files
 *.tsbuildinfo
+
+# Local planning docs
+jrodocs/
