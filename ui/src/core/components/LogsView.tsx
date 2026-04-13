@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 
 import {
+  Button,
   Input,
   ScrollArea,
   Select,
@@ -21,6 +22,11 @@ interface LogsViewProps {
   logs: LogEntry[]
   selectedTraceId?: string
   sourceMode: SourceMode
+  isBackfilling?: boolean
+  hasMoreOlder?: boolean
+  historyLimitReached?: boolean
+  wasLiveBufferTruncated?: boolean
+  onLoadOlder?: () => Promise<void> | void
   onSelectNode: (nodeId?: string) => void
   onSelectTrace: (traceId?: string) => void
 }
@@ -45,6 +51,11 @@ export function LogsView({
   logs,
   selectedTraceId,
   sourceMode,
+  isBackfilling = false,
+  hasMoreOlder = false,
+  historyLimitReached = false,
+  wasLiveBufferTruncated = false,
+  onLoadOlder = () => {},
   onSelectNode,
   onSelectTrace,
 }: LogsViewProps) {
@@ -120,6 +131,14 @@ export function LogsView({
     () => logs.some((entry) => entry.eventType === 'log'),
     [logs],
   )
+  const canLoadOlder = hasMoreOlder || wasLiveBufferTruncated
+  const historyStatusLabel = isBackfilling
+    ? 'Loading older activity…'
+    : historyLimitReached
+      ? 'Reached retained history limit'
+      : canLoadOlder
+        ? 'Older activity available'
+        : 'Live + recent history'
 
   const logsEmptyState = useMemo(() => {
     if (!hasAnyFlowLogs) {
@@ -129,11 +148,18 @@ export function LogsView({
       }
     }
 
+    if (canLoadOlder || isBackfilling) {
+      return {
+        title: 'No logs in the loaded window',
+        body: 'Load older activity or clear filters to see more.',
+      }
+    }
+
     return {
       title: 'No logs match the current filters',
       body: 'Try clearing search, node, or error filters to see more flow activity.',
     }
-  }, [hasAnyFlowLogs])
+  }, [canLoadOlder, hasAnyFlowLogs, isBackfilling])
 
   useEffect(() => {
     if (!liveTail || sourceMode !== 'live') {
@@ -154,13 +180,25 @@ export function LogsView({
 
     const onScroll = () => {
       setLiveTail(viewport.scrollTop < 12)
+
+      const canScrollOlder = viewport.scrollHeight > viewport.clientHeight + 12
+      const distanceFromOlderEdge =
+        viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop
+      if (
+        canScrollOlder &&
+        distanceFromOlderEdge < 120 &&
+        (hasMoreOlder || wasLiveBufferTruncated) &&
+        !isBackfilling
+      ) {
+        void onLoadOlder()
+      }
     }
 
     viewport.addEventListener('scroll', onScroll)
     onScroll()
 
     return () => viewport.removeEventListener('scroll', onScroll)
-  }, [sourceMode])
+  }, [hasMoreOlder, isBackfilling, onLoadOlder, sourceMode, wasLiveBufferTruncated])
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-hidden px-4 py-4 sm:px-6">
@@ -221,7 +259,22 @@ export function LogsView({
           ) : null}
           Live
         </button>
+      </div>
 
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-inset)] px-3 py-2">
+        <p className="text-[11px] text-[var(--text-muted)]">{historyStatusLabel}</p>
+        {canLoadOlder && !historyLimitReached ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-[11px]"
+            onClick={() => void onLoadOlder()}
+            disabled={isBackfilling}
+          >
+            {isBackfilling ? 'Loading…' : 'Load older'}
+          </Button>
+        ) : null}
       </div>
 
       <ScrollArea

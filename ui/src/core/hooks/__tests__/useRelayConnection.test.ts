@@ -91,4 +91,32 @@ describe('useRelayConnection', () => {
 
     unmount()
   })
+
+  it('marks live rollover as truncated without resetting the session', async () => {
+    const { result } = renderHook(() => useRelayConnection('ws://example.test/ws'))
+
+    const socket = MockWebSocket.instances[0]
+
+    await act(async () => {
+      socket.emitOpen()
+    })
+
+    await act(async () => {
+      socket.emitMessage({
+        type: 'batch',
+        events: Array.from({ length: 4_001 }, (_, index) => ({
+          type: 'log',
+          seq: index + 1,
+          timestamp: `2026-03-05T12:00:${String(index % 60).padStart(2, '0')}.000Z`,
+          message: `event-${index + 1}`,
+        })),
+      })
+    })
+
+    expect(result.current.events).toHaveLength(4_000)
+    expect(result.current.events[0]?.seq).toBe(2)
+    expect(result.current.events.at(-1)?.seq).toBe(4_001)
+    expect(result.current.wasTruncated).toBe(true)
+    expect(result.current.resetKey).toBe(0)
+  })
 })

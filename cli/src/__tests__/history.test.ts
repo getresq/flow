@@ -28,6 +28,7 @@ describe("history normalization", () => {
       return createJsonResponse({
         from: "2026-03-23T18:00:00.000Z",
         to: "2026-03-23T18:15:00.000Z",
+        anchor_to: "2026-03-23T18:15:00.000Z",
         flow_id: "mail-pipeline",
         events: [
           {
@@ -57,6 +58,8 @@ describe("history normalization", () => {
         log_count: 1,
         span_count: 1,
         truncated: false,
+        has_more_older: false,
+        next_cursor: null,
         warnings: [],
       });
     }) as typeof fetch;

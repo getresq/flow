@@ -15,6 +15,7 @@ import { getTraceInspectorPresentation } from './TraceInspectorPresentation'
 import { NodeDetailContent } from './NodeDetailPanel'
 import { TraceDetailContent } from './TraceDetailPanel'
 import { useFlowAnimations } from '../hooks/useFlowAnimations'
+import { useFlowActivity } from '../hooks/useFlowActivity'
 import { useLogStream } from '../hooks/useLogStream'
 import { DEFAULT_RELAY_WS_URL, useRelayConnection } from '../hooks/useRelayConnection'
 import { formatRunLabel } from '../runPresentation'
@@ -62,6 +63,7 @@ export function FlowView() {
     connected: relayConnected,
     reconnecting: relayReconnecting,
     resetKey: relayResetKey,
+    wasTruncated: relayWasTruncated,
     clearEvents: clearRelayEvents,
   } = useRelayConnection(relayWsUrl)
 
@@ -120,18 +122,26 @@ export function FlowView() {
     () => relayEvents.filter((event) => eventMatchesFlow(event, currentFlow.id)),
     [currentFlow.id, relayEvents],
   )
-  const runtimeSessionKey = `${sourceMode}:${currentFlow.id}:${relayResetKey}`
-  const displayedEvents = liveEvents
+  const flowActivity = useFlowActivity({
+    flowId: currentFlow.id,
+    wsUrl: relayWsUrl,
+    liveEvents,
+    wasLiveBufferTruncated: relayWasTruncated,
+  })
+  const runtimeSessionKey = `${currentFlow.id}:${relayResetKey}`
+  const displayedEvents = flowActivity.events
 
   const animations = useFlowAnimations({
-    events: displayedEvents,
+    events: liveEvents,
     spanMapping: currentFlow.spanMapping,
     producerMapping: currentFlow.producerMapping,
     edges: currentFlow.edges,
     sessionKey: runtimeSessionKey,
   })
   const logStream = useLogStream(displayedEvents, currentFlow.spanMapping, runtimeSessionKey)
-  const traceTimeline = useTraceTimeline(displayedEvents, currentFlow.spanMapping, runtimeSessionKey)
+  // Logs and runs backfill from retained history, but the timing waterfall stays live-driven in
+  // v1 so we do not invent older span timing we do not actually have.
+  const traceTimeline = useTraceTimeline(liveEvents, currentFlow.spanMapping, runtimeSessionKey)
   const traceJourney = useTraceJourney(displayedEvents, currentFlow.spanMapping, runtimeSessionKey)
 
   const selectedJourney = useMemo(
@@ -139,7 +149,10 @@ export function FlowView() {
     [selectedTraceId, traceJourney.journeyByTraceId],
   )
   const selectedLogEntry = useMemo(
-    () => logStream.globalLogs.find((entry) => String(entry.seq) === selectedLogSeq),
+    () =>
+      logStream.globalLogs.find(
+        (entry) => (entry.selectionId ?? (entry.seq != null ? String(entry.seq) : undefined)) === selectedLogSeq,
+      ),
     [logStream.globalLogs, selectedLogSeq],
   )
 
@@ -182,9 +195,10 @@ export function FlowView() {
   }, [runtimeSessionKey, updateUrlState])
 
   const clearAll = useCallback(() => {
+    flowActivity.resetRetainedHistory()
     clearRelayEvents()
     updateUrlState({ node: null, run: null, log: null, mode: 'live' }, { replace: true })
-  }, [clearRelayEvents, updateUrlState])
+  }, [clearRelayEvents, flowActivity, updateUrlState])
 
   const handleSelectViewMode = useCallback(
     (mode: 'canvas' | 'metrics' | 'logs') => {
@@ -231,24 +245,16 @@ export function FlowView() {
 
   const handleSelectLog = useCallback(
     (entry: LogEntry) => {
-      if (entry.seq != null) {
-        updateUrlState(
-          {
-            log: String(entry.seq),
-            node: null,
-            run: null,
-          },
-          { replace: true },
-        )
-        return
-      }
-
-      const executionId = entry.runId ?? entry.traceId
-      if (executionId) {
-        handleSelectTrace(executionId)
-      }
+      updateUrlState(
+        {
+          log: entry.selectionId ?? (entry.seq != null ? String(entry.seq) : null),
+          node: null,
+          run: null,
+        },
+        { replace: true },
+      )
     },
-    [handleSelectTrace, updateUrlState],
+    [updateUrlState],
   )
 
   const handleNavigateBack = useCallback(() => {
@@ -341,6 +347,11 @@ export function FlowView() {
             logs={logStream.globalLogs}
             selectedTraceId={selectedTraceId}
             sourceMode={sourceMode}
+            isBackfilling={flowActivity.isBackfilling}
+            hasMoreOlder={flowActivity.hasMoreOlder}
+            historyLimitReached={flowActivity.historyLimitReached}
+            wasLiveBufferTruncated={flowActivity.wasLiveBufferTruncated}
+            onLoadOlder={flowActivity.loadOlder}
             onSelectNode={handleSelectNode}
             onSelectTrace={handleSelectTrace}
           />
@@ -389,6 +400,11 @@ export function FlowView() {
         journeys={traceJourney.journeys}
         selectedTraceId={selectedTraceId}
         selectedLogSeq={selectedLogSeq}
+        isBackfilling={flowActivity.isBackfilling}
+        hasMoreOlder={flowActivity.hasMoreOlder}
+        historyLimitReached={flowActivity.historyLimitReached}
+        wasLiveBufferTruncated={flowActivity.wasLiveBufferTruncated}
+        onLoadOlder={flowActivity.loadOlder}
         onSelectNode={handleSelectNode}
         onSelectLog={handleSelectLog}
         onSelectTrace={handleSelectTrace}

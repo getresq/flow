@@ -180,6 +180,7 @@ export type LogLevel = 'info' | 'error'
 export type TelemetrySignal = 'critical' | 'meaningful' | 'operational' | 'raw'
 
 export interface LogEntry {
+  selectionId?: string
   timestamp: string
   seq?: number
   traceId?: string
@@ -225,6 +226,7 @@ export interface RelayConnectionState {
   reconnecting: boolean
   resetKey: number
   totalEventCount: number
+  wasTruncated: boolean
   clearEvents: () => void
 }
 

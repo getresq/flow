@@ -114,6 +114,7 @@ pub struct HistoryQuery {
     pub to: Option<String>,
     pub window: Option<String>,
     pub query: Option<String>,
+    pub cursor: Option<String>,
     #[serde(default)]
     pub logs_only: bool,
     pub limit: Option<usize>,
@@ -124,12 +125,16 @@ pub struct HistoryQuery {
 pub struct HistoryResponse {
     pub from: String,
     pub to: String,
+    pub anchor_to: String,
     pub query: Option<String>,
     pub flow_id: Option<String>,
     pub events: Vec<FlowEvent>,
     pub log_count: usize,
     pub span_count: usize,
     pub truncated: bool,
+    pub has_more_older: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub warnings: Vec<String>,
 }

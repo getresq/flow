@@ -101,7 +101,7 @@ export function LogsTable({
         const messageBody = colonIdx > 0 && colonIdx < 40 ? fullMsg.slice(colonIdx + 1).trimStart() : fullMsg
 
         return {
-          id: `${entry.seq ?? entry.timestamp}-${index}`,
+          id: `${entry.selectionId ?? entry.seq ?? entry.timestamp}-${index}`,
           executionId: entry.runId ?? entry.traceId,
           timestamp: entry.timestamp,
           nodeLabel: entry.nodeId ? nodeLabels.get(entry.nodeId) ?? entry.nodeId : '—',
@@ -195,7 +195,13 @@ export function LogsTable({
 
   const isRowSelected = useCallback(
     (row: (typeof rows)[number]) => {
-      if (selectedLogSeq != null && row.original.entry.seq != null && String(row.original.entry.seq) === selectedLogSeq) return true
+      if (
+        selectedLogSeq != null &&
+        (row.original.entry.selectionId ?? (row.original.entry.seq != null ? String(row.original.entry.seq) : undefined)) ===
+          selectedLogSeq
+      ) {
+        return true
+      }
       if (selectedTraceId != null && row.original.executionId === selectedTraceId) return true
       return false
     },

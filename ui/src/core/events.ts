@@ -17,6 +17,89 @@ function readAttr(event: FlowEvent, key: string): string | undefined {
   return undefined
 }
 
+function stableValueToString(value: unknown): string {
+  if (value === null || value === undefined) {
+    return 'null'
+  }
+  if (typeof value === 'string') {
+    return JSON.stringify(value)
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableValueToString(item)).join(',')}]`
+  }
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>).sort(([left], [right]) =>
+      left.localeCompare(right),
+    )
+
+    return `{${entries
+      .map(([key, entryValue]) => `${key}:${stableValueToString(entryValue)}`)
+      .join(',')}}`
+  }
+
+  return JSON.stringify(String(value))
+}
+
+export function getEventMergeKey(event: FlowEvent): string {
+  return [
+    event.type,
+    event.timestamp,
+    event.trace_id ?? '',
+    event.span_id ?? '',
+    event.message ?? '',
+    stableValueToString(event.attributes ?? {}),
+  ].join('::')
+}
+
+export function eventTypeRank(type: FlowEvent['type'] | string): number {
+  switch (type) {
+    case 'span_start':
+      return 0
+    case 'log':
+      return 1
+    case 'span_end':
+      return 2
+    default:
+      return 3
+  }
+}
+
+export function compareFlowEventsForDisplay(left: FlowEvent, right: FlowEvent): number {
+  const leftTime = Date.parse(left.timestamp)
+  const rightTime = Date.parse(right.timestamp)
+
+  if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
+    return leftTime - rightTime
+  }
+
+  const byType = eventTypeRank(left.type) - eventTypeRank(right.type)
+  if (byType !== 0) {
+    return byType
+  }
+
+  const byTraceId = (left.trace_id ?? '').localeCompare(right.trace_id ?? '')
+  if (byTraceId !== 0) {
+    return byTraceId
+  }
+
+  const bySpanId = (left.span_id ?? '').localeCompare(right.span_id ?? '')
+  if (bySpanId !== 0) {
+    return bySpanId
+  }
+
+  const byMessage = (left.message ?? '').localeCompare(right.message ?? '')
+  if (byMessage !== 0) {
+    return byMessage
+  }
+
+  return stableValueToString(left.attributes ?? {}).localeCompare(
+    stableValueToString(right.attributes ?? {}),
+  )
+}
+
 export function eventExecutionKey(event: FlowEvent): string | undefined {
   return normalizeTraceIdentifierValue(readAttr(event, 'run_id')) ?? event.trace_id ?? undefined
 }
@@ -57,6 +140,15 @@ function toFlowEvent(payload: unknown): FlowEvent | null {
   return event as FlowEvent
 }
 
+export function normalizeFlowEvents(events: FlowEvent[], currentMaxSeq: number): FlowEvent[] {
+  let nextSeq = currentMaxSeq
+
+  return events.map((event) => {
+    nextSeq += typeof event.seq === 'number' ? 0 : 1
+    return normalizeFlowEvent(event, nextSeq)
+  })
+}
+
 export function normalizeFlowEvent(event: FlowEvent, nextSeq: number): FlowEvent {
   const seq = typeof event.seq === 'number' ? event.seq : nextSeq
   const eventKind = resolveEventKind(event)
@@ -95,15 +187,13 @@ export function parseRelayEvents(data: string, currentMaxSeq: number): FlowEvent
   try {
     const parsed = JSON.parse(data) as unknown
     const candidates = unwrapRelayPayload(parsed)
-    let nextSeq = currentMaxSeq
 
-    return candidates
+    return normalizeFlowEvents(
+      candidates
       .map(toFlowEvent)
-      .filter((event): event is FlowEvent => Boolean(event))
-      .map((event) => {
-        nextSeq += typeof event.seq === 'number' ? 0 : 1
-        return normalizeFlowEvent(event, nextSeq)
-      })
+      .filter((event): event is FlowEvent => Boolean(event)),
+      currentMaxSeq,
+    )
   } catch {
     return []
   }
