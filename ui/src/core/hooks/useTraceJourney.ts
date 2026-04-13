@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 
-import { eventExecutionKey, resolveEventKind } from '../events'
+import { compareFlowEventsForDisplay, eventExecutionKey, resolveEventKind } from '../events'
 import { inferErrorState, readStringAttribute, resolveMappedNodeId } from '../mapping'
 import { normalizeTraceIdentifierValue } from '../traceIdentifiers'
 import type {
@@ -261,58 +261,21 @@ function materializeJourneys(journeyMap: Map<string, MutableJourney>): TraceJour
 export function useTraceJourney(
   events: FlowEvent[],
   spanMapping: SpanMapping,
-  sessionKey?: number | string,
+  _sessionKey?: number | string,
 ): TraceJourneyState {
-  const [journeys, setJourneys] = useState<TraceJourney[]>([])
-  const [journeyByTraceId, setJourneyByTraceId] = useState<Map<string, TraceJourney>>(new Map())
+  const journeys = useMemo(() => {
+    const journeyMap = new Map<string, MutableJourney>()
+    const orderedEvents = [...events].sort(compareFlowEventsForDisplay)
 
-  const processedIndexRef = useRef(0)
-  const sessionKeyRef = useRef<number | string | undefined>(sessionKey)
-  const journeysRef = useRef<Map<string, MutableJourney>>(new Map())
-
-  const clearJourneys = useCallback(() => {
-    processedIndexRef.current = 0
-    journeysRef.current = new Map()
-    setJourneys([])
-    setJourneyByTraceId(new Map())
-  }, [])
-
-  useEffect(() => {
-    if (sessionKeyRef.current === sessionKey) {
-      return
-    }
-    sessionKeyRef.current = sessionKey
-    clearJourneys()
-  }, [clearJourneys, sessionKey])
-
-  useEffect(() => {
-    if (events.length < processedIndexRef.current) {
-      clearJourneys()
-    }
-
-    if (events.length === processedIndexRef.current) {
-      return
-    }
-
-    const journeyMap = new Map(journeysRef.current)
-    const pending = [...events.slice(processedIndexRef.current)].sort((left, right) => {
-      const bySeq = (left.seq ?? 0) - (right.seq ?? 0)
-      if (bySeq !== 0) {
-        return bySeq
-      }
-      return Date.parse(left.timestamp) - Date.parse(right.timestamp)
-    })
-    processedIndexRef.current = events.length
-
-    for (let index = 0; index < pending.length; index += 1) {
-      const event = pending[index]
+    for (let index = 0; index < orderedEvents.length; index += 1) {
+      const event = orderedEvents[index]
       const executionKey = eventExecutionKey(event)
       if (!executionKey) {
         continue
       }
 
       const traceId = executionKey
-      const seq = typeof event.seq === 'number' ? event.seq : processedIndexRef.current - pending.length + index + 1
+      const seq = typeof event.seq === 'number' ? event.seq : index + 1
       const nodeId = resolveMappedNodeId(event, spanMapping)
       const journey = journeyMap.get(traceId) ?? {
         traceId,
@@ -412,11 +375,15 @@ export function useTraceJourney(
       journeyMap.set(traceId, journey)
     }
 
-    journeysRef.current = journeyMap
-    const nextJourneys = materializeJourneys(journeyMap)
-    setJourneys(nextJourneys)
-    setJourneyByTraceId(new Map(nextJourneys.map((journey) => [journey.traceId, journey])))
-  }, [clearJourneys, events, spanMapping])
+    return materializeJourneys(journeyMap)
+  }, [events, spanMapping])
+
+  const journeyByTraceId = useMemo(
+    () => new Map(journeys.map((journey) => [journey.traceId, journey])),
+    [journeys],
+  )
+
+  const clearJourneys = useCallback(() => {}, [])
 
   return {
     journeys,

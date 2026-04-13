@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 
-import { eventExecutionKey } from '../events'
+import { eventExecutionKey, getEventMergeKey } from '../events'
 import { buildFlowLogDisplayMessage } from '../logPresentation'
 import { inferErrorState, readStringAttribute, resolveMappedNodeId } from '../mapping'
 import { classifyFlowEvent, isDefaultVisibleSignal } from '../telemetryClassification'
@@ -29,6 +29,8 @@ function toLogEntry(event: FlowEvent, nodeId?: string): LogEntry {
     (event.type === 'span_start' ? 'span started' : event.type === 'span_end' ? 'span completed' : 'log event')
 
   return {
+    selectionId:
+      typeof event.seq === 'number' ? String(event.seq) : `history:${getEventMergeKey(event)}`,
     timestamp: event.timestamp,
     seq: event.seq,
     traceId: event.trace_id,

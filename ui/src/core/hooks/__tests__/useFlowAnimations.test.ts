@@ -198,8 +198,7 @@ describe('useFlowAnimations', () => {
   })
 
   it('animates recompute steps on the shared extract-worker lane', async () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(Date.parse('2026-03-03T12:00:00.510Z'))
+    setNow('2026-03-03T12:00:00.510Z')
 
     const start: FlowEvent = {
       type: 'log',
@@ -244,7 +243,7 @@ describe('useFlowAnimations', () => {
     expect(result.current.nodeStatuses.get('extract-worker')?.status).toBe('active')
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(50)
+      await sleep(60)
     })
 
     expect(result.current.nodeStatuses.get('extract-worker')?.status).toBe('idle')

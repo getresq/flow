@@ -31,6 +31,7 @@ export function useRelayConnection(wsUrl = DEFAULT_RELAY_WS_URL): RelayConnectio
   const [reconnecting, setReconnecting] = useState(false)
   const [resetKey, setResetKey] = useState(0)
   const [totalEventCount, setTotalEventCount] = useState(0)
+  const [wasTruncated, setWasTruncated] = useState(false)
 
   const socketRef = useRef<WebSocket | null>(null)
   const reconnectTimerRef = useRef<number | null>(null)
@@ -44,6 +45,7 @@ export function useRelayConnection(wsUrl = DEFAULT_RELAY_WS_URL): RelayConnectio
     eventsRef.current = []
     setEvents([])
     setTotalEventCount(0)
+    setWasTruncated(false)
     setResetKey((value) => value + 1)
   }, [])
 
@@ -110,7 +112,7 @@ export function useRelayConnection(wsUrl = DEFAULT_RELAY_WS_URL): RelayConnectio
         setEvents(nextEvents)
         setTotalEventCount((value) => value + accepted.length)
         if (truncated) {
-          setResetKey((value) => value + 1)
+          setWasTruncated(true)
         }
       }
     }
@@ -131,5 +133,5 @@ export function useRelayConnection(wsUrl = DEFAULT_RELAY_WS_URL): RelayConnectio
     }
   }, [wsUrl])
 
-  return { events, connected, reconnecting, resetKey, totalEventCount, clearEvents }
+  return { events, connected, reconnecting, resetKey, totalEventCount, wasTruncated, clearEvents }
 }

@@ -62,12 +62,15 @@ export interface RelayFlowEvent {
 export interface RelayHistoryPayload {
   from: string;
   to: string;
+  anchor_to?: string;
   query?: string | null;
   flow_id?: string | null;
   events: RelayFlowEvent[];
   log_count: number;
   span_count: number;
   truncated: boolean;
+  has_more_older?: boolean;
+  next_cursor?: string | null;
   warnings?: string[];
 }
 

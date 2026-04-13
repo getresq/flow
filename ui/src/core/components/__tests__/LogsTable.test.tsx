@@ -291,7 +291,12 @@ describe('LogsTable', () => {
       <LogsTable logs={logs} nodeLabels={nodeLabels} nodeFamilies={nodeFamilies} onSelectLog={vi.fn()} />,
     )
 
-    expect(screen.getByRole('table')).toHaveClass('table-fixed')
-    expect(container.querySelectorAll('col')).toHaveLength(3)
+    expect(screen.getAllByRole('table')).toSatisfy((tables) =>
+      tables.every((table: HTMLElement) => table.classList.contains('table-fixed')),
+    )
+    expect(container.querySelectorAll('colgroup')).toHaveLength(2)
+    expect(
+      [...container.querySelectorAll('colgroup')].every((group) => group.querySelectorAll('col').length === 3),
+    ).toBe(true)
   })
 })

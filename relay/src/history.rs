@@ -1,11 +1,13 @@
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::time::Duration;
 
 use axum::Json;
 use axum::extract::{Query, RawQuery, State};
 use axum::response::IntoResponse;
+use base64::Engine;
 use chrono::{DateTime, SecondsFormat, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::AppState;
@@ -21,6 +23,31 @@ const MAX_HISTORY_WINDOW_SECS: i64 = 7 * 24 * 60 * 60;
 const DEFAULT_HISTORY_LIMIT: usize = 8_000;
 const MAX_HISTORY_LIMIT: usize = 20_000;
 const DEFAULT_HISTORY_TIMEOUT_SECS: u64 = 8;
+const DEFAULT_BROWSER_HISTORY_LIMIT: usize = 1_000;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+struct HistoryCursor {
+    version: u8,
+    from: String,
+    anchor_to: String,
+    query: Option<String>,
+    flow_id: Option<String>,
+    attrs: Vec<(String, String)>,
+    logs_only: bool,
+    #[serde(default)]
+    page: usize,
+    older_than: HistoryCursorBoundary,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+struct HistoryCursorBoundary {
+    timestamp: String,
+    event_type: String,
+    trace_id: String,
+    span_id: String,
+    message: String,
+    attributes_fingerprint: String,
+}
 
 #[derive(Debug, Deserialize)]
 struct JaegerServicesResponse {
@@ -89,8 +116,12 @@ pub async fn get_history(
     Query(query): Query<HistoryQuery>,
     RawQuery(raw_query): RawQuery,
 ) -> RelayResult<impl IntoResponse> {
-    let (start, end) = resolve_history_range(&query)?;
     let attr_filters = parse_history_attr_filters(raw_query.as_deref())?;
+    let cursor = query
+        .cursor
+        .as_deref()
+        .map(decode_history_cursor)
+        .transpose()?;
     let search = query
         .query
         .as_deref()
@@ -106,8 +137,22 @@ pub async fn get_history(
     let logs_only = query.logs_only;
     let max_events = query
         .limit
-        .unwrap_or(DEFAULT_HISTORY_LIMIT)
+        .unwrap_or(if logs_only {
+            DEFAULT_BROWSER_HISTORY_LIMIT
+        } else {
+            DEFAULT_HISTORY_LIMIT
+        })
         .clamp(1, MAX_HISTORY_LIMIT);
+    let (start, end) = resolve_history_range(&query, cursor.as_ref())?;
+    validate_history_cursor(
+        cursor.as_ref(),
+        start,
+        end,
+        search.as_deref(),
+        selected_flow_id.as_deref(),
+        &attr_filters,
+        logs_only,
+    )?;
 
     let client = state.history_client.clone();
 
@@ -124,6 +169,7 @@ pub async fn get_history(
         let Some(log_query) = log_query.as_deref() else {
             return Ok(Vec::new());
         };
+        let upstream_limit = history_log_fetch_limit(max_events, cursor.as_ref());
         fetch_history_logs(
             &client,
             start,
@@ -131,7 +177,7 @@ pub async fn get_history(
             log_query,
             search.as_deref(),
             &attr_filters,
-            max_events,
+            upstream_limit,
         )
         .await
     };
@@ -163,23 +209,48 @@ pub async fn get_history(
         .matcher
         .filter_history_events(events, selected_flow_id.as_deref());
     sort_events_for_timeline(&mut events);
-    assign_history_sequence_and_annotations(&mut events);
+    let mut filtered_events = if let Some(cursor) = cursor.as_ref() {
+        events
+            .into_iter()
+            .filter(|event| event_sorts_before_boundary(event, &cursor.older_than))
+            .collect::<Vec<_>>()
+    } else {
+        events
+    };
 
-    let log_count = events
+    let log_count = filtered_events
         .iter()
         .filter(|event| event.event_type == "log")
         .count();
-    let span_count = events
+    let span_count = filtered_events
         .iter()
         .filter(|event| event.event_type == "span_start" || event.event_type == "span_end")
         .count();
 
-    let truncated = events.len() > max_events;
+    let truncated = filtered_events.len() > max_events;
     if truncated {
-        let start_index = events.len().saturating_sub(max_events);
-        events = events.split_off(start_index);
-        assign_history_sequence_and_annotations(&mut events);
+        let start_index = filtered_events.len().saturating_sub(max_events);
+        filtered_events = filtered_events.split_off(start_index);
     }
+
+    let next_cursor = filtered_events.first().map(history_cursor_boundary).and_then(|older_than| {
+        truncated.then(|| {
+            encode_history_cursor(&HistoryCursor {
+                version: 1,
+                from: start.to_rfc3339_opts(SecondsFormat::Millis, true),
+                anchor_to: end.to_rfc3339_opts(SecondsFormat::Millis, true),
+                query: search.clone(),
+                flow_id: selected_flow_id.clone(),
+                attrs: attr_filters.clone(),
+                logs_only,
+                page: cursor.map_or(1, |cursor| cursor.page.saturating_add(1)),
+                older_than,
+            })
+        })
+    }).transpose()?;
+
+    let mut events = filtered_events;
+    assign_history_sequence_and_annotations(&mut events);
 
     if events.is_empty() && warnings.is_empty() {
         warnings.push("no events found in requested time window".to_string());
@@ -190,12 +261,15 @@ pub async fn get_history(
         Json(HistoryResponse {
             from: start.to_rfc3339_opts(SecondsFormat::Millis, true),
             to: end.to_rfc3339_opts(SecondsFormat::Millis, true),
+            anchor_to: end.to_rfc3339_opts(SecondsFormat::Millis, true),
             query: search,
             flow_id: selected_flow_id,
             events,
             log_count,
             span_count,
             truncated,
+            has_more_older: truncated,
+            next_cursor,
             warnings,
         }),
     ))
@@ -208,13 +282,19 @@ pub(crate) fn build_history_client() -> RelayResult<reqwest::Client> {
         .map_err(|error| RelayError::internal(format!("failed to build history client: {error}")))
 }
 
-fn resolve_history_range(query: &HistoryQuery) -> RelayResult<(DateTime<Utc>, DateTime<Utc>)> {
-    let end = query
-        .to
-        .as_deref()
-        .map(parse_rfc3339_utc)
-        .transpose()?
-        .unwrap_or_else(Utc::now);
+fn resolve_history_range(
+    query: &HistoryQuery,
+    cursor: Option<&HistoryCursor>,
+) -> RelayResult<(DateTime<Utc>, DateTime<Utc>)> {
+    let end = if let Some(cursor) = cursor {
+        parse_rfc3339_utc(&cursor.anchor_to)?
+    } else {
+        query.to
+            .as_deref()
+            .map(parse_rfc3339_utc)
+            .transpose()?
+            .unwrap_or_else(Utc::now)
+    };
 
     let window_secs = query
         .window
@@ -224,12 +304,15 @@ fn resolve_history_range(query: &HistoryQuery) -> RelayResult<(DateTime<Utc>, Da
         .unwrap_or(DEFAULT_HISTORY_WINDOW_SECS)
         .clamp(1, MAX_HISTORY_WINDOW_SECS);
 
-    let mut start = query
-        .from
-        .as_deref()
-        .map(parse_rfc3339_utc)
-        .transpose()?
-        .unwrap_or_else(|| end - chrono::Duration::seconds(window_secs));
+    let mut start = if let Some(cursor) = cursor {
+        parse_rfc3339_utc(&cursor.from)?
+    } else {
+        query.from
+            .as_deref()
+            .map(parse_rfc3339_utc)
+            .transpose()?
+            .unwrap_or_else(|| end - chrono::Duration::seconds(window_secs))
+    };
 
     let max_window_start = end - chrono::Duration::seconds(MAX_HISTORY_WINDOW_SECS);
     if start < max_window_start {
@@ -242,6 +325,168 @@ fn resolve_history_range(query: &HistoryQuery) -> RelayResult<(DateTime<Utc>, Da
     }
 
     Ok((start, end))
+}
+
+fn history_log_fetch_limit(max_events: usize, cursor: Option<&HistoryCursor>) -> usize {
+    let page = cursor.map_or(0, |cursor| cursor.page);
+    // Browser history caps at a small page budget in v1, so cumulative over-fetch keeps the
+    // cursor walk simple and bounded without introducing a second upstream paging contract.
+    max_events
+        .saturating_mul(page.saturating_add(1))
+        .saturating_add(1)
+        .clamp(1, MAX_HISTORY_LIMIT)
+}
+
+fn validate_history_cursor(
+    cursor: Option<&HistoryCursor>,
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+    search: Option<&str>,
+    selected_flow_id: Option<&str>,
+    attr_filters: &[(String, String)],
+    logs_only: bool,
+) -> RelayResult<()> {
+    let Some(cursor) = cursor else {
+        return Ok(());
+    };
+
+    if !logs_only {
+        return Err(RelayError::bad_request(
+            "cursor pagination only supports logs_only=true in v1",
+        ));
+    }
+
+    if cursor.logs_only != logs_only
+        || cursor.query.as_deref() != search
+        || cursor.flow_id.as_deref() != selected_flow_id
+        || cursor.attrs.as_slice() != attr_filters
+        || cursor.from != start.to_rfc3339_opts(SecondsFormat::Millis, true)
+        || cursor.anchor_to != end.to_rfc3339_opts(SecondsFormat::Millis, true)
+    {
+        return Err(RelayError::bad_request(
+            "history cursor no longer matches the active query shape",
+        ));
+    }
+
+    Ok(())
+}
+
+fn encode_history_cursor(cursor: &HistoryCursor) -> RelayResult<String> {
+    serde_json::to_vec(cursor)
+        .map(|bytes| base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes))
+        .map_err(|error| RelayError::internal(format!("failed to encode history cursor: {error}")))
+}
+
+fn decode_history_cursor(raw: &str) -> RelayResult<HistoryCursor> {
+    let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(raw)
+        .map_err(|error| RelayError::bad_request(format!("invalid history cursor: {error}")))?;
+
+    serde_json::from_slice::<HistoryCursor>(&bytes)
+        .map_err(|error| RelayError::bad_request(format!("invalid history cursor payload: {error}")))
+}
+
+fn history_cursor_boundary(event: &FlowEvent) -> HistoryCursorBoundary {
+    HistoryCursorBoundary {
+        timestamp: event.timestamp.clone(),
+        event_type: event.event_type.clone(),
+        trace_id: event.trace_id.clone().unwrap_or_default(),
+        span_id: event.span_id.clone().unwrap_or_default(),
+        message: event.message.clone().unwrap_or_default(),
+        attributes_fingerprint: stable_attributes_fingerprint(&event.attributes),
+    }
+}
+
+fn event_sorts_before_boundary(event: &FlowEvent, boundary: &HistoryCursorBoundary) -> bool {
+    compare_event_to_boundary(event, boundary).is_lt()
+}
+
+fn compare_event_to_boundary(event: &FlowEvent, boundary: &HistoryCursorBoundary) -> Ordering {
+    event.timestamp
+        .cmp(&boundary.timestamp)
+        .then_with(|| event_type_rank(&event.event_type).cmp(&event_type_rank(&boundary.event_type)))
+        .then_with(|| {
+            event.trace_id
+                .as_deref()
+                .unwrap_or_default()
+                .cmp(&boundary.trace_id)
+        })
+        .then_with(|| {
+            event.span_id
+                .as_deref()
+                .unwrap_or_default()
+                .cmp(&boundary.span_id)
+        })
+        .then_with(|| {
+            event.message
+                .as_deref()
+                .unwrap_or_default()
+                .cmp(&boundary.message)
+        })
+        .then_with(|| stable_attributes_fingerprint(&event.attributes).cmp(&boundary.attributes_fingerprint))
+}
+
+fn event_type_rank(kind: &str) -> u8 {
+    match kind {
+        "span_start" => 0,
+        "log" => 1,
+        "span_end" => 2,
+        _ => 3,
+    }
+}
+
+fn stable_attributes_fingerprint(attributes: &Map<String, Value>) -> String {
+    let mut entries = attributes.iter().collect::<Vec<_>>();
+    entries.sort_by(|left, right| left.0.cmp(right.0));
+
+    let mut output = String::new();
+    for (index, (key, value)) in entries.into_iter().enumerate() {
+        if index > 0 {
+            output.push('|');
+        }
+        output.push_str(key);
+        output.push('=');
+        stable_value_to_string(value, &mut output);
+    }
+
+    output
+}
+
+fn stable_value_to_string(value: &Value, output: &mut String) {
+    match value {
+        Value::Null => output.push_str("null"),
+        Value::Bool(boolean) => output.push_str(if *boolean { "true" } else { "false" }),
+        Value::Number(number) => output.push_str(&number.to_string()),
+        Value::String(string) => {
+            output.push('"');
+            output.push_str(string);
+            output.push('"');
+        }
+        Value::Array(array) => {
+            output.push('[');
+            for (index, item) in array.iter().enumerate() {
+                if index > 0 {
+                    output.push(',');
+                }
+                stable_value_to_string(item, output);
+            }
+            output.push(']');
+        }
+        Value::Object(object) => {
+            output.push('{');
+            let mut entries = object.iter().collect::<Vec<_>>();
+            entries.sort_by(|left, right| left.0.cmp(right.0));
+            for (index, (key, item)) in entries.into_iter().enumerate() {
+                if index > 0 {
+                    output.push(',');
+                }
+                output.push_str(key);
+                output.push(':');
+                stable_value_to_string(item, output);
+            }
+            output.push('}');
+        }
+    }
 }
 
 fn parse_rfc3339_utc(raw: &str) -> RelayResult<DateTime<Utc>> {
@@ -329,6 +574,8 @@ async fn fetch_history_logs(
     attr_filters: &[(String, String)],
     limit: usize,
 ) -> Result<Vec<FlowEvent>, String> {
+    // Cursor paging assumes the upstream log query returns rows newest-first within the
+    // requested window, so each broader fetch contains the already-loaded slice plus older rows.
     let response = client
         .get(vlogs_query_url())
         .query(&[
@@ -378,6 +625,7 @@ fn map_logsql_line_to_flow_event(value: &Value) -> Option<FlowEvent> {
     let timestamp = object_string(object, "_time")
         .or_else(|| object_string(object, "timestamp"))
         .or_else(|| object_string(object, "time"))
+        .map(normalize_history_timestamp)
         .unwrap_or_else(now_iso);
 
     let mut event = FlowEvent::new("log", timestamp);
@@ -396,6 +644,12 @@ fn map_logsql_line_to_flow_event(value: &Value) -> Option<FlowEvent> {
         .or_else(|| event.span_name.clone());
     event.attributes = filtered_logsql_attributes(object);
     Some(event)
+}
+
+fn normalize_history_timestamp(raw: String) -> String {
+    DateTime::parse_from_rfc3339(&raw)
+        .map(|parsed| parsed.with_timezone(&Utc).to_rfc3339_opts(SecondsFormat::Millis, true))
+        .unwrap_or(raw)
 }
 
 async fn fetch_history_spans(
@@ -788,4 +1042,100 @@ fn object_string(object: &Map<String, Value>, key: &str) -> Option<String> {
 
 fn object_u64(object: &Map<String, Value>, key: &str) -> Option<u64> {
     object.get(key).and_then(otel_value_as_u64)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_event(timestamp: &str, message: &str) -> FlowEvent {
+        let mut event = FlowEvent::new("log", timestamp.to_string());
+        event.trace_id = Some("trace-1".to_string());
+        event.span_id = Some("span-1".to_string());
+        event.message = Some(message.to_string());
+        event.attributes = Map::from_iter([
+            (
+                "component_id".to_string(),
+                Value::String("send-worker".to_string()),
+            ),
+            (
+                "run_id".to_string(),
+                Value::String("mail-pipeline_run-1".to_string()),
+            ),
+        ]);
+        event
+    }
+
+    #[test]
+    fn history_cursor_round_trips_through_base64() {
+        let cursor = HistoryCursor {
+            version: 1,
+            from: "2026-04-11T04:00:00.000Z".to_string(),
+            anchor_to: "2026-04-11T10:00:00.000Z".to_string(),
+            query: Some("thread-1".to_string()),
+            flow_id: Some("mail-pipeline".to_string()),
+            attrs: vec![("thread_id".to_string(), "thread-1".to_string())],
+            logs_only: true,
+            page: 1,
+            older_than: HistoryCursorBoundary {
+                timestamp: "2026-04-11T08:00:00.000Z".to_string(),
+                event_type: "log".to_string(),
+                trace_id: "trace-1".to_string(),
+                span_id: "span-1".to_string(),
+                message: "older event".to_string(),
+                attributes_fingerprint: "component_id=\"send-worker\"".to_string(),
+            },
+        };
+
+        let encoded = encode_history_cursor(&cursor).expect("encode cursor");
+        let decoded = decode_history_cursor(&encoded).expect("decode cursor");
+
+        assert_eq!(decoded, cursor);
+    }
+
+    #[test]
+    fn event_boundary_comparison_uses_full_sort_tuple() {
+        let boundary =
+            history_cursor_boundary(&sample_event("2026-04-11T08:00:00.000Z", "middle event"));
+
+        let older = sample_event("2026-04-11T07:59:59.000Z", "older event");
+        let equal = sample_event("2026-04-11T08:00:00.000Z", "middle event");
+        let newer = sample_event("2026-04-11T08:00:01.000Z", "newer event");
+
+        assert!(event_sorts_before_boundary(&older, &boundary));
+        assert!(!event_sorts_before_boundary(&equal, &boundary));
+        assert!(!event_sorts_before_boundary(&newer, &boundary));
+    }
+
+    #[test]
+    fn validate_history_cursor_rejects_query_shape_changes() {
+        let cursor = HistoryCursor {
+            version: 1,
+            from: "2026-04-11T04:00:00.000Z".to_string(),
+            anchor_to: "2026-04-11T10:00:00.000Z".to_string(),
+            query: Some("thread-1".to_string()),
+            flow_id: Some("mail-pipeline".to_string()),
+            attrs: vec![("thread_id".to_string(), "thread-1".to_string())],
+            logs_only: true,
+            page: 1,
+            older_than: history_cursor_boundary(&sample_event(
+                "2026-04-11T08:00:00.000Z",
+                "middle event",
+            )),
+        };
+
+        let start = parse_rfc3339_utc("2026-04-11T04:00:00.000Z").expect("start");
+        let end = parse_rfc3339_utc("2026-04-11T10:00:00.000Z").expect("end");
+        let result = validate_history_cursor(
+            Some(&cursor),
+            start,
+            end,
+            Some("different-query"),
+            Some("mail-pipeline"),
+            &[("thread_id".to_string(), "thread-1".to_string())],
+            true,
+        );
+
+        assert!(result.is_err());
+    }
 }

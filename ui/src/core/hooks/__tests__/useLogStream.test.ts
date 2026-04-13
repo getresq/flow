@@ -162,4 +162,29 @@ describe('useLogStream', () => {
     expect(result.current.globalLogs[0].displayMessage).toBe('drafted; awaiting manual review')
     expect(result.current.globalLogs[1].displayMessage).toBe('terminal send failure')
   })
+
+  it('assigns a stable selection id to history events without a relay seq', async () => {
+    const events: FlowEvent[] = [
+      {
+        type: 'log',
+        timestamp: '2026-03-03T12:00:01.000Z',
+        trace_id: 'trace-history',
+        message: 'history event',
+        attributes: {
+          run_id: 'run-history',
+          component_id: 'send-process',
+        },
+      },
+    ]
+
+    const { result } = renderHook(() => useLogStream(events, mailPipelineFlow.spanMapping))
+
+    await waitFor(() => {
+      expect(result.current.globalLogs).toHaveLength(1)
+    })
+
+    expect(result.current.globalLogs[0].seq).toBeUndefined()
+    expect(result.current.globalLogs[0].selectionId).toBeTruthy()
+    expect(result.current.globalLogs[0].selectionId).toContain('history:')
+  })
 })

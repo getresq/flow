@@ -220,4 +220,26 @@ describe('LogsView', () => {
     expect(screen.getByRole('option', { name: 'helper-node' })).toBeInTheDocument()
     expect(screen.queryByRole('option', { name: 'Inactive Node' })).not.toBeInTheDocument()
   })
+
+  it('shows older-activity messaging and allows manual backfill', async () => {
+    const onLoadOlder = vi.fn()
+
+    render(
+      <LogsView
+        flow={flow}
+        logs={logs}
+        sourceMode="live"
+        wasLiveBufferTruncated
+        onLoadOlder={onLoadOlder}
+        onSelectNode={vi.fn()}
+        onSelectTrace={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Older activity available')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load older' }))
+
+    expect(onLoadOlder).toHaveBeenCalledTimes(1)
+  })
 })

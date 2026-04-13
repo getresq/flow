@@ -105,6 +105,23 @@ function matchCandidate(spanMapping: SpanMapping, candidate: string | undefined)
   return null
 }
 
+function eventWindowSignature(events: FlowEvent[]): string {
+  if (events.length === 0) {
+    return '0'
+  }
+
+  const first = events[0]
+  const last = events[events.length - 1]
+  return [
+    events.length,
+    first?.seq ?? '',
+    first?.timestamp ?? '',
+    last?.seq ?? '',
+    last?.timestamp ?? '',
+    last?.type ?? '',
+  ].join('::')
+}
+
 interface UseFlowAnimationsInput {
   events: FlowEvent[]
   spanMapping: SpanMapping
@@ -144,6 +161,7 @@ export function useFlowAnimations({
   const [activeEdges, setActiveEdges] = useState<Set<string>>(new Set())
 
   const processedIndexRef = useRef(0)
+  const eventWindowSignatureRef = useRef(eventWindowSignature(events))
   const sessionKeyRef = useRef<number | string | undefined>(sessionKey)
   const spanStartRef = useRef<Map<string, number>>(new Map())
   const nodeResetTimersRef = useRef<Map<string, number>>(new Map())
@@ -163,10 +181,11 @@ export function useFlowAnimations({
     spanStartRef.current.clear()
     traceLastNodeRef.current.clear()
     processedIndexRef.current = 0
+    eventWindowSignatureRef.current = eventWindowSignature(events)
 
     setNodeStatuses(new Map())
     setActiveEdges(new Set())
-  }, [])
+  }, [events])
 
   const updateNodeStatus = useCallback(
     (nodeId: string, updater: (previous: NodeRuntimeStatus | undefined) => NodeRuntimeStatus) => {
@@ -256,6 +275,16 @@ export function useFlowAnimations({
   }, [clearStatuses, sessionKey])
 
   useEffect(() => {
+    const currentSignature = eventWindowSignature(events)
+    if (
+      events.length === processedIndexRef.current &&
+      eventWindowSignatureRef.current !== currentSignature
+    ) {
+      clearStatuses()
+      processedIndexRef.current = 0
+    }
+    eventWindowSignatureRef.current = currentSignature
+
     if (events.length < processedIndexRef.current) {
       clearStatuses()
       processedIndexRef.current = 0

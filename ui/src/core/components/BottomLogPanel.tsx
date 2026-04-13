@@ -27,6 +27,11 @@ interface BottomLogPanelProps {
   journeys: TraceJourney[]
   selectedTraceId?: string
   selectedLogSeq?: string
+  isBackfilling?: boolean
+  hasMoreOlder?: boolean
+  historyLimitReached?: boolean
+  wasLiveBufferTruncated?: boolean
+  onLoadOlder?: () => Promise<void> | void
   onSelectNode: (nodeId: string) => void
   onSelectLog: (entry: LogEntry) => void
   onSelectTrace: (traceId?: string) => void
@@ -50,7 +55,12 @@ export function BottomLogPanel({
   journeys,
   selectedTraceId,
   selectedLogSeq,
-  onSelectNode,
+  isBackfilling = false,
+  hasMoreOlder = false,
+  historyLimitReached: _historyLimitReached = false,
+  wasLiveBufferTruncated = false,
+  onLoadOlder = () => {},
+  onSelectNode: _onSelectNode,
   onSelectLog,
   onSelectTrace,
 }: BottomLogPanelProps) {
@@ -144,6 +154,7 @@ export function BottomLogPanel({
       )
     })
   }, [journeys, search, statusFilter])
+  const canLoadOlder = hasMoreOlder || wasLiveBufferTruncated
 
   const logsEmptyState = useMemo(() => {
     if (flowLogs.length === 0) {
@@ -153,17 +164,31 @@ export function BottomLogPanel({
       }
     }
 
+    if (canLoadOlder || isBackfilling) {
+      return {
+        title: 'No logs in the loaded window',
+        body: 'Load older activity or clear filters to see more.',
+      }
+    }
+
     return {
       title: 'No logs match the current filters',
       body: 'Try clearing search to see more flow activity.',
     }
-  }, [flowLogs.length])
+  }, [canLoadOlder, flowLogs.length, isBackfilling])
 
   const runsEmptyState = useMemo(() => {
     if (journeys.length === 0) {
       return {
         title: 'Waiting for activity',
         body: 'Runs will appear here when the flow runs.',
+      }
+    }
+
+    if (canLoadOlder || isBackfilling) {
+      return {
+        title: 'No runs in the loaded window',
+        body: 'Load older activity to bring earlier runs into view.',
       }
     }
 
@@ -178,7 +203,7 @@ export function BottomLogPanel({
       title: 'No runs match the current filters',
       body: 'Try clearing search to see more runs.',
     }
-  }, [journeys])
+  }, [canLoadOlder, isBackfilling, journeys])
 
   useEffect(() => {
     if (!liveTail || isWhisper || tab !== 'logs') {
@@ -203,13 +228,25 @@ export function BottomLogPanel({
 
     const onScroll = () => {
       setLiveTail(viewport.scrollTop < 12)
+
+      const canScrollOlder = viewport.scrollHeight > viewport.clientHeight + 12
+      const distanceFromOlderEdge =
+        viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop
+      if (
+        canScrollOlder &&
+        distanceFromOlderEdge < 120 &&
+        (hasMoreOlder || wasLiveBufferTruncated) &&
+        !isBackfilling
+      ) {
+        void onLoadOlder()
+      }
     }
 
     viewport.addEventListener('scroll', onScroll)
     onScroll()
 
     return () => viewport.removeEventListener('scroll', onScroll)
-  }, [isWhisper, tab])
+  }, [hasMoreOlder, isBackfilling, isWhisper, onLoadOlder, tab, wasLiveBufferTruncated])
 
   const TAP_THRESHOLD = 5
 
@@ -407,19 +444,7 @@ export function BottomLogPanel({
                 selectedLogSeq={selectedLogSeq}
                 liveTail={liveTail}
                 scrollAreaRef={logsScrollAreaRef}
-                onSelectLog={(entry) => {
-                  if (entry.seq != null) {
-                    onSelectLog(entry)
-                    return
-                  }
-                  const executionId = entry.runId ?? entry.traceId
-                  if (executionId) {
-                    onSelectTrace(executionId)
-                  }
-                  if (entry.nodeId) {
-                    onSelectNode(entry.nodeId)
-                  }
-                }}
+                onSelectLog={onSelectLog}
               />
             )}
 

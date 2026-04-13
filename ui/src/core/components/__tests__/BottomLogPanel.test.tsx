@@ -228,4 +228,5 @@ describe('BottomLogPanel', () => {
     expect(onSelectTrace).not.toHaveBeenCalled()
     expect(onSelectNode).not.toHaveBeenCalled()
   })
+
 })

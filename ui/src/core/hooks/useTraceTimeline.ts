@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 
-import { eventExecutionKey } from '../events'
+import { compareFlowEventsForDisplay, eventExecutionKey } from '../events'
 import { inferErrorState, resolveMappedNodeId } from '../mapping'
 import type { FlowEvent, SpanEntry, SpanMapping, TraceTimelineState } from '../types'
 
@@ -30,51 +30,14 @@ function sortSpans(spans: SpanEntry[]): SpanEntry[] {
 export function useTraceTimeline(
   events: FlowEvent[],
   spanMapping: SpanMapping,
-  sessionKey?: number | string,
+  _sessionKey?: number | string,
 ): TraceTimelineState {
-  const [nodeSpans, setNodeSpans] = useState<Map<string, SpanEntry[]>>(new Map())
-  const [traceTree, setTraceTree] = useState<Map<string, SpanEntry[]>>(new Map())
+  const { nodeSpans, traceTree } = useMemo(() => {
+    const openSpans = new Map<string, SpanEntry>()
+    const nextNodeMap = new Map<string, SpanEntry[]>()
+    const nextTraceMap = new Map<string, SpanEntry[]>()
 
-  const processedIndexRef = useRef(0)
-  const sessionKeyRef = useRef<number | string | undefined>(sessionKey)
-  const openSpansRef = useRef<Map<string, SpanEntry>>(new Map())
-  const nodeSpansRef = useRef<Map<string, SpanEntry[]>>(new Map())
-  const traceTreeRef = useRef<Map<string, SpanEntry[]>>(new Map())
-
-  const clearTraces = useCallback(() => {
-    processedIndexRef.current = 0
-    openSpansRef.current.clear()
-    nodeSpansRef.current = new Map()
-    traceTreeRef.current = new Map()
-    setNodeSpans(new Map())
-    setTraceTree(new Map())
-  }, [])
-
-  useEffect(() => {
-    if (sessionKeyRef.current === sessionKey) {
-      return
-    }
-    sessionKeyRef.current = sessionKey
-    clearTraces()
-  }, [clearTraces, sessionKey])
-
-  useEffect(() => {
-    if (events.length < processedIndexRef.current) {
-      clearTraces()
-      processedIndexRef.current = 0
-    }
-
-    if (events.length === processedIndexRef.current) {
-      return
-    }
-
-    const nextNodeMap = new Map(nodeSpansRef.current)
-    const nextTraceMap = new Map(traceTreeRef.current)
-
-    const pending = events.slice(processedIndexRef.current)
-    processedIndexRef.current = events.length
-
-    for (const event of pending) {
+    for (const event of [...events].sort(compareFlowEventsForDisplay)) {
       if (event.type !== 'span_start' && event.type !== 'span_end') {
         continue
       }
@@ -103,7 +66,7 @@ export function useTraceTimeline(
           attributes: event.attributes,
         }
 
-        openSpansRef.current.set(key, entry)
+        openSpans.set(key, entry)
         continue
       }
 
@@ -111,7 +74,7 @@ export function useTraceTimeline(
         continue
       }
 
-      const openEntry = openSpansRef.current.get(key)
+      const openEntry = openSpans.get(key)
       const resolvedNodeId = nodeId ?? openEntry?.nodeId
 
       if (!resolvedNodeId || !event.trace_id || !event.span_id) {
@@ -152,14 +115,15 @@ export function useTraceTimeline(
       traceList.push(finalEntry)
       nextTraceMap.set(executionKey ?? event.trace_id, sortSpans(traceList))
 
-      openSpansRef.current.delete(key)
+      openSpans.delete(key)
     }
+    return {
+      nodeSpans: nextNodeMap,
+      traceTree: nextTraceMap,
+    }
+  }, [events, spanMapping])
 
-    nodeSpansRef.current = nextNodeMap
-    traceTreeRef.current = nextTraceMap
-    setNodeSpans(new Map(nextNodeMap))
-    setTraceTree(new Map(nextTraceMap))
-  }, [clearTraces, events, spanMapping])
+  const clearTraces = useCallback(() => {}, [])
 
   return {
     nodeSpans,
