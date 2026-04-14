@@ -36,6 +36,7 @@ export interface NodeHandleConfig {
   position: HandlePosition
   type?: 'source' | 'target' | 'both'
   id?: string
+  offset?: number
 }
 
 export type LayoutLane = 'main' | 'branch' | 'sidecar' | 'resource' | 'note'

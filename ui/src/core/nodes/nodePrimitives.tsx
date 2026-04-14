@@ -127,6 +127,11 @@ export function renderHandles(
 
   return merged.flatMap((handle) => {
     const position = positionMap[handle.position]
+    const offsetStyle = handle.offset === undefined
+      ? undefined
+      : handle.position === 'top' || handle.position === 'bottom'
+        ? { left: `calc(50% + ${handle.offset}px)` }
+        : { top: `calc(50% + ${handle.offset}px)` }
 
     if (handle.type === 'both') {
       return [
@@ -136,6 +141,7 @@ export function renderHandles(
           type="target"
           position={position}
           className="!h-2 !w-2 !border !border-[var(--node-handle-border)] !bg-[var(--node-handle-bg)]"
+          style={offsetStyle}
         />,
         <Handle
           key={`${nodeId}-${handle.position}-source`}
@@ -143,6 +149,7 @@ export function renderHandles(
           type="source"
           position={position}
           className="!h-2 !w-2 !border !border-[var(--node-handle-border)] !bg-[var(--node-handle-bg)]"
+          style={offsetStyle}
         />,
       ]
     }
@@ -154,6 +161,7 @@ export function renderHandles(
         type={handle.type ?? 'source'}
         position={position}
         className="!h-2 !w-2 !border !border-[var(--node-handle-border)] !bg-[var(--node-handle-bg)]"
+        style={offsetStyle}
       />
     )
   })
