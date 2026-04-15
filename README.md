@@ -267,8 +267,37 @@ make verify-ingest
 make smoke-vector-fanout
 make smoke-relay-ingest
 make replay
-make replay-direct
 ```
+
+### Demo replay
+
+`make replay` drives the public `demo-pipeline` sample flow.
+
+Use it when you want to prove a fresh local setup is working without waiting on a real producer.
+
+1. Start the relay and UI:
+
+   ```bash
+   make dev
+   ```
+
+2. Open the demo canvas in the browser:
+
+   ```text
+   http://localhost:5173/#/flows/demo-pipeline?mode=live&view=canvas
+   ```
+
+3. In another terminal, replay the demo traffic:
+
+   ```bash
+   make replay
+   ```
+
+What to expect:
+
+- the `demo-pipeline` canvas should light up immediately
+- the happy-path nodes and blue edges should animate from top to bottom
+- this is synthetic setup/demo traffic, not producer-backed mail traffic
 
 ## CLI
 
