@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { FlowEvent } from '../core/types'
 
-import { rebaseReplayEventsForLivePlayback } from './replay'
+import { demoReplayEvents, rebaseReplayEventsForLivePlayback } from './replay'
 
 describe('rebaseReplayEventsForLivePlayback', () => {
   it('rebases replay timestamps to the requested anchor while preserving relative timing', () => {
@@ -39,5 +39,21 @@ describe('rebaseReplayEventsForLivePlayback', () => {
     ]
 
     expect(rebaseReplayEventsForLivePlayback(sourceEvents)).toBe(sourceEvents)
+  })
+
+  it('loads the curated demo pipeline fixture in chronological order', () => {
+    expect(demoReplayEvents.length).toBeGreaterThan(0)
+
+    for (let index = 1; index < demoReplayEvents.length; index += 1) {
+      expect(Date.parse(demoReplayEvents[index - 1]!.timestamp)).toBeLessThanOrEqual(
+        Date.parse(demoReplayEvents[index]!.timestamp),
+      )
+    }
+  })
+
+  it('keeps the replay fixture scoped to the public demo flow', () => {
+    expect(
+      demoReplayEvents.every((event) => event.attributes?.flow_id === 'demo-pipeline'),
+    ).toBe(true)
   })
 })

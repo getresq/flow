@@ -1,48 +1,7 @@
+import demoFixture from './fixtures/demo-pipeline-replay.json'
 import type { FlowEvent } from '../core/types'
 
-import { loadReplaySelection, summarizeReplaySelection } from './replayScenarios'
-
 const DEFAULT_WS_URL = 'ws://localhost:4200/ws'
-const DEFAULT_RESET_URL = 'http://localhost:4200/v1/dev/reset'
-
-function parseSpeedArg(defaultSpeed = 1): number {
-  const speedFlagIndex = process.argv.findIndex((arg) => arg === '--speed')
-  if (speedFlagIndex === -1) {
-    return defaultSpeed
-  }
-
-  const value = process.argv[speedFlagIndex + 1]
-  if (!value) {
-    return defaultSpeed
-  }
-
-  const normalized = value.endsWith('x') ? value.slice(0, -1) : value
-  const parsed = Number.parseFloat(normalized)
-
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return defaultSpeed
-  }
-
-  return parsed
-}
-
-function parseFlagValue(flag: string): string | undefined {
-  const flagIndex = process.argv.findIndex((arg) => arg === flag)
-  if (flagIndex === -1) {
-    return undefined
-  }
-
-  const value = process.argv[flagIndex + 1]
-  if (!value || value.startsWith('--')) {
-    return undefined
-  }
-
-  return value
-}
-
-function hasFlag(flag: string): boolean {
-  return process.argv.includes(flag)
-}
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -108,14 +67,13 @@ async function connectRelay(url: string): Promise<WebSocket> {
   })
 }
 
-async function resetRelaySession(url: string): Promise<void> {
-  const response = await fetch(url, { method: 'POST' })
-  if (!response.ok) {
-    throw new Error(`failed to reset relay live session at ${url}: ${response.status}`)
-  }
+function resetRelaySession(socket: WebSocket, reason = 'replay') {
+  socket.send(JSON.stringify({ type: 'reset', reason }))
 }
 
-async function replayToRelay(socket: WebSocket, events: FlowEvent[], speed: number) {
+export const demoReplayEvents = demoFixture as FlowEvent[]
+
+async function replayToRelay(socket: WebSocket, events: FlowEvent[]) {
   for (let index = 0; index < events.length; index += 1) {
     const event = events[index]
     const next = events[index + 1]
@@ -130,48 +88,24 @@ async function replayToRelay(socket: WebSocket, events: FlowEvent[], speed: numb
 
     const delta = Math.max(Date.parse(next.timestamp) - Date.parse(event.timestamp), 0)
     if (delta > 0) {
-      await delay(delta / speed)
+      await delay(delta)
     }
   }
 }
 
 async function main() {
-  const speed = parseSpeedArg(1)
-  const scenarioId = parseFlagValue('--scenario')
-  const validateOnly = hasFlag('--validate-only')
-  const selection = await loadReplaySelection({ scenarioId })
-  const summary = summarizeReplaySelection(selection)
-
   // eslint-disable-next-line no-console
-  console.log(
-    `[replay] loaded ${selection.scenario?.id ?? 'default-fixture'} (${summary.eventCount} events, ${summary.mappedNodeIds.length} mapped nodes)`,
-  )
-  if (selection.scenario) {
-    // eslint-disable-next-line no-console
-    console.log(`[replay] scenario: ${selection.scenario.name}`)
-  }
-
-  if (summary.threadIds.length > 0) {
-    // eslint-disable-next-line no-console
-    console.log(`[replay] threads: ${summary.threadIds.join(', ')}`)
-  }
-
-  if (validateOnly) {
-    // eslint-disable-next-line no-console
-    console.log(`[replay] validation ok`)
-    return
-  }
-
-  const livePlaybackEvents = rebaseReplayEventsForLivePlayback(selection.events)
+  console.log(`[replay] loaded demo pipeline (${demoReplayEvents.length} events)`)
 
   try {
-    await resetRelaySession(DEFAULT_RESET_URL)
-    // eslint-disable-next-line no-console
-    console.log(`[replay] reset ${DEFAULT_RESET_URL}`)
     const socket = await connectRelay(DEFAULT_WS_URL)
     // eslint-disable-next-line no-console
     console.log(`[replay] connected to ${DEFAULT_WS_URL}`)
-    await replayToRelay(socket, livePlaybackEvents, speed)
+    resetRelaySession(socket)
+    // eslint-disable-next-line no-console
+    console.log('[replay] reset live session')
+    const livePlaybackEvents = rebaseReplayEventsForLivePlayback(demoReplayEvents, Date.now())
+    await replayToRelay(socket, livePlaybackEvents)
     socket.close()
     // eslint-disable-next-line no-console
     console.log('[replay] complete')

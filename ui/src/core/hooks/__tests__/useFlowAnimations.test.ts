@@ -1,7 +1,9 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { demoPipelineFlow } from '../../../flows/demo-pipeline'
 import { mailPipelineFlow } from '../../../flows/mail-pipeline'
+import { demoReplayEvents, rebaseReplayEventsForLivePlayback } from '../../../test/replay'
 import type { FlowEvent } from '../../types'
 import { useFlowAnimations } from '../useFlowAnimations'
 
@@ -653,6 +655,47 @@ describe('useFlowAnimations', () => {
       expect(result.current.nodeStatuses.get('backfill-cursor-write')?.status).toBe('active')
       expect(result.current.nodeStatuses.get('postgres-backfill')?.status).toBe('active')
       expect(result.current.activeEdges.has('backfill-cursor-postgres')).toBe(true)
+    })
+  })
+
+  it('activates key edges in the curated demo replay fixture', async () => {
+    const rebasedEvents = rebaseReplayEventsForLivePlayback(
+      demoReplayEvents,
+      Date.parse('2026-04-14T20:00:00.000Z'),
+    )
+
+    setNow('2026-04-14T20:00:01.100Z')
+    const { result } = renderHook(() =>
+      useFlowAnimations({
+        events: rebasedEvents,
+        spanMapping: demoPipelineFlow.spanMapping,
+        edges: demoPipelineFlow.edges,
+        resourceNodeIds: demoPipelineFlow.nodes.filter((node) => node.type === 'cylinder').map((node) => node.id),
+        timings: {
+          nodePulseResetMs: 2_500,
+          minVisualPulseMs: 2_500,
+          stalenessThresholdMs: 5_000,
+          edgeActiveMs: 2_500,
+        },
+      }),
+    )
+
+    await waitFor(() => {
+      expect(result.current.activeEdges.has('external-event-intake-queue')).toBe(true)
+      expect(result.current.activeEdges.has('intake-queue-intake-worker')).toBe(true)
+      expect(result.current.activeEdges.has('intake-worker-parse-input')).toBe(true)
+      expect(result.current.activeEdges.has('parse-input-persist-raw')).toBe(true)
+      expect(result.current.activeEdges.has('persist-raw-normalize-record')).toBe(true)
+      expect(result.current.activeEdges.has('normalize-record-input-valid')).toBe(true)
+      expect(result.current.activeEdges.has('input-valid-publish-queue')).toBe(true)
+      expect(result.current.activeEdges.has('publish-queue-publish-worker')).toBe(true)
+      expect(result.current.activeEdges.has('publish-worker-persist-result')).toBe(true)
+      expect(result.current.activeEdges.has('persist-result-archive-output')).toBe(true)
+      expect(result.current.activeEdges.has('persist-raw-postgres')).toBe(true)
+      expect(result.current.activeEdges.has('persist-result-postgres')).toBe(true)
+      expect(result.current.activeEdges.has('archive-output-object-store')).toBe(true)
+      expect(result.current.nodeStatuses.get('postgres')?.status).toBe('active')
+      expect(result.current.nodeStatuses.get('object-store')?.status).toBe('active')
     })
   })
 })

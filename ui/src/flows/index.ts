@@ -1,11 +1,17 @@
+import demoPipelineContractJson from '../flow-contracts/demo-pipeline.json'
 import mailPipelineContractJson from '../flow-contracts/mail-pipeline.json'
 import type { FlowConfig, FlowContract } from '../core/types'
 
+import { demoPipelineFlow } from './demo-pipeline'
 import { mailPipelineFlow } from './mail-pipeline'
 
+const demoPipelineContract = demoPipelineContractJson as FlowContract
 const mailPipelineContract = mailPipelineContractJson as FlowContract
 
-const flowViews = new Map<string, FlowConfig>([[mailPipelineFlow.id, mailPipelineFlow]])
+const flowViews = new Map<string, FlowConfig>([
+  [demoPipelineFlow.id, demoPipelineFlow],
+  [mailPipelineFlow.id, mailPipelineFlow],
+])
 
 function createHeadlessFlow(contract: FlowContract): FlowConfig {
   return {
@@ -19,4 +25,6 @@ function createHeadlessFlow(contract: FlowContract): FlowConfig {
   }
 }
 
-export const flows = [mailPipelineContract].map((contract) => flowViews.get(contract.id) ?? createHeadlessFlow(contract))
+export const flows = [demoPipelineContract, mailPipelineContract].map(
+  (contract) => flowViews.get(contract.id) ?? createHeadlessFlow(contract),
+)
