@@ -1,0 +1,142 @@
+[
+  {
+    "type": "log",
+    "timestamp": "2026-04-15T14:00:00.000Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-1",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "enqueue",
+      "component_id": "external-event",
+      "queue_name": "intake-queue"
+    },
+    "message": "Accepted incoming event"
+  },
+  {
+    "type": "log",
+    "timestamp": "2026-04-15T14:00:00.120Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-2",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "worker_pickup",
+      "component_id": "intake-worker",
+      "queue_name": "intake-queue",
+      "worker_name": "intake-worker"
+    },
+    "message": "Picked intake work"
+  },
+  {
+    "type": "log",
+    "timestamp": "2026-04-15T14:00:00.240Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-3",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "step",
+      "component_id": "intake-worker",
+      "step_id": "parse-input"
+    },
+    "message": "Parsed input payload"
+  },
+  {
+    "type": "log",
+    "timestamp": "2026-04-15T14:00:00.360Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-4",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "step",
+      "component_id": "intake-worker",
+      "step_id": "persist-raw"
+    },
+    "message": "Persisted raw record"
+  },
+  {
+    "type": "log",
+    "timestamp": "2026-04-15T14:00:00.480Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-5",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "step",
+      "component_id": "normalize-record"
+    },
+    "message": "Normalized publish record"
+  },
+  {
+    "type": "log",
+    "timestamp": "2026-04-15T14:00:00.600Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-6",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "step",
+      "component_id": "input-valid"
+    },
+    "message": "Input passed validation"
+  },
+  {
+    "type": "log",
+    "timestamp": "2026-04-15T14:00:00.720Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-7",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "enqueue",
+      "component_id": "input-valid",
+      "queue_name": "publish-queue"
+    },
+    "message": "Queued publish work"
+  },
+  {
+    "type": "log",
+    "timestamp": "2026-04-15T14:00:00.840Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-8",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "worker_pickup",
+      "component_id": "publish-worker",
+      "queue_name": "publish-queue",
+      "worker_name": "publish-worker"
+    },
+    "message": "Picked publish work"
+  },
+  {
+    "type": "log",
+    "timestamp": "2026-04-15T14:00:00.960Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-9",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "step",
+      "component_id": "publish-worker",
+      "step_id": "persist-result"
+    },
+    "message": "Persisted publish result"
+  },
+  {
+    "type": "log",
+    "timestamp": "2026-04-15T14:00:01.080Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-10",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "step",
+      "component_id": "publish-worker",
+      "step_id": "archive-output"
+    },
+    "message": "Archived output artifact"
+  }
+]
