@@ -52,13 +52,11 @@ const journey: TraceJourney = {
 }
 
 describe('TraceDetailPanel', () => {
-  it('shows run_id in Run details when present', () => {
+  // Note: run_id is now surfaced in the panel header subtitle (see
+  // TraceInspectorPresentation), not as a "Run details" collapsible in the body.
+  it('no longer renders a "Run details" section in the overview body', () => {
     render(<TraceDetailContent journey={journey} />)
-
-    fireEvent.click(screen.getByText('Run details'))
-
-    expect(screen.getByText('run_id')).toBeInTheDocument()
-    expect(screen.getByText('mail-pipeline_abc123')).toBeInTheDocument()
+    expect(screen.queryByText('Run details')).not.toBeInTheDocument()
   })
 
   it('renders one card per grouped node with expandable lightweight child rows and node navigation', () => {

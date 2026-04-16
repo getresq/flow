@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui'
 
 import { formatEasternTime } from '../time'
 import type { FlowEdgeConfig, FlowNodeConfig, TraceJourney, TraceStatus } from '../types'
-import { getJourneyOverviewModel } from '../runPresentation'
 import { DurationBadge } from './DurationBadge'
 
 function journeyStatusVariant(status: TraceStatus): 'default' | 'destructive' | 'success' | 'warning' {
@@ -22,22 +21,28 @@ function journeyStatusVariant(status: TraceStatus): 'default' | 'destructive' | 
 
 export function getTraceInspectorPresentation(
   journey: TraceJourney,
-  flowNodes?: FlowNodeConfig[],
-  flowEdges?: FlowEdgeConfig[],
+  _flowNodes?: FlowNodeConfig[],
+  _flowEdges?: FlowEdgeConfig[],
 ): {
   title: string
   description: ReactNode
   headerContent: ReactNode
 } {
-  const overview = getJourneyOverviewModel(journey, flowNodes, flowEdges)
-  const storyStageCount = overview.cards.length
+  const runId = journey.identifiers.runId
 
   return {
     title: 'Run',
     description: (
       <>
-        {storyStageCount} {storyStageCount === 1 ? 'story stage' : 'story stages'} · updated{' '}
-        <span className="font-mono">{formatEasternTime(journey.lastUpdatedAt)}</span>
+        {runId ? (
+          <>
+            <span className="font-mono text-[var(--text-primary)]">{runId}</span>
+            {' · '}
+            <span className="font-mono">{formatEasternTime(journey.lastUpdatedAt)}</span>
+          </>
+        ) : (
+          <span className="font-mono">{formatEasternTime(journey.lastUpdatedAt)}</span>
+        )}
       </>
     ),
     headerContent: (

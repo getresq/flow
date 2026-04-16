@@ -1,6 +1,5 @@
 import { Button, ScrollArea } from '@/components/ui'
 
-import { getLogDisplayMessage } from '../logPresentation'
 import type { LogEntry } from '../types'
 
 interface EventDetailContentProps {
@@ -15,7 +14,7 @@ export function EventDetailContent({
   hasJourney,
   onOpenRun,
 }: EventDetailContentProps) {
-  const displayMessage = getLogDisplayMessage(entry)
+  const displayMessage = entry.message
   const errorMessage = typeof entry.attributes?.error_message === 'string' ? entry.attributes.error_message : undefined
   const showErrorBlock = entry.level === 'error' || Boolean(errorMessage)
   const errorSummary = errorMessage ?? entry.message

@@ -15,9 +15,23 @@
   },
   {
     "type": "log",
-    "timestamp": "2026-04-15T14:00:00.120Z",
+    "timestamp": "2026-04-15T14:00:00.060Z",
     "trace_id": "demo-trace-1",
     "span_id": "demo-log-2",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "received",
+      "component_id": "intake-queue",
+      "queue_name": "intake-queue"
+    },
+    "message": "Received work"
+  },
+  {
+    "type": "log",
+    "timestamp": "2026-04-15T14:00:00.120Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-3",
     "attributes": {
       "flow_id": "demo-pipeline",
       "run_id": "demo-run-1",
@@ -32,7 +46,7 @@
     "type": "log",
     "timestamp": "2026-04-15T14:00:00.240Z",
     "trace_id": "demo-trace-1",
-    "span_id": "demo-log-3",
+    "span_id": "demo-log-4",
     "attributes": {
       "flow_id": "demo-pipeline",
       "run_id": "demo-run-1",
@@ -46,7 +60,7 @@
     "type": "log",
     "timestamp": "2026-04-15T14:00:00.360Z",
     "trace_id": "demo-trace-1",
-    "span_id": "demo-log-4",
+    "span_id": "demo-log-5",
     "attributes": {
       "flow_id": "demo-pipeline",
       "run_id": "demo-run-1",
@@ -60,7 +74,7 @@
     "type": "log",
     "timestamp": "2026-04-15T14:00:00.480Z",
     "trace_id": "demo-trace-1",
-    "span_id": "demo-log-5",
+    "span_id": "demo-log-6",
     "attributes": {
       "flow_id": "demo-pipeline",
       "run_id": "demo-run-1",
@@ -73,7 +87,7 @@
     "type": "log",
     "timestamp": "2026-04-15T14:00:00.600Z",
     "trace_id": "demo-trace-1",
-    "span_id": "demo-log-6",
+    "span_id": "demo-log-7",
     "attributes": {
       "flow_id": "demo-pipeline",
       "run_id": "demo-run-1",
@@ -86,7 +100,7 @@
     "type": "log",
     "timestamp": "2026-04-15T14:00:00.720Z",
     "trace_id": "demo-trace-1",
-    "span_id": "demo-log-7",
+    "span_id": "demo-log-8",
     "attributes": {
       "flow_id": "demo-pipeline",
       "run_id": "demo-run-1",
@@ -98,9 +112,23 @@
   },
   {
     "type": "log",
+    "timestamp": "2026-04-15T14:00:00.780Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-9",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "received",
+      "component_id": "publish-queue",
+      "queue_name": "publish-queue"
+    },
+    "message": "Received work"
+  },
+  {
+    "type": "log",
     "timestamp": "2026-04-15T14:00:00.840Z",
     "trace_id": "demo-trace-1",
-    "span_id": "demo-log-8",
+    "span_id": "demo-log-10",
     "attributes": {
       "flow_id": "demo-pipeline",
       "run_id": "demo-run-1",
@@ -115,7 +143,7 @@
     "type": "log",
     "timestamp": "2026-04-15T14:00:00.960Z",
     "trace_id": "demo-trace-1",
-    "span_id": "demo-log-9",
+    "span_id": "demo-log-11",
     "attributes": {
       "flow_id": "demo-pipeline",
       "run_id": "demo-run-1",
@@ -129,13 +157,14 @@
     "type": "log",
     "timestamp": "2026-04-15T14:00:01.080Z",
     "trace_id": "demo-trace-1",
-    "span_id": "demo-log-10",
+    "span_id": "demo-log-12",
     "attributes": {
       "flow_id": "demo-pipeline",
       "run_id": "demo-run-1",
       "action": "step",
       "component_id": "publish-worker",
-      "step_id": "archive-output"
+      "step_id": "archive-output",
+      "outcome": "success"
     },
     "message": "Archived output artifact"
   }

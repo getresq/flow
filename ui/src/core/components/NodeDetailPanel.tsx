@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { AlertTriangle, Info, XCircle } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Check, Copy } from 'lucide-react'
 
 import {
   Button,
@@ -10,12 +10,11 @@ import {
   TabsTrigger,
 } from '@/components/ui'
 
-import { getLogDisplayMessage } from '../logPresentation'
 import { DurationBadge } from './DurationBadge'
-import { PanelSkeleton } from './PanelSkeleton'
 import { isDefaultVisibleLogEntry } from '../telemetryClassification'
 import { normalizeTraceIdentifierValue } from '../traceIdentifiers'
 import { firstClassColors } from '../nodes/nodePrimitives'
+import { summarizeStepOutcome } from '../stepOutcomePresentation'
 import type { FlowNodeConfig, LogEntry, NodeStatus, SpanEntry } from '../types'
 
 export interface NodeDetailStatus {
@@ -30,15 +29,12 @@ interface NodeDetailContentProps {
   logs: LogEntry[]
   spans: SpanEntry[]
   onOpenRun?: (traceId: string) => void
+  onOpenLog?: (entry: LogEntry) => void
 }
 
 type TabKey = 'overview' | 'debug'
-type InsightTone = 'neutral' | 'warning' | 'error'
 
-interface InsightItem {
-  tone: InsightTone
-  text: string
-}
+const EVENTS_PAGE_SIZE = 5
 
 function parseIsoTime(value?: string): number {
   if (!value) {
@@ -66,18 +62,6 @@ function spanSortTime(span: SpanEntry): number {
   return parseIsoTime(span.endTime) || parseIsoTime(span.startTime)
 }
 
-function formatDurationText(durationMs?: number): string | null {
-  if (typeof durationMs !== 'number') {
-    return null
-  }
-
-  if (durationMs < 1_000) {
-    return `${Math.round(durationMs)}ms`
-  }
-
-  return `${(durationMs / 1_000).toFixed(1)}s`
-}
-
 function formatRelativeTime(timestampMs: number): string | null {
   if (!timestampMs) {
     return null
@@ -101,12 +85,22 @@ function formatRelativeTime(timestampMs: number): string | null {
   return `${Math.round(deltaMs / 86_400_000)}d ago`
 }
 
-function compactIdentifier(value: string, maxLength = 12): string {
+function compactIdentifier(value: string, maxLength = 16): string {
   if (value.length <= maxLength) {
     return value
   }
 
   return `${value.slice(0, maxLength)}…`
+}
+
+function compactErrorPreview(value: string, maxLength = 220): string {
+  const normalized = value.replace(/\s+/g, ' ').trim()
+
+  if (normalized.length <= maxLength) {
+    return normalized
+  }
+
+  return `${normalized.slice(0, maxLength - 1)}…`
 }
 
 function readNormalizedLogAttribute(entry: LogEntry, key: string): string | undefined {
@@ -119,38 +113,20 @@ function readNormalizedLogAttribute(entry: LogEntry, key: string): string | unde
   return undefined
 }
 
-function activityExecutionLabel(entry: LogEntry): string | null {
+function recentRunLabel(entry: LogEntry): string | null {
   const threadId = readNormalizedLogAttribute(entry, 'thread_id')
   const replyDraftId = readNormalizedLogAttribute(entry, 'reply_draft_id')
   const requestId = readNormalizedLogAttribute(entry, 'request_id')
   const runId = normalizeTraceIdentifierValue(entry.runId)
   const traceId = normalizeTraceIdentifierValue(entry.traceId)
 
-  if (threadId) {
-    return `thread ${compactIdentifier(threadId)}`
-  }
-  if (replyDraftId) {
-    return `draft ${compactIdentifier(replyDraftId)}`
-  }
-  if (requestId) {
-    return `request ${compactIdentifier(requestId)}`
-  }
-  if (runId) {
-    return `run ${compactIdentifier(runId)}`
-  }
-  if (traceId) {
-    return `trace ${compactIdentifier(traceId)}`
-  }
+  if (threadId) return compactIdentifier(threadId)
+  if (replyDraftId) return compactIdentifier(replyDraftId)
+  if (requestId) return compactIdentifier(requestId)
+  if (runId) return compactIdentifier(runId)
+  if (traceId) return compactIdentifier(traceId)
 
   return null
-}
-
-function truncateInsightText(value: string, maxLength = 80): string {
-  if (value.length <= maxLength) {
-    return value
-  }
-
-  return `${value.slice(0, maxLength - 1)}…`
 }
 
 function computeDepthMap(spans: SpanEntry[]): Map<string, number> {
@@ -185,25 +161,40 @@ function computeDepthMap(spans: SpanEntry[]): Map<string, number> {
   return depth
 }
 
-function insightToneClasses(tone: InsightTone): string {
-  if (tone === 'warning') {
-    return 'border-l-[var(--status-warning)] border-[var(--border-default)] [background-color:color-mix(in_srgb,var(--status-warning)_8%,transparent)] text-[var(--text-primary)]'
-  }
-  if (tone === 'error') {
-    return 'border-l-[var(--status-error)] border-[var(--border-default)] [background-color:color-mix(in_srgb,var(--status-error)_14%,transparent)] text-[var(--text-primary)]'
-  }
-  return 'border-l-[var(--text-muted)] border-[var(--border-default)] bg-[var(--surface-raised)] text-[var(--text-primary)]'
+function summarizeEventMessage(entry: LogEntry): string {
+  const outcome = summarizeStepOutcome({
+    stepId: entry.stepId,
+    nodeId: entry.nodeId ?? entry.componentId,
+    message: entry.message,
+    retryable: entry.retryable,
+    errorClass: entry.errorClass,
+    attributes: entry.attributes,
+  })
+
+  if (outcome) return outcome
+
+  return entry.message
 }
 
-function insightIcon(tone: InsightTone) {
-  if (tone === 'warning') return <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[var(--status-warning)]" />
-  if (tone === 'error') return <XCircle className="mt-0.5 size-4 shrink-0 text-[var(--status-error)]" />
-  return <Info className="mt-0.5 size-4 shrink-0 text-[var(--text-muted)]" />
-}
-
-export function NodeDetailContent({ node, status, logs, spans, onOpenRun }: NodeDetailContentProps) {
+export function NodeDetailContent({ node, status, logs, spans, onOpenRun, onOpenLog }: NodeDetailContentProps) {
   const [tab, setTab] = useState<TabKey>('overview')
+  const [visibleEventCount, setVisibleEventCount] = useState<number>(EVENTS_PAGE_SIZE)
+  const [copiedError, setCopiedError] = useState(false)
+  const copyResetTimeoutRef = useRef<number | null>(null)
   const showRuntimeCards = firstClassColors.has(node.style?.color ?? '')
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  // Reset pagination when the selected node changes
+  useEffect(() => {
+    setVisibleEventCount(EVENTS_PAGE_SIZE)
+  }, [node.id])
 
   const sortedLogs = useMemo(
     () => [...logs].sort(compareLogEntriesDescending),
@@ -250,92 +241,100 @@ export function NodeDetailContent({ node, status, logs, spans, onOpenRun }: Node
     (typeof latestErrorLog?.attributes?.error_message === 'string'
       ? latestErrorLog.attributes.error_message
       : undefined) ?? latestErrorLog?.message
-  const latestSpanErrorMessage =
-    (typeof latestSpan?.attributes?.error_message === 'string'
-      ? latestSpan.attributes.error_message
-      : undefined) ?? latestErrorMessage
-  const failedSpanCount = spans.filter((span) => span.status === 'error').length
+  const latestErrorPreview = latestErrorMessage ? compactErrorPreview(latestErrorMessage) : null
   const lastSeenTimestamp = Math.max(
     latestLog ? parseIsoTime(latestLog.timestamp) : 0,
     latestSpan ? spanSortTime(latestSpan) : 0,
   )
   const lastSeenLabel = formatRelativeTime(lastSeenTimestamp)
-  const errorExecutionId = latestErrorLog?.runId ?? latestErrorLog?.traceId
-  const recentActivity = useMemo(() => {
-    const latestPerExecution = new Map<string, LogEntry>()
 
-    for (const entry of defaultVisibleLogs) {
-      const executionKey = entry.runId ?? entry.traceId ?? `${entry.timestamp}:${entry.message}`
-      if (!latestPerExecution.has(executionKey)) {
-        latestPerExecution.set(executionKey, entry)
+  // Status derivation: error > active > success > idle
+  const effectiveStatus: NodeStatus =
+    latestErrorLog
+      ? 'error'
+      : status?.status === 'active'
+        ? 'active'
+        : lastSeenTimestamp > 0
+          ? 'success'
+          : 'idle'
+
+  const statusLabel =
+    effectiveStatus === 'error'
+      ? 'Recent failure'
+      : effectiveStatus === 'active'
+        ? 'Active'
+        : effectiveStatus === 'success'
+          ? 'Healthy'
+          : 'No recent activity'
+
+  // Latest run-backed execution for the "Last run" row.
+  // Only real non-error runs qualify — errors are promoted via the Latest failure block,
+  // so we don't double-surface the same run.
+  const latestRunEntry = useMemo(() => {
+    const source = defaultVisibleLogs.length > 0 ? defaultVisibleLogs : sortedLogs
+    return source.find((entry) => Boolean(entry.runId) && entry.level !== 'error')
+  }, [defaultVisibleLogs, sortedLogs])
+  const latestRunDisplay = latestRunEntry ? recentRunLabel(latestRunEntry) : null
+  const latestRunId = latestRunEntry?.runId
+
+  const recentEvents = useMemo(() => {
+    // Prefer the curated "default-visible" set. Fall back to all non-span logs when
+    // the curated set is empty (e.g. demo/synthetic data without proper signal tags).
+    const source = defaultVisibleLogs.length > 0 ? defaultVisibleLogs : sortedLogs
+    return source
+      .filter((entry) => entry.eventType !== 'span_start' && entry.eventType !== 'span_end')
+      .map((entry) => ({
+        entry,
+        summary: summarizeEventMessage(entry),
+        isError: entry.level === 'error',
+      }))
+      .filter((item) => Boolean(item.summary))
+  }, [defaultVisibleLogs, sortedLogs])
+
+  const visibleEvents = recentEvents.slice(0, visibleEventCount)
+  const hasMoreEvents = recentEvents.length > visibleEventCount
+
+  const handleCopyError = async () => {
+    if (!latestErrorMessage || typeof navigator?.clipboard?.writeText !== 'function') {
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(latestErrorMessage)
+      setCopiedError(true)
+
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current)
       }
+
+      copyResetTimeoutRef.current = window.setTimeout(() => {
+        setCopiedError(false)
+      }, 1_500)
+    } catch {
+      setCopiedError(false)
     }
+  }
 
-    // When the error block is visible, exclude the activity entry from the same
-    // execution — it's already surfaced above. Different executions still show.
-    const entries = [...latestPerExecution.values()]
-    const filtered = errorExecutionId
-      ? entries.filter((entry) => (entry.runId ?? entry.traceId) !== errorExecutionId)
-      : entries
+  const handleOpenLog = (entry: LogEntry) => {
+    onOpenLog?.(entry)
+  }
 
-    return filtered.slice(0, 5)
-  }, [defaultVisibleLogs, errorExecutionId])
-  const recentActivityHasMultipleRuns = useMemo(() => {
-    const distinct = new Set(recentActivity.map((entry) => activityExecutionLabel(entry) ?? entry.runId ?? entry.traceId))
-    return distinct.size > 1
-  }, [recentActivity])
+  // Status dot color based on effective status
+  const statusDotClass =
+    effectiveStatus === 'error'
+      ? 'bg-[var(--status-error)]'
+      : effectiveStatus === 'active'
+        ? 'bg-[var(--status-active)] animate-flow-pulse'
+        : effectiveStatus === 'success'
+          ? 'bg-[var(--status-success)]'
+          : 'bg-[var(--text-muted)]'
 
-  const insights = useMemo(() => {
-    const items: InsightItem[] = []
-
-    if (logs.length === 0 && spans.length === 0) {
-      items.push({
-        tone: 'neutral',
-        text: 'No telemetry has reached this node yet.',
-      })
-    }
-
-    if (status?.status === 'active') {
-      const activeFor = formatDurationText(status.durationMs)
-      items.push({
-        tone: 'warning',
-        text: activeFor
-          ? `This node is active right now; the current execution has been running for ${activeFor}.`
-          : 'This node is active right now.',
-      })
-    } else if (latestSpan) {
-      const latestDuration = formatDurationText(latestSpan.durationMs)
-      if (latestSpan.status === 'error') {
-        items.push({
-          tone: 'error',
-          text: latestSpanErrorMessage
-            ? `Failed: ${truncateInsightText(latestSpanErrorMessage)}`
-            : latestDuration
-              ? `The latest execution failed after ${latestDuration}.`
-              : 'The latest execution failed.',
-        })
-      }
-    } else if (latestErrorLog) {
-      items.push({
-        tone: 'error',
-        text: 'Recent logs show an error at this node.',
-      })
-    }
-
-    if (failedSpanCount > 0 && latestSpan?.status !== 'error') {
-      items.push({
-        tone: 'warning',
-        text: `${failedSpanCount} recent ${failedSpanCount === 1 ? 'failure was' : 'failures were'} seen here.`,
-      })
-    } else if (spans.length === 0 && logs.length > 0) {
-      items.push({
-        tone: latestErrorLog ? 'error' : 'neutral',
-        text: `${logs.length} log ${logs.length === 1 ? 'entry was' : 'entries were'} received for this node.`,
-      })
-    }
-
-    return items.slice(0, 2)
-  }, [failedSpanCount, latestErrorLog, latestSpan, latestSpanErrorMessage, logs.length, spans.length, status])
+  const statusTextClass =
+    effectiveStatus === 'error'
+      ? 'text-[var(--status-error)]'
+      : effectiveStatus === 'idle'
+        ? 'text-[var(--text-secondary)]'
+        : 'text-[var(--text-primary)]'
 
   return (
     <Tabs
@@ -352,113 +351,183 @@ export function NodeDetailContent({ node, status, logs, spans, onOpenRun }: Node
 
       <TabsContent value="overview" className="mt-0 min-h-0 flex-1 overflow-hidden pt-0">
         <div className="flex h-full min-h-0 flex-col px-4 py-3">
-          <div className="shrink-0 space-y-4">
-            {showRuntimeCards ? (
-              <div className="flex items-center gap-3 text-sm text-[var(--text-secondary)]">
-                <span>{formatDurationText(latestSpan?.durationMs) ?? 'No runs yet'}</span>
-                <span className="text-[var(--text-muted)]">{lastSeenLabel ?? ''}</span>
-              </div>
-            ) : null}
-
-            {insights.length > 0 ? (
-              <section className="space-y-2">
-                <h3 className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Key Insights</h3>
-                {insights.map((insight, index) => (
-                  <div
-                    key={`${insight.text}-${index}`}
-                    className={`flex items-start gap-2.5 rounded-lg border border-l-[3px] p-3 text-sm leading-6 ${insightToneClasses(insight.tone)}`}
-                  >
-                    {insightIcon(insight.tone)}
-                    <span>{insight.text}</span>
-                  </div>
-                ))}
-              </section>
-            ) : null}
-
-            {latestErrorLog && latestErrorMessage ? (
-              <section className="space-y-3">
-                <div className="rounded-lg border-l-2 border-[var(--status-error)] px-3 py-3 [background-color:color-mix(in_srgb,var(--status-error)_14%,transparent)]">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-xs uppercase tracking-wide text-[var(--status-error)]">Error</h3>
-                    <span className="text-xs text-[var(--text-muted)]">
-                      {formatRelativeTime(parseIsoTime(latestErrorLog.timestamp)) ?? 'just now'}
-                    </span>
-                  </div>
-                  <p className="mt-2 whitespace-pre-wrap break-all font-mono text-xs leading-5 text-[var(--text-primary)]">{latestErrorMessage}</p>
-                </div>
-                {onOpenRun && latestErrorLog.runId ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full cursor-pointer border-[var(--border-default)] text-sm text-[var(--text-primary)] hover:bg-[var(--surface-overlay)]"
-                    onClick={() => {
-                      if (latestErrorLog.runId) {
-                        onOpenRun(latestErrorLog.runId)
-                      }
-                    }}
-                  >
-                    View run
-                  </Button>
-                ) : null}
-              </section>
+          {/* Status row — flat, no card */}
+          <div className="flex items-center gap-3 py-1">
+            <span className={`size-2 shrink-0 rounded-full ${statusDotClass}`} aria-hidden />
+            <span className={`text-sm font-medium ${statusTextClass}`}>{statusLabel}</span>
+            {lastSeenLabel && effectiveStatus !== 'idle' ? (
+              <span className="ml-auto text-xs text-[var(--text-muted)]">{lastSeenLabel}</span>
             ) : null}
           </div>
 
-          {recentActivity.length > 0 ? (
-            <section className="mt-4 flex min-h-0 flex-1 flex-col gap-2">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Recent Activity</h3>
-                <span className="truncate text-xs text-[var(--text-muted)]">most recent first</span>
-              </div>
-              <ScrollArea className="min-h-0 flex-1">
-                <div className="divide-y divide-[var(--border-subtle)] pr-3">
-                  {recentActivity.map((entry, index) => (
-                    <div key={`${entry.timestamp}-${entry.message}-${index}`} className="py-3 first:pt-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-[var(--text-muted)]">{formatRelativeTime(parseIsoTime(entry.timestamp)) ?? 'just now'}</span>
-                        {recentActivityHasMultipleRuns ? (
-                          <span className="truncate text-xs text-[var(--text-muted)]">
-                            {activityExecutionLabel(entry) ?? 'unknown run'}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1 text-sm leading-6 text-[var(--text-primary)]">{getLogDisplayMessage(entry)}</p>
-                    </div>
-                  ))}
+          {/* Latest failure block — promoted when error exists */}
+          {latestErrorLog && latestErrorMessage ? (
+            <>
+              <div className="my-3 h-px bg-[var(--border-default)]" />
+              <div className="rounded-lg border-l-[3px] border-l-[var(--status-error)] border border-[var(--border-default)] px-3 py-3 [background-color:color-mix(in_srgb,var(--status-error)_10%,transparent)]">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs uppercase tracking-wide text-[var(--status-error)]">Latest failure</h3>
+                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+                      {formatRelativeTime(parseIsoTime(latestErrorLog.timestamp)) ?? 'just now'}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 shrink-0 gap-1.5 px-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    onClick={() => void handleCopyError()}
+                    aria-label={copiedError ? 'Copied latest error' : 'Copy latest error'}
+                  >
+                    {copiedError ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                    <span>{copiedError ? 'Copied' : 'Copy'}</span>
+                  </Button>
                 </div>
-              </ScrollArea>
-            </section>
-          ) : defaultVisibleLogs.length === 0 ? (
-            <section className="mt-4">
-              <p className="py-2 text-sm leading-6 text-[var(--text-muted)]">
-                No meaningful activity has been surfaced for this node yet.
+                {latestErrorPreview ? (
+                  <p className="mt-2 line-clamp-3 text-sm leading-5 text-[var(--text-primary)]">{latestErrorPreview}</p>
+                ) : null}
+                {onOpenRun && latestErrorLog.runId ? (
+                  <button
+                    type="button"
+                    className="mt-3 text-xs text-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)]"
+                    onClick={() => {
+                      if (latestErrorLog.runId) onOpenRun(latestErrorLog.runId)
+                    }}
+                  >
+                    View run →
+                  </button>
+                ) : null}
+              </div>
+            </>
+          ) : null}
+
+          {/* Last run — compact row, only when runtime cards are relevant */}
+          {showRuntimeCards && latestRunEntry && latestRunDisplay ? (
+            <>
+              <div className="my-3 h-px bg-[var(--border-default)]" />
+              <div className="flex items-center justify-between gap-3 py-1">
+                <div className="min-w-0">
+                  <div className="text-xs text-[var(--text-secondary)]">Last run</div>
+                  <div className="mt-0.5 truncate font-mono text-sm text-[var(--text-primary)]">{latestRunDisplay}</div>
+                </div>
+                {onOpenRun && latestRunId ? (
+                  <button
+                    type="button"
+                    className="shrink-0 text-sm text-[var(--accent-primary)] hover:text-[var(--accent-primary-hover)]"
+                    onClick={() => onOpenRun(latestRunId)}
+                  >
+                    View run →
+                  </button>
+                ) : null}
+              </div>
+            </>
+          ) : null}
+
+          {/* Recent events */}
+          {recentEvents.length > 0 ? (
+            <>
+              <div className="my-3 h-px bg-[var(--border-default)]" />
+              <section className="flex min-h-0 flex-1 flex-col">
+                <h3 className="mb-2 text-xs uppercase tracking-wide text-[var(--text-muted)]">Recent events</h3>
+                <ScrollArea className="min-h-0 flex-1">
+                  <div className="divide-y divide-[var(--border-subtle)] pr-3">
+                    {visibleEvents.map(({ entry, summary, isError }, index) => {
+                      const canOpen = Boolean(
+                        onOpenLog && (entry.selectionId ?? (entry.seq != null ? String(entry.seq) : undefined)),
+                      )
+                      const content = (
+                        <div className="flex items-start gap-2.5">
+                          {isError ? (
+                            <span
+                              className="mt-2 size-1.5 shrink-0 rounded-full bg-[var(--status-error)]"
+                              aria-hidden
+                            />
+                          ) : (
+                            <span
+                              className="mt-2 size-1.5 shrink-0 rounded-full bg-[var(--text-muted)] opacity-40"
+                              aria-hidden
+                            />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs text-[var(--text-muted)]">
+                              {formatRelativeTime(parseIsoTime(entry.timestamp)) ?? 'just now'}
+                            </div>
+                            <p
+                              className={`mt-0.5 text-sm leading-5 ${
+                                isError ? 'text-[var(--status-error)]' : 'text-[var(--text-primary)]'
+                              }`}
+                            >
+                              {summary}
+                            </p>
+                          </div>
+                        </div>
+                      )
+
+                      if (canOpen) {
+                        return (
+                          <button
+                            key={`${entry.timestamp}-${entry.message}-${index}`}
+                            type="button"
+                            className="block w-full py-2.5 text-left first:pt-0 hover:bg-[var(--surface-overlay)]/40"
+                            onClick={() => handleOpenLog(entry)}
+                          >
+                            {content}
+                          </button>
+                        )
+                      }
+
+                      return (
+                        <div
+                          key={`${entry.timestamp}-${entry.message}-${index}`}
+                          className="py-2.5 first:pt-0"
+                        >
+                          {content}
+                        </div>
+                      )
+                    })}
+                    {hasMoreEvents ? (
+                      <button
+                        type="button"
+                        className="block w-full py-3 text-center text-xs text-[var(--text-secondary)] hover:text-[var(--accent-primary)]"
+                        onClick={() => setVisibleEventCount((n) => n + EVENTS_PAGE_SIZE)}
+                      >
+                        Show older events
+                      </button>
+                    ) : null}
+                  </div>
+                </ScrollArea>
+              </section>
+            </>
+          ) : effectiveStatus === 'idle' ? (
+            <>
+              <div className="my-3 h-px bg-[var(--border-default)]" />
+              <p className="py-2 text-sm leading-5 text-[var(--text-secondary)]">
+                Events will appear here as runs flow through this node.
               </p>
-            </section>
+            </>
           ) : null}
         </div>
       </TabsContent>
 
       <TabsContent value="debug" className="mt-0 min-h-0 flex-1 pt-0">
         <ScrollArea className="h-full">
-          <div className="space-y-4 px-4 py-3">
+          <div className="space-y-3 px-4 py-3">
             <details
               className="min-w-0 overflow-hidden rounded-lg border border-[var(--border-default)]"
               open={Boolean(latestErrorLog || latestSpan?.status === 'error')}
             >
-              <summary className="cursor-pointer p-3 text-sm text-[var(--text-primary)]">Latest telemetry attributes</summary>
+              <summary className="cursor-pointer p-3 text-sm text-[var(--text-primary)]">Attributes</summary>
               <pre className="mx-3 mb-3 max-w-full overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-[var(--border-default)] bg-[var(--surface-primary)] p-3 text-xs text-[var(--text-primary)]">
                 {JSON.stringify(latestAttributes ?? {}, null, 2)}
               </pre>
             </details>
 
-            <details className="min-w-0 overflow-hidden rounded-lg border border-[var(--border-default)]">
-              <summary className="cursor-pointer p-3 text-sm text-[var(--text-primary)]">Span timing</summary>
-
-              <div className="mx-3 mb-3 space-y-4">
-                {tracesByTraceId.length === 0 ? (
-                  <PanelSkeleton lines={3} />
-                ) : (
-                  tracesByTraceId.map(([traceId, traceSpans]) => {
+            {tracesByTraceId.length > 0 ? (
+              <details className="min-w-0 overflow-hidden rounded-lg border border-[var(--border-default)]">
+                <summary className="cursor-pointer p-3 text-sm text-[var(--text-primary)]">Timing</summary>
+                <div className="mx-3 mb-3 space-y-4">
+                  {tracesByTraceId.map(([traceId, traceSpans]) => {
                     const maxDuration = Math.max(...traceSpans.map((span) => span.durationMs ?? 1), 1)
                     const depthMap = computeDepthMap(traceSpans)
 
@@ -495,10 +564,10 @@ export function NodeDetailContent({ node, status, logs, spans, onOpenRun }: Node
                         </div>
                       </div>
                     )
-                  })
-                )}
-              </div>
-            </details>
+                  })}
+                </div>
+              </details>
+            ) : null}
           </div>
         </ScrollArea>
       </TabsContent>

@@ -462,6 +462,7 @@ export function FlowView() {
                   logs={selectedNodeLogs}
                   spans={selectedNodeSpans}
                   onOpenRun={(traceId) => updateUrlState({ run: traceId, panel: 'run', log: null, runTab: null }, { replace: true })}
+                  onOpenLog={handleSelectLog}
                 />
               </InspectorPanel>
             )
@@ -532,6 +533,7 @@ export function FlowView() {
                   logs={selectedNodeLogs}
                   spans={selectedNodeSpans}
                   onOpenRun={(traceId) => updateUrlState({ run: traceId, panel: 'run', log: null }, { replace: true })}
+                  onOpenLog={handleSelectLog}
                 />
               </InspectorPanel>
             )

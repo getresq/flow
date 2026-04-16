@@ -78,7 +78,10 @@ export function TraceDetailContent({
   onTabChange,
   onSelectNode,
 }: TraceDetailContentProps) {
-  const [tab, setTab] = useState<TabKey>(initialTab ?? 'overview')
+  const [tab, setTab] = useState<TabKey>(() => {
+    if (initialTab === 'timing' && spans.length === 0) return 'overview'
+    return initialTab ?? 'overview'
+  })
   const [expandedCardKeys, setExpandedCardKeys] = useState<string[]>([])
 
   const overview = useMemo(
@@ -86,6 +89,24 @@ export function TraceDetailContent({
     [flowEdges, flowNodes, journey],
   )
   const overviewCards = overview.cards
+
+  const uniformStepCount = useMemo(() => {
+    const counts = overviewCards.map((c) => c.detailRows.length)
+    return counts.length > 1 && counts.every((n) => n === counts[0])
+  }, [overviewCards])
+
+  const durationOutlierKeys = useMemo(() => {
+    const entries = overviewCards
+      .filter((c): c is typeof c & { durationMs: number } => typeof c.durationMs === 'number')
+      .map((c) => ({ key: c.key, durationMs: c.durationMs }))
+    if (entries.length <= 1) return new Set(entries.map((e) => e.key))
+    const sorted = [...entries].sort((a, b) => a.durationMs - b.durationMs)
+    const median = sorted[Math.floor(sorted.length / 2)].durationMs
+    const outliers = new Set(entries.filter((e) => e.durationMs >= median * 2).map((e) => e.key))
+    if (outliers.size === 0) return new Set<string>()
+    if (outliers.size === entries.length) return new Set(entries.map((e) => e.key))
+    return outliers
+  }, [overviewCards])
 
   const failedCard = useMemo(
     () => overviewCards.find((card) => card.status === 'error'),
@@ -150,26 +171,17 @@ export function TraceDetailContent({
     return items.slice(0, 3)
   }, [failedCard, flowEdges, flowNodes, journey, overviewCards, slowestStep])
 
-  const identifierEntries = useMemo(() => [
-    ['mailbox_owner', journey.identifiers.mailboxOwner],
-    ['provider', journey.identifiers.provider],
-    ['run_id', journey.identifiers.runId],
-    ['thread_id', journey.identifiers.threadId],
-    ['reply_draft_id', journey.identifiers.replyDraftId],
-    ['job_id', journey.identifiers.jobId],
-    ['request_id', journey.identifiers.requestId],
-    ['content_hash', journey.identifiers.contentHash],
-    ['journey_key', journey.identifiers.journeyKey],
-  ].filter((entry): entry is [string, string] => Boolean(entry[1])), [journey.identifiers])
 
   return (
     <Tabs value={tab} onValueChange={(value) => { const next = value as TabKey; setTab(next); onTabChange?.(next) }} className="flex min-h-0 flex-1 flex-col">
-      <div className="border-b border-[var(--border-default)] px-4 py-3">
-        <TabsList className="min-h-0 border-none bg-transparent p-0">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="timing">Timing</TabsTrigger>
-        </TabsList>
-      </div>
+      {spans.length > 0 ? (
+        <div className="border-b border-[var(--border-default)] px-4 py-3">
+          <TabsList className="min-h-0 border-none bg-transparent p-0">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="timing">Timing</TabsTrigger>
+          </TabsList>
+        </div>
+      ) : null}
 
       <TabsContent value="overview" className="mt-0 min-h-0 flex-1 pt-0">
         <ScrollArea className="h-full">
@@ -207,6 +219,7 @@ export function TraceDetailContent({
                     const isExpanded = expandedCardKeys.includes(card.key)
                     const hasDetails = card.detailRows.length > 0
                     const targetNodeId = card.nodeId
+                    const showSummary = card.summary.trim().toLowerCase() !== card.nodeLabel.trim().toLowerCase()
                     const dotColor = isError
                       ? 'var(--status-error)'
                       : isActive
@@ -254,13 +267,15 @@ export function TraceDetailContent({
                                     {card.nodeLabel}
                                   </span>
                                   <Badge variant={journeyStatusVariant(card.status)}>{card.status}</Badge>
-                                  <DurationBadge durationMs={card.durationMs} />
+                                  {durationOutlierKeys.has(card.key) ? <DurationBadge durationMs={card.durationMs} /> : null}
                                 </div>
-                                <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{card.summary}</p>
+                                {showSummary ? (
+                                  <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{card.summary}</p>
+                                ) : null}
                               </button>
 
                               <div className="flex shrink-0 items-center gap-1">
-                                {!isExpanded && hasDetails ? (
+                                {!isExpanded && hasDetails && !uniformStepCount ? (
                                   <span className="text-xs font-medium text-[var(--text-muted)]">
                                     +{card.detailRows.length} {card.detailRows.length === 1 ? 'step' : 'steps'}
                                   </span>
@@ -310,31 +325,19 @@ export function TraceDetailContent({
                 </div>
               )}
             </section>
-
-            {identifierEntries.length > 0 ? (
-              <details className="min-w-0 overflow-hidden rounded-lg border border-[var(--border-default)]">
-                <summary className="cursor-pointer p-3 text-xs text-[var(--text-muted)]">Run details</summary>
-                <div className="mx-3 mb-3 space-y-1.5">
-                  {identifierEntries.map(([label, value]) => (
-                    <div key={label} className="flex items-baseline gap-2 text-xs">
-                      <span className="shrink-0 text-[var(--text-muted)]">{label}</span>
-                      <span className="min-w-0 break-all font-mono text-[var(--text-primary)]">{value}</span>
-                    </div>
-                  ))}
-                </div>
-              </details>
-            ) : null}
           </div>
         </ScrollArea>
       </TabsContent>
 
-      <TabsContent value="timing" className="mt-0 min-h-0 flex-1 pt-0">
-        <ScrollArea className="h-full">
-          <div className="px-4 py-3">
-            <WaterfallChart spans={spans} errorNodeIds={errorNodeIds} onSelectNode={onSelectNode} />
-          </div>
-        </ScrollArea>
-      </TabsContent>
+      {spans.length > 0 ? (
+        <TabsContent value="timing" className="mt-0 min-h-0 flex-1 pt-0">
+          <ScrollArea className="h-full">
+            <div className="px-4 py-3">
+              <WaterfallChart spans={spans} errorNodeIds={errorNodeIds} onSelectNode={onSelectNode} />
+            </div>
+          </ScrollArea>
+        </TabsContent>
+      ) : null}
     </Tabs>
   )
 }

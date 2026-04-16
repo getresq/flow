@@ -89,71 +89,18 @@ const logs: LogEntry[] = [
 ]
 
 describe('NodeDetailContent', () => {
-  it('shows recent activity across recent runs instead of limiting to the latest run', () => {
+  it('shows the Recent events section and lists the most recent entries first', () => {
     render(<NodeDetailContent node={node} logs={logs} spans={[]} />)
 
-    expect(screen.getByText('most recent first')).toBeInTheDocument()
+    expect(screen.getByText('Recent events')).toBeInTheDocument()
     expect(screen.getByText('latest activity')).toBeInTheDocument()
+    // The 6th-oldest event is hidden by the 5-event cap
     expect(screen.queryByText('activity 1')).not.toBeInTheDocument()
   })
 
-  it('shows the latest meaningful entry per run and labels activity when multiple runs are present', () => {
-    render(
-      <NodeDetailContent
-        node={node}
-        logs={[
-          {
-            timestamp: '2026-03-23T12:00:06.000Z',
-            seq: 6,
-            level: 'info',
-            nodeId: 'incoming-queue',
-            message: 'latest activity',
-            displayMessage: 'latest activity',
-            signal: 'meaningful',
-            defaultVisible: true,
-            eventType: 'log',
-            traceId: 'trace-1',
-            runId: 'run-1',
-            attributes: { thread_id: 'thread-1' },
-          },
-          {
-            timestamp: '2026-03-23T12:00:05.000Z',
-            seq: 5,
-            level: 'info',
-            nodeId: 'incoming-queue',
-            message: 'older activity same run',
-            displayMessage: 'older activity same run',
-            signal: 'meaningful',
-            defaultVisible: true,
-            eventType: 'log',
-            traceId: 'trace-1',
-            runId: 'run-1',
-            attributes: { thread_id: 'thread-1' },
-          },
-          {
-            timestamp: '2026-03-23T12:00:04.000Z',
-            seq: 4,
-            level: 'info',
-            nodeId: 'incoming-queue',
-            message: 'other run activity',
-            displayMessage: 'other run activity',
-            signal: 'meaningful',
-            defaultVisible: true,
-            eventType: 'log',
-            traceId: 'trace-2',
-            runId: 'run-2',
-            attributes: { thread_id: 'thread-2' },
-          },
-        ]}
-        spans={[]}
-      />,
-    )
-
-    expect(screen.getByText('thread thread-1')).toBeInTheDocument()
-    expect(screen.getByText('thread thread-2')).toBeInTheDocument()
-    expect(screen.getByText('latest activity')).toBeInTheDocument()
-    expect(screen.getByText('other run activity')).toBeInTheDocument()
-    expect(screen.queryByText('older activity same run')).not.toBeInTheDocument()
+  it('does not show a "most recent first" label (kept clean per redesign)', () => {
+    render(<NodeDetailContent node={node} logs={logs} spans={[]} />)
+    expect(screen.queryByText('most recent first')).not.toBeInTheDocument()
   })
 
   it('shows the latest failure block with the error message when a recent error is present', () => {
@@ -179,16 +126,18 @@ describe('NodeDetailContent', () => {
       />,
     )
 
+    expect(screen.getByText('Latest failure')).toBeInTheDocument()
     expect(screen.getByText('Provider timed out after 30s')).toBeInTheDocument()
   })
 
   it('does not show the latest failure block when no error logs are present', () => {
     render(<NodeDetailContent node={node} logs={logs} spans={[]} />)
 
+    expect(screen.queryByText('Latest failure')).not.toBeInTheDocument()
     expect(screen.queryByText('Provider timed out after 30s')).not.toBeInTheDocument()
   })
 
-  it('opens the latest failure run when the link is clicked', () => {
+  it('opens the latest failure run when the View run link is clicked', () => {
     const onOpenRun = vi.fn()
 
     render(
@@ -214,12 +163,11 @@ describe('NodeDetailContent', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'View run' }))
-
+    fireEvent.click(screen.getByText(/View run →/))
     expect(onOpenRun).toHaveBeenCalledWith('run-latest')
   })
 
-  it('does not show view run for a trace-only ambient error', () => {
+  it('does not show View run link for a trace-only ambient error (no runId)', () => {
     render(
       <NodeDetailContent
         node={node}
@@ -243,14 +191,54 @@ describe('NodeDetailContent', () => {
       />,
     )
 
-    expect(screen.queryByRole('button', { name: 'View run' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/View run/)).not.toBeInTheDocument()
   })
 
-  it('caps recent activity at five entries', () => {
+  it('caps recent events at five entries', () => {
     render(<NodeDetailContent node={node} logs={logs} spans={[]} />)
 
     expect(screen.getByText('latest activity')).toBeInTheDocument()
     expect(screen.getByText('activity 2')).toBeInTheDocument()
+    // The 6th-oldest is hidden until user clicks "Show older events"
     expect(screen.queryByText('activity 1')).not.toBeInTheDocument()
+  })
+
+  it('reveals older events when "Show older events" is clicked', () => {
+    render(<NodeDetailContent node={node} logs={logs} spans={[]} />)
+
+    expect(screen.queryByText('activity 1')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('Show older events'))
+    expect(screen.getByText('activity 1')).toBeInTheDocument()
+  })
+
+  it('calls onOpenLog when a recent event row is clicked', () => {
+    const onOpenLog = vi.fn()
+
+    render(
+      <NodeDetailContent
+        node={node}
+        logs={[
+          {
+            timestamp: '2026-03-23T12:00:06.000Z',
+            seq: 42,
+            level: 'info',
+            nodeId: 'incoming-queue',
+            message: 'picked work',
+            displayMessage: 'picked work',
+            signal: 'meaningful',
+            defaultVisible: true,
+            eventType: 'log',
+            traceId: 'run-1',
+            runId: 'run-1',
+          },
+        ]}
+        spans={[]}
+        onOpenLog={onOpenLog}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('picked work'))
+    expect(onOpenLog).toHaveBeenCalledTimes(1)
+    expect(onOpenLog.mock.calls[0][0].message).toBe('picked work')
   })
 })
