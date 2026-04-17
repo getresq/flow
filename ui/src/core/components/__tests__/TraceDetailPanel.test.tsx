@@ -52,14 +52,12 @@ const journey: TraceJourney = {
 }
 
 describe('TraceDetailPanel', () => {
-  // Note: run_id is now surfaced in the panel header subtitle (see
-  // TraceInspectorPresentation), not as a "Run details" collapsible in the body.
   it('no longer renders a "Run details" section in the overview body', () => {
     render(<TraceDetailContent journey={journey} />)
     expect(screen.queryByText('Run details')).not.toBeInTheDocument()
   })
 
-  it('renders one card per grouped node with expandable lightweight child rows and node navigation', () => {
+  it('renders one card per grouped node showing the summary and a node-drill button', () => {
     const onSelectNode = vi.fn()
 
     render(
@@ -100,16 +98,63 @@ describe('TraceDetailPanel', () => {
       />,
     )
 
+    // Card header = node label
     expect(screen.getByText('Incoming Worker')).toBeInTheDocument()
-    expect(screen.getByText('+2 steps')).toBeInTheDocument()
-    expect(screen.queryByText(/step 1/i)).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('Incoming Worker'))
-    expect(screen.getByText('Write metadata')).toBeInTheDocument()
-    expect(screen.getAllByText('Completed')).toHaveLength(2)
+    // Success run: no subtext (badge alone conveys status).
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument()
+    expect(screen.queryByText('Final result')).not.toBeInTheDocument()
 
+    // No expand, no detail rows
+    expect(screen.queryByText(/\+\d+ step/i)).not.toBeInTheDocument()
+    expect(screen.queryByText('Write metadata')).not.toBeInTheDocument()
+
+    // Node drill still works
     fireEvent.click(screen.getByRole('button', { name: /open incoming worker node/i }))
     expect(onSelectNode).toHaveBeenCalledWith('incoming-worker')
+  })
+
+  it('surfaces the first error as the summary when the group contains one', () => {
+    render(
+      <TraceDetailContent
+        journey={{
+          ...journey,
+          steps: [
+            {
+              instanceId: 'incoming-worker::validate-auth',
+              stepId: 'validate-auth',
+              label: 'validate-auth',
+              nodeId: 'incoming-worker',
+              startSeq: 1,
+              endSeq: 1,
+              startTs: '2026-04-11T10:46:50.000Z',
+              endTs: '2026-04-11T10:46:50.000Z',
+              durationMs: 50,
+              status: 'error',
+              attrs: { error_message: 'auth denied' },
+            },
+            {
+              instanceId: 'incoming-worker::cleanup',
+              stepId: 'cleanup',
+              label: 'cleanup',
+              nodeId: 'incoming-worker',
+              startSeq: 2,
+              endSeq: 2,
+              startTs: '2026-04-11T10:46:51.000Z',
+              endTs: '2026-04-11T10:46:51.000Z',
+              durationMs: 10,
+              status: 'success',
+            },
+          ],
+          nodePath: ['incoming-worker'],
+        }}
+        flowNodes={flowNodes}
+        flowEdges={flowEdges}
+      />,
+    )
+
+    // First error wins the summary, even though a later success step came after.
+    expect(screen.getByText('auth denied')).toBeInTheDocument()
   })
 
   it('omits node navigation for the shared unmapped bucket', () => {

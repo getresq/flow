@@ -1,5 +1,5 @@
 import type { FlowEdgeConfig, FlowNodeConfig, TraceJourney, TraceStep, TraceStatus } from './types'
-import { isLifecycleTerminalStep, summarizeStepOutcome } from './stepOutcomePresentation'
+import { summarizeStepOutcome } from './stepOutcomePresentation'
 import { combinedStepRef, stepLeaf } from './stepRefs'
 import { normalizeTraceIdentifierValue } from './traceIdentifiers'
 
@@ -146,14 +146,6 @@ export function formatStepDisplayLabel(
   return formatStepLabel(stage)
 }
 
-export interface JourneyOverviewDetailRow {
-  key: string
-  label: string
-  status: TraceStatus
-  durationMs?: number
-  step: TraceStep
-}
-
 export interface JourneyOverviewCard {
   key: string
   nodeId?: string
@@ -163,7 +155,6 @@ export interface JourneyOverviewCard {
   durationMs?: number
   startedAt: string
   representativeStep: TraceStep
-  detailRows: JourneyOverviewDetailRow[]
 }
 
 export interface JourneyOverviewModel {
@@ -180,13 +171,6 @@ interface OverviewGroup {
   firstOrder: number
   firstReachedAt: string
   steps: TraceStep[]
-}
-
-interface SummaryCandidate {
-  step: TraceStep
-  summary: string
-  score: number
-  order: number
 }
 
 function stepErrorSummary(stage: Pick<TraceStep, 'attrs' | 'errorSummary'>): string | undefined {
@@ -269,16 +253,6 @@ function formatGroupedStepLabel(step: TraceStep): string {
     return outcome
   }
 
-  if (isLifecycleTerminalStep(step.stepId) || stepLeaf(step.stepId) === 'result') {
-    if (step.status === 'running' || step.status === 'partial') {
-      return 'In progress'
-    }
-    if (step.status === 'error') {
-      return 'Failed'
-    }
-    return 'Completed'
-  }
-
   const explicit = resolveStepLeafLabel(step)
   if (explicit) {
     return explicit
@@ -287,66 +261,12 @@ function formatGroupedStepLabel(step: TraceStep): string {
   return humanizeMachineLabel(step.stepId)
 }
 
-function summaryScore(step: TraceStep): number {
-  if (
-    summarizeStepOutcome({
-      stepId: step.stepId,
-      nodeId: step.nodeId,
-      attributes: step.attrs,
-      message: step.errorSummary,
-    })
-  ) {
-    return 600
-  }
-
-  const hasError = Boolean(step.status === 'error' && stepErrorSummary(step))
-  if (hasError) {
-    return 500
-  }
-
-  if (step.status === 'running' || step.status === 'partial') {
-    return 300
-  }
-
-  if (isLifecycleTerminalStep(step.stepId)) {
-    return 250
-  }
-
-  if (resolveStepLeafLabel(step)) {
-    return 200
-  }
-
-  return 100
-}
-
-function chooseRepresentativeStep(steps: TraceStep[]): SummaryCandidate {
-  return steps.reduce<SummaryCandidate>((best, step, index) => {
-    const candidate: SummaryCandidate = {
-      step,
-      summary: formatGroupedStepLabel(step),
-      score: summaryScore(step),
-      order: typeof step.startSeq === 'number' ? step.startSeq : index,
-    }
-
-    if (candidate.score !== best.score) {
-      return candidate.score > best.score ? candidate : best
-    }
-
-    if (candidate.order !== best.order) {
-      return candidate.order > best.order ? candidate : best
-    }
-
-    return Date.parse(candidate.step.startTs) >= Date.parse(best.step.startTs) ? candidate : best
-  }, {
-    step: steps[0]!,
-    summary: formatGroupedStepLabel(steps[0]!),
-    score: summaryScore(steps[0]!),
-    order: typeof steps[0]!.startSeq === 'number' ? steps[0]!.startSeq : 0,
-  })
-}
-
-function isMeaningfulDetailDuration(durationMs?: number): boolean {
-  return typeof durationMs === 'number' && durationMs >= 1000
+// Summary picker: first error in the group by seq; otherwise the most recent step.
+// Producer owns what's in the run via run_id; the UI presents faithfully.
+function pickSummaryStep(steps: TraceStep[]): TraceStep {
+  const sorted = [...steps].sort(compareSteps)
+  const firstError = sorted.find((step) => step.status === 'error')
+  return firstError ?? sorted.at(-1) ?? steps[0]!
 }
 
 function buildOverviewGroups(
@@ -411,28 +331,21 @@ export function getJourneyOverviewModel(
   const groups = buildOverviewGroups(journey, nodes)
 
   const cards = groups.map((group): JourneyOverviewCard => {
-    const representative = chooseRepresentativeStep(group.steps)
+    const representative = pickSummaryStep(group.steps)
     return {
       key: group.key,
       nodeId: group.nodeId,
       nodeLabel: group.nodeLabel,
-      summary: representative.summary,
-      status: representative.step.status,
+      summary: formatGroupedStepLabel(representative),
+      status: representative.status,
       durationMs:
-        representative.step.durationMs ??
+        representative.durationMs ??
         group.steps
           .map((step) => step.durationMs)
           .filter((duration): duration is number => typeof duration === 'number')
           .sort((left, right) => right - left)[0],
       startedAt: group.firstReachedAt,
-      representativeStep: representative.step,
-      detailRows: group.steps.map((step, index) => ({
-        key: step.instanceId ?? `${group.key}:${index}`,
-        label: formatGroupedStepLabel(step),
-        status: step.status,
-        durationMs: isMeaningfulDetailDuration(step.durationMs) ? step.durationMs : undefined,
-        step,
-      })),
+      representativeStep: representative,
     }
   })
 
@@ -449,7 +362,7 @@ export function getJourneyOverviewModel(
 }
 
 export function getOverviewSteps(steps: TraceStep[]): TraceStep[] {
-  return buildOverviewGroups({ steps }).map((group) => chooseRepresentativeStep(group.steps).step)
+  return buildOverviewGroups({ steps }).map((group) => pickSummaryStep(group.steps))
 }
 
 export function getJourneySummaryStep(

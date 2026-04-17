@@ -82,18 +82,12 @@ export function TraceDetailContent({
     if (initialTab === 'timing' && spans.length === 0) return 'overview'
     return initialTab ?? 'overview'
   })
-  const [expandedCardKeys, setExpandedCardKeys] = useState<string[]>([])
 
   const overview = useMemo(
     () => getJourneyOverviewModel(journey, flowNodes, flowEdges),
     [flowEdges, flowNodes, journey],
   )
   const overviewCards = overview.cards
-
-  const uniformStepCount = useMemo(() => {
-    const counts = overviewCards.map((c) => c.detailRows.length)
-    return counts.length > 1 && counts.every((n) => n === counts[0])
-  }, [overviewCards])
 
   const durationOutlierKeys = useMemo(() => {
     const entries = overviewCards
@@ -216,10 +210,13 @@ export function TraceDetailContent({
                   {overviewCards.map((card) => {
                     const isError = card.status === 'error'
                     const isActive = card.status === 'running' || card.status === 'partial'
-                    const isExpanded = expandedCardKeys.includes(card.key)
-                    const hasDetails = card.detailRows.length > 0
                     const targetNodeId = card.nodeId
-                    const showSummary = card.summary.trim().toLowerCase() !== card.nodeLabel.trim().toLowerCase()
+                    // Success: badge alone conveys status, no subtext needed.
+                    // Error: surface the error message (what the badge can't say).
+                    // Running/partial: show the current step so the user knows where the run is.
+                    const showSummary =
+                      card.status !== 'success' &&
+                      card.summary.trim().toLowerCase() !== card.nodeLabel.trim().toLowerCase()
                     const dotColor = isError
                       ? 'var(--status-error)'
                       : isActive
@@ -248,20 +245,7 @@ export function TraceDetailContent({
                         >
                           <CardContent className="p-3">
                             <div className="flex items-start gap-3">
-                              <button
-                                type="button"
-                                className={`min-w-0 flex-1 text-left ${hasDetails ? 'cursor-pointer' : 'cursor-default'}`}
-                                onClick={
-                                  hasDetails
-                                    ? () =>
-                                        setExpandedCardKeys((current) =>
-                                          current.includes(card.key)
-                                            ? current.filter((key) => key !== card.key)
-                                            : [...current, card.key],
-                                        )
-                                    : undefined
-                                }
-                              >
+                              <div className="min-w-0 flex-1">
                                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                                   <span className="truncate text-sm font-medium text-[var(--text-primary)]">
                                     {card.nodeLabel}
@@ -272,51 +256,21 @@ export function TraceDetailContent({
                                 {showSummary ? (
                                   <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{card.summary}</p>
                                 ) : null}
-                              </button>
-
-                              <div className="flex shrink-0 items-center gap-1">
-                                {!isExpanded && hasDetails && !uniformStepCount ? (
-                                  <span className="text-xs font-medium text-[var(--text-muted)]">
-                                    +{card.detailRows.length} {card.detailRows.length === 1 ? 'step' : 'steps'}
-                                  </span>
-                                ) : null}
-                                {onSelectNode && targetNodeId ? (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-7 shrink-0"
-                                    aria-label={`Open ${card.nodeLabel} node`}
-                                    onClick={(event) => {
-                                      event.stopPropagation()
-                                      onSelectNode(targetNodeId)
-                                    }}
-                                  >
-                                    <ArrowUpRight className="size-4" />
-                                  </Button>
-                                ) : null}
                               </div>
+
+                              {onSelectNode && targetNodeId ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7 shrink-0"
+                                  aria-label={`Open ${card.nodeLabel} node`}
+                                  onClick={() => onSelectNode(targetNodeId)}
+                                >
+                                  <ArrowUpRight className="size-4" />
+                                </Button>
+                              ) : null}
                             </div>
-
-                            {isExpanded && hasDetails ? (
-                              <div className="mt-3 border-t border-[var(--border-default)] pt-3">
-                                <div className="ml-2 border-l border-[color-mix(in_srgb,var(--border-default)_72%,transparent)] pl-4">
-                                  {card.detailRows.map((detailRow) => (
-                                    <div key={detailRow.key} className="relative flex items-start gap-3 py-1.5">
-                                      <div className="absolute -left-[20px] top-[11px] size-2 rounded-full border border-[var(--border-default)] bg-[var(--surface-primary)]" />
-                                      <span className="min-w-0 flex-1 text-[13px] leading-5 text-[var(--text-secondary)]">
-                                        {detailRow.label}
-                                      </span>
-                                      {detailRow.durationMs ? (
-                                        <span className="shrink-0 font-mono text-[11px] text-[var(--text-muted)]">
-                                          {formatDurationLabel(detailRow.durationMs)}
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : null}
                           </CardContent>
                         </Card>
                       </div>

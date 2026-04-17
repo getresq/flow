@@ -12,6 +12,7 @@ interface InspectorPanelProps {
   className?: string
   children: ReactNode
   onBack?: () => void
+  backLabel?: string
   onClose: () => void
 }
 
@@ -22,6 +23,7 @@ export function InspectorPanel({
   className,
   children,
   onBack,
+  backLabel,
   onClose,
 }: InspectorPanelProps) {
   const titleId = useId()
@@ -57,16 +59,17 @@ export function InspectorPanel({
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             {onBack ? (
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="icon"
-                className="size-6 shrink-0 cursor-pointer"
                 onClick={onBack}
-                aria-label="Back"
+                aria-label={backLabel ? `Back to ${backLabel}` : 'Back'}
+                className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 text-[var(--text-secondary)] hover:bg-[var(--surface-overlay)] hover:text-[var(--text-primary)]"
               >
                 <ArrowLeft className="size-4" />
-              </Button>
+                {backLabel ? (
+                  <span className="max-w-[140px] truncate text-sm">{backLabel}</span>
+                ) : null}
+              </button>
             ) : null}
             <h2 id={titleId} className="min-w-0 text-base font-semibold text-[var(--text-primary)]">
               {title}

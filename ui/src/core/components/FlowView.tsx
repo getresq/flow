@@ -18,6 +18,7 @@ import { useFlowAnimations } from '../hooks/useFlowAnimations'
 import { useFlowActivity } from '../hooks/useFlowActivity'
 import { useLogStream } from '../hooks/useLogStream'
 import { DEFAULT_RELAY_WS_URL, useRelayConnection } from '../hooks/useRelayConnection'
+import { getLogSelectionId } from '../logPresentation'
 import { formatRunLabel, getJourneyOverviewModel } from '../runPresentation'
 import { useTraceJourney } from '../hooks/useTraceJourney'
 import { useTraceTimeline } from '../hooks/useTraceTimeline'
@@ -26,6 +27,17 @@ import type { LogEntry } from '../types'
 import { flows } from '../../flows'
 import { useCommandPaletteStore } from '../../stores/commandPalette'
 import { useLayoutStore } from '../../stores/layout'
+
+type SidebarEntry =
+  | { type: 'node'; nodeId: string }
+  | { type: 'run'; runId: string }
+  | { type: 'log'; logSeq: string }
+
+const BACK_STACK_LIMIT = 3
+
+function formatRunBreadcrumb(runId: string): string {
+  return runId.length > 16 ? `Run ${runId.slice(0, 12)}\u2026` : `Run ${runId}`
+}
 
 export function FlowView() {
   const navigate = useNavigate()
@@ -37,7 +49,6 @@ export function FlowView() {
     selectedTraceId,
     selectedLogSeq,
     runTab,
-    panel,
     sourceMode,
     viewMode,
     updateUrlState,
@@ -157,9 +168,7 @@ export function FlowView() {
   )
   const selectedLogEntry = useMemo(
     () =>
-      logStream.globalLogs.find(
-        (entry) => (entry.selectionId ?? (entry.seq != null ? String(entry.seq) : undefined)) === selectedLogSeq,
-      ),
+      logStream.globalLogs.find((entry) => getLogSelectionId(entry) === selectedLogSeq),
     [logStream.globalLogs, selectedLogSeq],
   )
 
@@ -217,46 +226,102 @@ export function FlowView() {
     [bottomPanelSnap, currentFlow.hasGraph, setBottomPanelSnap],
   )
 
-  const handleSelectNode = useCallback(
-    (nodeId?: string) => {
+  const [backStack, setBackStack] = useState<SidebarEntry[]>([])
+
+  const currentEntry = useCallback((): SidebarEntry | null => {
+    if (selectedLogSeq) return { type: 'log', logSeq: selectedLogSeq }
+    if (selectedTraceId) return { type: 'run', runId: selectedTraceId }
+    if (selectedNodeId) return { type: 'node', nodeId: selectedNodeId }
+    return null
+  }, [selectedLogSeq, selectedNodeId, selectedTraceId])
+
+  const applyPanel = useCallback(
+    (target: SidebarEntry | null) => {
       updateUrlState(
         {
-          node: nodeId ?? null,
-          run: nodeId ? null : undefined,
-          log: nodeId ? null : undefined,
+          node: target?.type === 'node' ? target.nodeId : null,
+          run: target?.type === 'run' ? target.runId : null,
+          log: target?.type === 'log' ? target.logSeq : null,
+          runTab: target?.type === 'run' ? undefined : null,
+          panel: null,
         },
         { replace: true },
       )
     },
     [updateUrlState],
+  )
+
+  const pushDrill = useCallback(
+    (target: SidebarEntry) => {
+      const previous = currentEntry()
+      setBackStack((stack) =>
+        previous ? [...stack, previous].slice(-BACK_STACK_LIMIT) : stack,
+      )
+      applyPanel(target)
+    },
+    [applyPanel, currentEntry],
+  )
+
+  const popBack = useCallback(() => {
+    setBackStack((stack) => {
+      const previous = stack.at(-1)
+      if (!previous) return stack
+      applyPanel(previous)
+      return stack.slice(0, -1)
+    })
+  }, [applyPanel])
+
+  const closeSidebar = useCallback(() => {
+    setBackStack([])
+    applyPanel(null)
+  }, [applyPanel])
+
+  const selectTopLevel = useCallback(
+    (target: SidebarEntry | null) => {
+      setBackStack([])
+      applyPanel(target)
+    },
+    [applyPanel],
+  )
+
+  const handleSelectNode = useCallback(
+    (nodeId?: string) => {
+      selectTopLevel(nodeId ? { type: 'node', nodeId } : null)
+    },
+    [selectTopLevel],
   )
 
   const handleSelectTrace = useCallback(
     (traceId?: string) => {
-      updateUrlState(
-        {
-          node: traceId ? null : undefined,
-          run: traceId ?? null,
-          log: traceId ? null : undefined,
-        },
-        { replace: true },
-      )
+      selectTopLevel(traceId ? { type: 'run', runId: traceId } : null)
     },
-    [updateUrlState],
+    [selectTopLevel],
   )
 
   const handleSelectLog = useCallback(
     (entry: LogEntry) => {
-      updateUrlState(
-        {
-          log: entry.selectionId ?? (entry.seq != null ? String(entry.seq) : null),
-          node: null,
-          run: null,
-        },
-        { replace: true },
-      )
+      const logSeq = getLogSelectionId(entry)
+      if (!logSeq) return
+      selectTopLevel({ type: 'log', logSeq })
     },
-    [updateUrlState],
+    [selectTopLevel],
+  )
+
+  const drillToRun = useCallback(
+    (traceId: string) => pushDrill({ type: 'run', runId: traceId }),
+    [pushDrill],
+  )
+  const drillToNode = useCallback(
+    (nodeId: string) => pushDrill({ type: 'node', nodeId }),
+    [pushDrill],
+  )
+  const drillToLog = useCallback(
+    (entry: LogEntry) => {
+      const logSeq = getLogSelectionId(entry)
+      if (!logSeq) return
+      pushDrill({ type: 'log', logSeq })
+    },
+    [pushDrill],
   )
 
   const handleNavigateBack = useCallback(() => {
@@ -274,6 +339,16 @@ export function FlowView() {
   const selectedLogHasJourney = selectedLogExecutionId
     ? traceJourney.journeyByTraceId.has(selectedLogExecutionId)
     : false
+  const backLabel = useMemo(() => {
+    const top = backStack.at(-1)
+    if (!top) return undefined
+    if (top.type === 'node') {
+      return currentFlow.nodes.find((n) => n.id === top.nodeId)?.label ?? 'Node'
+    }
+    if (top.type === 'run') return formatRunBreadcrumb(top.runId)
+    return 'Log'
+  }, [backStack, currentFlow.nodes])
+  const canGoBack = backStack.length > 0
   const commandRunOptions = useMemo(
     () =>
       traceJourney.journeys.slice(0, 12).map((journey) => ({
@@ -414,37 +489,14 @@ export function FlowView() {
 
       <AnimatePresence>
         {(() => {
-          // When both node and run are selected, use `panel` to decide which view is foreground.
-          // panel=run  → user clicked "View run" from a node  → show run, back returns to node
-          // otherwise  → user clicked a node from within a run → show node, back returns to run
-          if (selectedNode && selectedJourney) {
-            if (panel === 'run') {
-              const presentation = getTraceInspectorPresentation(selectedJourney, currentFlow.nodes, currentFlow.edges)
-
-              return (
-                <InspectorPanel
-                  key="inspector"
-                  title={presentation.title}
-                  description={presentation.description}
-                  headerContent={presentation.headerContent}
-                  onBack={() => updateUrlState({ run: null, runTab: null, panel: null }, { replace: true })}
-                  onClose={() => updateUrlState({ node: null, run: null, runTab: null, panel: null }, { replace: true })}
-                >
-                  <TraceDetailContent
-                    key={selectedJourney.traceId}
-                    journey={selectedJourney}
-                    flowNodes={currentFlow.nodes}
-                    flowEdges={currentFlow.edges}
-                    spans={selectedTraceId ? traceTimeline.traceTree.get(selectedTraceId) ?? [] : []}
-                    initialTab={runTab === 'timing' ? 'timing' : 'overview'}
-                    onTabChange={(tab) => updateUrlState({ runTab: tab === 'overview' ? null : tab }, { replace: true })}
-                    onSelectNode={(nodeId) => updateUrlState({ node: nodeId, panel: null }, { replace: true })}
-                  />
-                </InspectorPanel>
-              )
-            }
-
-            const presentation = getNodeInspectorPresentation(selectedNode)
+          // URL carries exactly one of node/run/log. Back stack is memory-only
+          // and handles multi-level drill-down. Log wins if set, then Run, then Node.
+          if (selectedLogEntry) {
+            const presentation = getEventInspectorPresentation(
+              selectedLogEntry,
+              selectedLogNode?.label,
+              drillToNode,
+            )
 
             return (
               <InspectorPanel
@@ -452,17 +504,14 @@ export function FlowView() {
                 title={presentation.title}
                 description={presentation.description}
                 headerContent={presentation.headerContent}
-                onBack={() => updateUrlState({ panel: 'run' }, { replace: true })}
-                onClose={() => updateUrlState({ node: null, run: null, runTab: null, panel: null }, { replace: true })}
+                onBack={canGoBack ? popBack : undefined}
+                backLabel={canGoBack ? backLabel : undefined}
+                onClose={closeSidebar}
               >
-                <NodeDetailContent
-                  key={selectedNode.id}
-                  node={selectedNode}
-                  status={selectedNodeStatus}
-                  logs={selectedNodeLogs}
-                  spans={selectedNodeSpans}
-                  onOpenRun={(traceId) => updateUrlState({ run: traceId, panel: 'run', log: null, runTab: null }, { replace: true })}
-                  onOpenLog={handleSelectLog}
+                <EventDetailContent
+                  entry={selectedLogEntry}
+                  hasJourney={selectedLogHasJourney}
+                  onOpenRun={drillToRun}
                 />
               </InspectorPanel>
             )
@@ -470,7 +519,6 @@ export function FlowView() {
 
           if (selectedJourney) {
             const presentation = getTraceInspectorPresentation(selectedJourney, currentFlow.nodes, currentFlow.edges)
-            const canGoBack = Boolean(selectedLogSeq)
 
             return (
               <InspectorPanel
@@ -478,8 +526,9 @@ export function FlowView() {
                 title={presentation.title}
                 description={presentation.description}
                 headerContent={presentation.headerContent}
-                onBack={canGoBack ? () => updateUrlState({ run: null, panel: null }, { replace: true }) : undefined}
-                onClose={() => updateUrlState({ run: null, runTab: null, panel: null }, { replace: true })}
+                onBack={canGoBack ? popBack : undefined}
+                backLabel={canGoBack ? backLabel : undefined}
+                onClose={closeSidebar}
               >
                 <TraceDetailContent
                   key={selectedJourney.traceId}
@@ -489,27 +538,7 @@ export function FlowView() {
                   spans={selectedTraceId ? traceTimeline.traceTree.get(selectedTraceId) ?? [] : []}
                   initialTab={runTab === 'timing' ? 'timing' : 'overview'}
                   onTabChange={(tab) => updateUrlState({ runTab: tab === 'overview' ? null : tab }, { replace: true })}
-                  onSelectNode={(nodeId) => updateUrlState({ node: nodeId }, { replace: true })}
-                />
-              </InspectorPanel>
-            )
-          }
-
-          if (selectedLogEntry) {
-            const presentation = getEventInspectorPresentation(selectedLogEntry, selectedLogNode?.label)
-
-            return (
-              <InspectorPanel
-                key="inspector"
-                title={presentation.title}
-                description={presentation.description}
-                headerContent={presentation.headerContent}
-                onClose={() => setSelectedLogSeq(undefined, { replace: true })}
-              >
-                <EventDetailContent
-                  entry={selectedLogEntry}
-                  hasJourney={selectedLogHasJourney}
-                  onOpenRun={(traceId) => updateUrlState({ run: traceId, panel: 'run' }, { replace: true })}
+                  onSelectNode={drillToNode}
                 />
               </InspectorPanel>
             )
@@ -524,7 +553,9 @@ export function FlowView() {
                 title={presentation.title}
                 description={presentation.description}
                 headerContent={presentation.headerContent}
-                onClose={() => setSelectedNodeId(undefined, { replace: true })}
+                onBack={canGoBack ? popBack : undefined}
+                backLabel={canGoBack ? backLabel : undefined}
+                onClose={closeSidebar}
               >
                 <NodeDetailContent
                   key={selectedNode.id}
@@ -532,8 +563,8 @@ export function FlowView() {
                   status={selectedNodeStatus}
                   logs={selectedNodeLogs}
                   spans={selectedNodeSpans}
-                  onOpenRun={(traceId) => updateUrlState({ run: traceId, panel: 'run', log: null }, { replace: true })}
-                  onOpenLog={handleSelectLog}
+                  onOpenRun={drillToRun}
+                  onOpenLog={drillToLog}
                 />
               </InspectorPanel>
             )

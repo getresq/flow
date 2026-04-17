@@ -186,10 +186,9 @@ describe('runPresentation', () => {
       'Incoming Worker',
       'Schedule Incoming Checks',
     ])
-    expect(overview.cards[0]?.detailRows.map((row) => row.label)).toEqual([
-      'Write metadata',
-      'Completed',
-    ])
+    // Most recent step in the first group wins the summary.
+    // Humanized step_id — no lifecycle-terminal substitution.
+    expect(overview.cards[0]?.summary).toBe('Final result')
     expect(overview.focusNodeIds).toEqual(['incoming-worker', 'incoming-schedule-process'])
   })
 
@@ -230,7 +229,7 @@ describe('runPresentation', () => {
     const overview = getJourneyOverviewModel(journey, autosendFlowNodes, autosendFlowEdges)
 
     expect(overview.cards.map((card) => card.nodeLabel)).toEqual(['Auto Send?', 'Actions Queue'])
-    expect(overview.cards[1]?.detailRows.map((row) => row.label)).toEqual(['Execute enqueue'])
+    expect(overview.cards[1]?.summary).toBe('Execute enqueue')
   })
 
   it('falls back to a shared Other Activity bucket when no node ownership exists', () => {
@@ -262,13 +261,11 @@ describe('runPresentation', () => {
     expect(overview.cards).toHaveLength(1)
     expect(overview.cards[0]?.nodeLabel).toBe('Other Activity')
     expect(overview.cards[0]?.nodeId).toBeUndefined()
-    expect(overview.cards[0]?.detailRows.map((row) => row.label)).toEqual([
-      'Mystery step',
-      'Another mystery step',
-    ])
+    // Most recent step wins the summary (first-error-else-latest rule).
+    expect(overview.cards[0]?.summary).toBe('Another mystery step')
   })
 
-  it('prefers the final meaningful outcome over transient errors in the same node summary', () => {
+  it('surfaces the first error as the summary when the group contains one', () => {
     const journey = makeJourney({
       steps: [
         {
@@ -306,8 +303,11 @@ describe('runPresentation', () => {
     const overview = getJourneyOverviewModel(journey, flowNodes, flowEdges)
 
     expect(overview.cards).toHaveLength(1)
-    expect(overview.cards[0]?.summary).toBe('sent')
-    expect(getJourneySummaryStep(journey, flowNodes, flowEdges)?.stepId).toBe('final-result')
+    // First error wins over any later success in the same group.
+    expect(overview.cards[0]?.summary).toBe('temporary provider error')
+    expect(overview.cards[0]?.representativeStep.stepId).toBe('provider-call')
+    // getJourneySummaryStep now also surfaces the error as the representative step.
+    expect(getJourneySummaryStep(journey, flowNodes, flowEdges)?.stepId).toBe('provider-call')
   })
 
   it('returns one representative overview step per grouped node', () => {

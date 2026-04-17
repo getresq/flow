@@ -11,6 +11,7 @@ import {
 } from '@/components/ui'
 
 import { DurationBadge } from './DurationBadge'
+import { getLogSelectionId } from '../logPresentation'
 import { isDefaultVisibleLogEntry } from '../telemetryClassification'
 import { normalizeTraceIdentifierValue } from '../traceIdentifiers'
 import { firstClassColors } from '../nodes/nodePrimitives'
@@ -433,9 +434,7 @@ export function NodeDetailContent({ node, status, logs, spans, onOpenRun, onOpen
                 <ScrollArea className="min-h-0 flex-1">
                   <div className="divide-y divide-[var(--border-subtle)] pr-3">
                     {visibleEvents.map(({ entry, summary, isError }, index) => {
-                      const canOpen = Boolean(
-                        onOpenLog && (entry.selectionId ?? (entry.seq != null ? String(entry.seq) : undefined)),
-                      )
+                      const canOpen = Boolean(onOpenLog && getLogSelectionId(entry))
                       const content = (
                         <div className="flex items-start gap-2.5">
                           {isError ? (

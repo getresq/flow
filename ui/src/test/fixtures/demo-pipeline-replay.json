@@ -44,6 +44,34 @@
   },
   {
     "type": "log",
+    "timestamp": "2026-04-15T14:00:00.140Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-3a",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "step",
+      "component_id": "intake-worker",
+      "step_id": "validate-auth"
+    },
+    "message": "Validated auth token"
+  },
+  {
+    "type": "log",
+    "timestamp": "2026-04-15T14:00:00.180Z",
+    "trace_id": "demo-trace-1",
+    "span_id": "demo-log-3b",
+    "attributes": {
+      "flow_id": "demo-pipeline",
+      "run_id": "demo-run-1",
+      "action": "step",
+      "component_id": "intake-worker",
+      "step_id": "check-quota"
+    },
+    "message": "Quota check passed"
+  },
+  {
+    "type": "log",
     "timestamp": "2026-04-15T14:00:00.240Z",
     "trace_id": "demo-trace-1",
     "span_id": "demo-log-4",

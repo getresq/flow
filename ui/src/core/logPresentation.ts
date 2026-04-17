@@ -2,6 +2,10 @@ import type { LogEntry } from './types'
 import { summarizeStepOutcome } from './stepOutcomePresentation'
 import { combinedStepRef } from './stepRefs'
 
+export function getLogSelectionId(entry: Pick<LogEntry, 'selectionId' | 'seq'>): string | undefined {
+  return entry.selectionId ?? (entry.seq != null ? String(entry.seq) : undefined)
+}
+
 interface FlowLogPresentationInput {
   stepId?: string
   nodeId?: string
