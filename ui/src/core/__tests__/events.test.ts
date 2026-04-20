@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { eventExecutionKey, eventMatchesFlow, parseRelayEvents } from '../events'
+import {
+  eventExecutionKey,
+  eventMatchesFlow,
+  getEventMergeKey,
+  getEventSelectionKey,
+  parseRelayEvents,
+} from '../events'
 
 describe('events helpers', () => {
   it('parses snapshot envelopes and normalizes missing fields', () => {
@@ -172,5 +178,65 @@ describe('events helpers', () => {
         },
       }),
     ).toBe('trace-1')
+  })
+
+  it('builds stable short selection keys without changing merge identity', () => {
+    const event = {
+      type: 'log',
+      timestamp: '2026-03-05T12:00:00.000Z',
+      trace_id: 'trace-1',
+      span_id: 'span-1',
+      message: 'history event',
+      attributes: {
+        b: 2,
+        a: {
+          nested: 'value',
+        },
+      },
+    } as const
+    const equivalentEvent = {
+      ...event,
+      attributes: {
+        a: {
+          nested: 'value',
+        },
+        b: 2,
+      },
+    }
+
+    const mergeKey = getEventMergeKey(event)
+    const selectionKey = getEventSelectionKey(event)
+
+    expect(getEventMergeKey(equivalentEvent)).toBe(mergeKey)
+    expect(getEventSelectionKey(equivalentEvent)).toBe(selectionKey)
+    expect(selectionKey).toMatch(/^history:log:[a-z0-9]+$/)
+    expect(selectionKey.length).toBeLessThan(mergeKey.length)
+    expect(mergeKey).toContain('a:{nested:"value"},b:2')
+  })
+
+  it('produces distinct representative selection keys', () => {
+    const baseEvent = {
+      type: 'log',
+      timestamp: '2026-03-05T12:00:00.000Z',
+      trace_id: 'trace-1',
+      span_id: 'span-1',
+      message: 'history event',
+      attributes: {
+        flow_id: 'mail-pipeline',
+      },
+    } as const
+
+    expect(getEventSelectionKey(baseEvent)).not.toBe(
+      getEventSelectionKey({
+        ...baseEvent,
+        span_id: 'span-2',
+      }),
+    )
+    expect(getEventMergeKey(baseEvent)).not.toBe(
+      getEventMergeKey({
+        ...baseEvent,
+        span_id: 'span-2',
+      }),
+    )
   })
 })

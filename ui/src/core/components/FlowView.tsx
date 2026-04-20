@@ -140,13 +140,17 @@ export function FlowView() {
   })
   const runtimeSessionKey = `${currentFlow.id}:${relayResetKey}`
   const displayedEvents = flowActivity.events
+  const resourceNodeIds = useMemo(
+    () => currentFlow.nodes.filter((node) => node.type === 'cylinder').map((node) => node.id),
+    [currentFlow.nodes],
+  )
 
   const animations = useFlowAnimations({
     events: liveEvents,
     spanMapping: currentFlow.spanMapping,
     producerMapping: currentFlow.producerMapping,
     edges: currentFlow.edges,
-    resourceNodeIds: currentFlow.nodes.filter((node) => node.type === 'cylinder').map((node) => node.id),
+    resourceNodeIds,
     sessionKey: runtimeSessionKey,
   })
   const logStream = useLogStream(displayedEvents, currentFlow.spanMapping, runtimeSessionKey)
@@ -166,10 +170,19 @@ export function FlowView() {
         : undefined,
     [currentFlow.edges, currentFlow.nodes, selectedJourney],
   )
+  const logEntryBySelectionId = useMemo(() => {
+    const next = new Map<string, LogEntry>()
+    for (const entry of logStream.globalLogs) {
+      const selectionId = getLogSelectionId(entry)
+      if (selectionId) {
+        next.set(selectionId, entry)
+      }
+    }
+    return next
+  }, [logStream.globalLogs])
   const selectedLogEntry = useMemo(
-    () =>
-      logStream.globalLogs.find((entry) => getLogSelectionId(entry) === selectedLogSeq),
-    [logStream.globalLogs, selectedLogSeq],
+    () => (selectedLogSeq ? logEntryBySelectionId.get(selectedLogSeq) : undefined),
+    [logEntryBySelectionId, selectedLogSeq],
   )
 
   const traceFocus = useMemo(() => {
@@ -227,6 +240,9 @@ export function FlowView() {
   )
 
   const [backStack, setBackStack] = useState<SidebarEntry[]>([])
+  const clearBackStack = useCallback(() => {
+    setBackStack((stack) => (stack.length > 0 ? [] : stack))
+  }, [])
 
   const currentEntry = useCallback((): SidebarEntry | null => {
     if (selectedLogSeq) return { type: 'log', logSeq: selectedLogSeq }
@@ -272,16 +288,16 @@ export function FlowView() {
   }, [applyPanel])
 
   const closeSidebar = useCallback(() => {
-    setBackStack([])
+    clearBackStack()
     applyPanel(null)
-  }, [applyPanel])
+  }, [applyPanel, clearBackStack])
 
   const selectTopLevel = useCallback(
     (target: SidebarEntry | null) => {
-      setBackStack([])
+      clearBackStack()
       applyPanel(target)
     },
-    [applyPanel],
+    [applyPanel, clearBackStack],
   )
 
   const handleSelectNode = useCallback(

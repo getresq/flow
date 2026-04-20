@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { LogsTable } from '../LogsTable'
@@ -49,6 +49,20 @@ const logs: LogEntry[] = [
     traceId: 'run-3',
   },
 ]
+
+function makeManyLogs(count: number): LogEntry[] {
+  return Array.from({ length: count }, (_, index) => ({
+    timestamp: new Date(Date.UTC(2026, 2, 17, 13, 0, index)).toISOString(),
+    level: 'info',
+    nodeId: index % 2 === 0 ? 'node-a' : 'node-b',
+    message: `Log ${index}`,
+    signal: 'meaningful',
+    defaultVisible: true,
+    eventType: 'log',
+    traceId: `run-${index}`,
+    seq: index,
+  }))
+}
 
 describe('LogsTable', () => {
   it('shows inline duration only when crossing the warning threshold (>= 1s)', () => {
@@ -298,5 +312,35 @@ describe('LogsTable', () => {
     expect(
       [...container.querySelectorAll('colgroup')].every((group) => group.querySelectorAll('col').length === 3),
     ).toBe(true)
+  })
+
+  it('bounds mounted rows for large log sets while preserving keyboard selection', async () => {
+    const manyLogs = makeManyLogs(150)
+    const onSelectLog = vi.fn()
+    const { container } = render(
+      <LogsTable
+        logs={manyLogs}
+        nodeLabels={nodeLabels}
+        nodeFamilies={nodeFamilies}
+        selectedLogSeq="149"
+        onSelectLog={onSelectLog}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Log 149')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText('Log 0')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('row').length).toBeLessThan(80)
+
+    const tableShell = container.querySelector('[tabindex="0"]')
+    if (!(tableShell instanceof HTMLElement)) {
+      throw new Error('Expected focusable logs table shell')
+    }
+
+    fireEvent.keyDown(tableShell, { key: 'ArrowDown' })
+
+    expect(onSelectLog).toHaveBeenCalledWith(manyLogs[148])
   })
 })

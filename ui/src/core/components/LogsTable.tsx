@@ -7,6 +7,7 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table'
+import { useVirtualizer, type Virtualizer } from '@tanstack/react-virtual'
 
 import {
   ScrollArea,
@@ -18,13 +19,28 @@ import {
   TableRow,
 } from '@/components/ui'
 
-import { getLogDisplayMessage } from '../logPresentation'
+import { getLogDisplayMessage, getLogSelectionId } from '../logPresentation'
 import { formatEasternTime } from '../time'
 import type { LogEntry } from '../types'
 import { DurationBadge } from './DurationBadge'
 import { sortIndicator } from './tableUtils'
 
 const FRESH_BATCH_LIMIT = 20
+const LOG_ROW_ESTIMATE_PX = 42
+const VIRTUALIZATION_THRESHOLD = 100
+const VIRTUAL_OVERSCAN = 10
+const FALLBACK_VIEWPORT_RECT = { width: 1024, height: 360 }
+
+function assignRef<T>(ref: React.Ref<T> | undefined, value: T | null) {
+  if (!ref) {
+    return
+  }
+  if (typeof ref === 'function') {
+    ref(value)
+    return
+  }
+  ref.current = value
+}
 
 interface LogsTableProps {
   logs: LogEntry[]
@@ -35,6 +51,7 @@ interface LogsTableProps {
   liveTail?: boolean
   onSelectLog: (entry: LogEntry) => void
   scrollAreaRef?: React.RefObject<HTMLDivElement | null>
+  scrollViewportRef?: React.Ref<HTMLDivElement>
 }
 
 interface LogRowData {
@@ -50,6 +67,50 @@ interface LogRowData {
   entry: LogEntry
 }
 
+function getLogRowId(entry: LogEntry, index: number): string {
+  const selectionId = getLogSelectionId(entry)
+  if (selectionId) return `log:${selectionId}`
+
+  // Some direct callers may pass rows before useLogStream has assigned selection ids.
+  // Keep that fallback isolated so live data with seq/selectionId never re-keys on prepend.
+  return [
+    'fallback',
+    entry.timestamp,
+    entry.runId ?? '',
+    entry.traceId ?? '',
+    entry.nodeId ?? '',
+    entry.message,
+    index,
+  ].join(':')
+}
+
+function observeScrollElementRect(
+  instance: Virtualizer<HTMLDivElement, HTMLTableRowElement>,
+  cb: (rect: { width: number; height: number }) => void,
+) {
+  const element = instance.scrollElement
+  if (!element) return undefined
+
+  const notify = () => {
+    const rect = element.getBoundingClientRect()
+    cb({
+      width: rect.width || FALLBACK_VIEWPORT_RECT.width,
+      height: rect.height || FALLBACK_VIEWPORT_RECT.height,
+    })
+  }
+
+  notify()
+
+  if (typeof ResizeObserver === 'undefined') {
+    return undefined
+  }
+
+  const observer = new ResizeObserver(notify)
+  observer.observe(element)
+
+  return () => observer.disconnect()
+}
+
 
 export function LogsTable({
   logs,
@@ -60,11 +121,21 @@ export function LogsTable({
   liveTail,
   onSelectLog,
   scrollAreaRef,
+  scrollViewportRef,
 }: LogsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'time', desc: true }])
   const containerRef = useRef<HTMLDivElement>(null)
+  const [viewportElement, setViewportElement] = useState<HTMLDivElement | null>(null)
 
   const prevMaxSeqRef = useRef<number | null>(null)
+
+  const handleViewportRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      assignRef(scrollViewportRef, element)
+      setViewportElement(element)
+    },
+    [scrollViewportRef],
+  )
 
   const freshSeqs = useMemo(() => {
     if (prevMaxSeqRef.current === null || !liveTail) return new Set<number>()
@@ -101,7 +172,7 @@ export function LogsTable({
         const messageBody = colonIdx > 0 && colonIdx < 40 ? fullMsg.slice(colonIdx + 1).trimStart() : fullMsg
 
         return {
-          id: `${entry.selectionId ?? entry.seq ?? entry.timestamp}-${index}`,
+          id: getLogRowId(entry, index),
           executionId: entry.runId ?? entry.traceId,
           timestamp: entry.timestamp,
           nodeLabel: entry.nodeId ? nodeLabels.get(entry.nodeId) ?? entry.nodeId : '—',
@@ -192,13 +263,39 @@ export function LogsTable({
   })
 
   const rows = table.getRowModel().rows
+  const shouldVirtualize = rows.length > VIRTUALIZATION_THRESHOLD
+  const rowVirtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
+    count: rows.length,
+    getScrollElement: () => viewportElement,
+    estimateSize: () => LOG_ROW_ESTIMATE_PX,
+    getItemKey: (index) => rows[index]?.id ?? index,
+    observeElementRect: observeScrollElementRect,
+    overscan: VIRTUAL_OVERSCAN,
+    initialRect: FALLBACK_VIEWPORT_RECT,
+  })
+  const virtualRows = rowVirtualizer.getVirtualItems()
+  const fallbackVirtualRowCount = Math.min(
+    rows.length,
+    Math.ceil(FALLBACK_VIEWPORT_RECT.height / LOG_ROW_ESTIMATE_PX) + VIRTUAL_OVERSCAN * 2,
+  )
+  const rowIndexes = shouldVirtualize
+    ? virtualRows.length > 0
+      ? virtualRows.map((virtualRow) => virtualRow.index)
+      : Array.from({ length: fallbackVirtualRowCount }, (_, index) => index)
+    : rows.map((_, index) => index)
+  const virtualPaddingTop = shouldVirtualize && virtualRows.length > 0 ? virtualRows[0].start : 0
+  const virtualPaddingBottom =
+    shouldVirtualize
+      ? virtualRows.length > 0
+        ? Math.max(0, rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end)
+        : Math.max(0, (rows.length - fallbackVirtualRowCount) * LOG_ROW_ESTIMATE_PX)
+      : 0
 
   const isRowSelected = useCallback(
     (row: (typeof rows)[number]) => {
       if (
         selectedLogSeq != null &&
-        (row.original.entry.selectionId ?? (row.original.entry.seq != null ? String(row.original.entry.seq) : undefined)) ===
-          selectedLogSeq
+        getLogSelectionId(row.original.entry) === selectedLogSeq
       ) {
         return true
       }
@@ -225,13 +322,21 @@ export function LogsTable({
       const next = Math.max(0, Math.min(current + direction, rows.length - 1))
 
       onSelectLog(rows[next].original.entry)
-
-      const rowEls = containerRef.current?.querySelectorAll('tbody tr')
-      const targetEl = rowEls?.[next] as HTMLElement | undefined
-      targetEl?.scrollIntoView({ block: 'nearest' })
+      if (shouldVirtualize) {
+        rowVirtualizer.scrollToIndex(next, { align: 'auto' })
+      } else {
+        const targetEl = containerRef.current?.querySelector(`[data-index="${next}"]`) as HTMLElement | undefined
+        targetEl?.scrollIntoView({ block: 'nearest' })
+      }
+      containerRef.current?.focus({ preventScroll: true })
     },
-    [rows, selectedRowIndex, onSelectLog],
+    [rows, selectedRowIndex, onSelectLog, rowVirtualizer, shouldVirtualize],
   )
+
+  useEffect(() => {
+    if (!shouldVirtualize || !selectedLogSeq || selectedRowIndex < 0) return
+    rowVirtualizer.scrollToIndex(selectedRowIndex, { align: 'auto' })
+  }, [rowVirtualizer, selectedLogSeq, selectedRowIndex, shouldVirtualize])
 
   return (
     <div ref={containerRef} tabIndex={0} onKeyDown={handleKeyDown} className="flex min-h-0 flex-1 flex-col outline-none">
@@ -253,7 +358,7 @@ export function LogsTable({
           ))}
         </TableHeader>
       </Table>
-      <ScrollArea ref={scrollAreaRef} className="flex-1">
+      <ScrollArea ref={scrollAreaRef} viewportRef={handleViewportRef} className="flex-1">
         <Table className="table-fixed">
           <colgroup>
             <col className="w-[160px]" />
@@ -268,35 +373,50 @@ export function LogsTable({
                 </TableCell>
               </TableRow>
             ) : (
-              rows.map((row) => {
-                const selected = isRowSelected(row)
-                const isFresh = typeof row.original.entry.seq === 'number' && freshSeqs.has(row.original.entry.seq)
-                const severity =
-                  row.original.entry.level === 'error' || row.original.entry.signal === 'critical'
-                    ? 'error'
-                    : typeof row.original.entry.durationMs === 'number' && row.original.entry.durationMs >= 1000
-                      ? 'warning'
-                      : undefined
-                return (
-                  <TableRow
-                    key={row.id}
-                    data-state={selected ? 'selected' : undefined}
-                    data-level={row.original.entry.level}
-                    data-severity={severity}
-                    data-fresh={isFresh ? '' : undefined}
-                    onClick={() => {
-                      onSelectLog(row.original.entry)
-                      containerRef.current?.focus({ preventScroll: true })
-                    }}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                )
-              })
+              <>
+                {virtualPaddingTop > 0 ? (
+                  <tr aria-hidden="true" role="presentation">
+                    <td colSpan={3} style={{ height: `${virtualPaddingTop}px`, padding: 0 }} />
+                  </tr>
+                ) : null}
+                {rowIndexes.map((rowIndex) => {
+                  const row = rows[rowIndex]
+                  if (!row) return null
+                  const selected = isRowSelected(row)
+                  const isFresh = typeof row.original.entry.seq === 'number' && freshSeqs.has(row.original.entry.seq)
+                  const severity =
+                    row.original.entry.level === 'error' || row.original.entry.signal === 'critical'
+                      ? 'error'
+                      : typeof row.original.entry.durationMs === 'number' && row.original.entry.durationMs >= 1000
+                        ? 'warning'
+                        : undefined
+                  return (
+                    <TableRow
+                      key={row.id}
+                      data-state={selected ? 'selected' : undefined}
+                      data-index={rowIndex}
+                      data-level={row.original.entry.level}
+                      data-severity={severity}
+                      data-fresh={isFresh ? '' : undefined}
+                      onClick={() => {
+                        onSelectLog(row.original.entry)
+                        containerRef.current?.focus({ preventScroll: true })
+                      }}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )
+                })}
+                {virtualPaddingBottom > 0 ? (
+                  <tr aria-hidden="true" role="presentation">
+                    <td colSpan={3} style={{ height: `${virtualPaddingBottom}px`, padding: 0 }} />
+                  </tr>
+                ) : null}
+              </>
             )}
           </TableBody>
         </Table>

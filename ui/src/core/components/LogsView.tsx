@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 
 import {
   Button,
   Input,
-  ScrollArea,
   Select,
   SelectContent,
   SelectItem,
@@ -29,10 +28,6 @@ interface LogsViewProps {
   onLoadOlder?: () => Promise<void> | void
   onSelectNode: (nodeId?: string) => void
   onSelectTrace: (traceId?: string) => void
-}
-
-function getScrollViewport(root: HTMLDivElement | null) {
-  return root?.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement | null
 }
 
 function resolveNodeDisplayLabel(nodeId: string, nodeLabels: Map<string, string>): string {
@@ -61,7 +56,12 @@ export function LogsView({
   const [statusFilter, setStatusFilter] = useState<'all' | 'error'>('all')
   const [nodeFilter, setNodeFilter] = useState<string>('all')
   const [liveTail, setLiveTail] = useState(true)
-  const scrollAreaRef = useRef<HTMLDivElement | null>(null)
+  const logsViewportRef = useRef<HTMLDivElement | null>(null)
+  const [logsViewportElement, setLogsViewportElement] = useState<HTMLDivElement | null>(null)
+  const handleLogsViewportRef = useCallback((element: HTMLDivElement | null) => {
+    logsViewportRef.current = element
+    setLogsViewportElement(element)
+  }, [])
 
   const nodeLabels = useMemo(() => {
     const map = new Map<string, string>()
@@ -164,14 +164,14 @@ export function LogsView({
       return
     }
 
-    const viewport = getScrollViewport(scrollAreaRef.current)
+    const viewport = logsViewportRef.current
     if (viewport) {
       viewport.scrollTop = 0
     }
-  }, [filteredLogs, liveTail, sourceMode])
+  }, [filteredLogs, liveTail, logsViewportElement, sourceMode])
 
   useEffect(() => {
-    const viewport = getScrollViewport(scrollAreaRef.current)
+    const viewport = logsViewportElement
     if (!viewport || sourceMode !== 'live') {
       return
     }
@@ -196,7 +196,7 @@ export function LogsView({
     onScroll()
 
     return () => viewport.removeEventListener('scroll', onScroll)
-  }, [hasMoreOlder, isBackfilling, onLoadOlder, sourceMode, wasLiveBufferTruncated])
+  }, [hasMoreOlder, isBackfilling, logsViewportElement, onLoadOlder, sourceMode, wasLiveBufferTruncated])
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-hidden px-4 py-4 sm:px-6">
@@ -275,34 +275,30 @@ export function LogsView({
         ) : null}
       </div>
 
-      <ScrollArea
-        ref={scrollAreaRef}
-        className="min-h-0 flex-1"
-      >
-        {filteredLogs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-            <p className="text-sm text-[var(--text-secondary)]">{logsEmptyState.title}</p>
-            <p className="text-xs text-[var(--text-muted)]">{logsEmptyState.body}</p>
-          </div>
-        ) : (
-          <LogsTable
-            logs={filteredLogs}
-            nodeLabels={nodeLabels}
-            nodeFamilies={nodeFamilies}
-            selectedTraceId={selectedTraceId}
-            liveTail={liveTail && sourceMode === 'live'}
-            onSelectLog={(entry) => {
-              const executionId = entry.runId ?? entry.traceId
-              if (executionId) {
-                onSelectTrace(executionId)
-              }
-              if (entry.nodeId) {
-                onSelectNode(entry.nodeId)
-              }
-            }}
-          />
-        )}
-      </ScrollArea>
+      {filteredLogs.length === 0 ? (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 py-8 text-center">
+          <p className="text-sm text-[var(--text-secondary)]">{logsEmptyState.title}</p>
+          <p className="text-xs text-[var(--text-muted)]">{logsEmptyState.body}</p>
+        </div>
+      ) : (
+        <LogsTable
+          logs={filteredLogs}
+          nodeLabels={nodeLabels}
+          nodeFamilies={nodeFamilies}
+          selectedTraceId={selectedTraceId}
+          liveTail={liveTail && sourceMode === 'live'}
+          scrollViewportRef={handleLogsViewportRef}
+          onSelectLog={(entry) => {
+            const executionId = entry.runId ?? entry.traceId
+            if (executionId) {
+              onSelectTrace(executionId)
+            }
+            if (entry.nodeId) {
+              onSelectNode(entry.nodeId)
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

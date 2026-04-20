@@ -185,6 +185,10 @@ describe('useLogStream', () => {
 
     expect(result.current.globalLogs[0].seq).toBeUndefined()
     expect(result.current.globalLogs[0].selectionId).toBeTruthy()
-    expect(result.current.globalLogs[0].selectionId).toContain('history:')
+    expect(result.current.globalLogs[0].selectionId).toMatch(/^history:log:[a-z0-9]+$/)
+    expect(result.current.globalLogs[0].selectionId!.length).toBeLessThan(32)
+    expect(result.current.nodeLogMap.get('send-process')?.[0]?.selectionId).toBe(
+      result.current.globalLogs[0].selectionId,
+    )
   })
 })

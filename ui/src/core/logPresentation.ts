@@ -3,6 +3,8 @@ import { summarizeStepOutcome } from './stepOutcomePresentation'
 import { combinedStepRef } from './stepRefs'
 
 export function getLogSelectionId(entry: Pick<LogEntry, 'selectionId' | 'seq'>): string | undefined {
+  // Prefer the explicit UI selection key. Relay seq remains the fallback for
+  // older callers that only carry live sequence identity.
   return entry.selectionId ?? (entry.seq != null ? String(entry.seq) : undefined)
 }
 

@@ -200,6 +200,44 @@ describe('LogsView', () => {
     expect(screen.getByRole('button', { name: /^live$/i })).toBeInTheDocument()
   })
 
+  it('attaches the scroll listener when logs appear after an empty state', () => {
+    const { container, rerender } = render(
+      <LogsView
+        flow={flow}
+        logs={[]}
+        sourceMode="live"
+        onSelectNode={vi.fn()}
+        onSelectTrace={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Waiting for activity')).toBeInTheDocument()
+
+    rerender(
+      <LogsView
+        flow={flow}
+        logs={logs}
+        sourceMode="live"
+        onSelectNode={vi.fn()}
+        onSelectTrace={vi.fn()}
+      />,
+    )
+
+    const viewport = container.querySelector('[data-radix-scroll-area-viewport]')
+    expect(viewport).toBeTruthy()
+
+    if (!(viewport instanceof HTMLDivElement)) {
+      throw new Error('Expected logs viewport')
+    }
+
+    expect(screen.getByRole('button', { name: /^live$/i }).querySelector('.animate-flow-pulse')).toBeTruthy()
+
+    viewport.scrollTop = 48
+    fireEvent.scroll(viewport)
+
+    expect(screen.getByRole('button', { name: /^live$/i }).querySelector('.animate-flow-pulse')).toBeNull()
+  })
+
   it('only lists nodes with current log activity and falls back to node ids for blank labels', async () => {
     const user = userEvent.setup()
 

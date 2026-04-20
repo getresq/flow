@@ -54,6 +54,24 @@ export function getEventMergeKey(event: FlowEvent): string {
   ].join('::')
 }
 
+function hashStableString(seed: string): string {
+  let left = 5381
+  let right = 2_166_136_261
+  for (let index = 0; index < seed.length; index += 1) {
+    const code = seed.charCodeAt(index)
+    left = ((left << 5) + left) ^ code
+    right = Math.imul(right ^ code, 16_777_619)
+  }
+
+  return `${(left >>> 0).toString(36)}${(right >>> 0).toString(36)}`
+}
+
+export function getEventSelectionKey(event: FlowEvent): string {
+  // Merge identity stays complete for dedupe. Selection identity only needs a
+  // short, deterministic handle suitable for URL state and row keys.
+  return `history:${event.type}:${hashStableString(getEventMergeKey(event))}`
+}
+
 export function eventTypeRank(type: FlowEvent['type'] | string): number {
   switch (type) {
     case 'span_start':

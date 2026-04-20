@@ -39,10 +39,6 @@ interface BottomLogPanelProps {
 
 type PanelTab = 'logs' | 'traces'
 
-function getScrollViewport(root: HTMLDivElement | null) {
-  return root?.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement | null
-}
-
 function resolveNodeFamily(color: string | undefined): string | undefined {
   return color ?? undefined
 }
@@ -55,10 +51,8 @@ export function BottomLogPanel({
   selectedLogSeq,
   isBackfilling = false,
   hasMoreOlder = false,
-  historyLimitReached: _historyLimitReached = false,
   wasLiveBufferTruncated = false,
   onLoadOlder = () => {},
-  onSelectNode: _onSelectNode,
   onSelectLog,
   onSelectTrace,
 }: BottomLogPanelProps) {
@@ -69,7 +63,7 @@ export function BottomLogPanel({
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'error'>('all')
   const [liveTail, setLiveTail] = useState(true)
-  const logsScrollAreaRef = useRef<HTMLDivElement | null>(null)
+  const logsViewportRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null)
   const [dragHeight, setDragHeight] = useState<number | null>(null)
   const [customHeight, setCustomHeight] = useState<number | null>(null)
@@ -128,10 +122,14 @@ export function BottomLogPanel({
       })
   }, [flowLogs, nodeLabels, search, selectedTraceId, statusFilter])
 
+  const runBackedJourneys = useMemo(
+    () => journeys.filter(isRunBackedJourney),
+    [journeys],
+  )
+
   const filteredJourneys = useMemo(() => {
     const query = search.trim().toLowerCase()
-    const ordered = [...journeys]
-      .filter((journey) => isRunBackedJourney(journey))
+    const ordered = [...runBackedJourneys]
       .sort(
       (left, right) => Date.parse(right.lastUpdatedAt) - Date.parse(left.lastUpdatedAt),
       )
@@ -151,7 +149,7 @@ export function BottomLogPanel({
         (journey.errorSummary?.toLowerCase().includes(query) ?? false)
       )
     })
-  }, [journeys, search, statusFilter])
+  }, [runBackedJourneys, search, statusFilter])
   const canLoadOlder = hasMoreOlder || wasLiveBufferTruncated
 
   const logsEmptyState = useMemo(() => {
@@ -207,7 +205,7 @@ export function BottomLogPanel({
     if (!liveTail || isWhisper || tab !== 'logs') {
       return
     }
-    const viewport = getScrollViewport(logsScrollAreaRef.current)
+    const viewport = logsViewportRef.current
     if (!viewport) {
       return
     }
@@ -219,7 +217,7 @@ export function BottomLogPanel({
       return
     }
 
-    const viewport = getScrollViewport(logsScrollAreaRef.current)
+    const viewport = logsViewportRef.current
     if (!viewport) {
       return
     }
@@ -342,7 +340,7 @@ export function BottomLogPanel({
         ) : (
           <div className="flex flex-1 items-center gap-6">
             <div className="flex shrink-0 items-center gap-1 rounded-lg bg-[var(--surface-inset)] p-1">
-              {([['logs', 'Logs', flowLogs.length], ['traces', 'Runs', journeys.filter(isRunBackedJourney).length]] as const).map(([value, label, count]) => (
+              {([['logs', 'Logs', flowLogs.length], ['traces', 'Runs', runBackedJourneys.length]] as const).map(([value, label, count]) => (
                 <button
                   key={value}
                   type="button"
@@ -441,7 +439,7 @@ export function BottomLogPanel({
                 selectedTraceId={selectedTraceId}
                 selectedLogSeq={selectedLogSeq}
                 liveTail={liveTail}
-                scrollAreaRef={logsScrollAreaRef}
+                scrollViewportRef={logsViewportRef}
                 onSelectLog={onSelectLog}
               />
             )}
@@ -453,7 +451,7 @@ export function BottomLogPanel({
                 className="w-full rounded-none border-[var(--status-warning)] py-2 text-sm text-[var(--status-warning)] [background-color:color-mix(in_srgb,var(--status-warning)_12%,transparent)] hover:[background-color:color-mix(in_srgb,var(--status-warning)_16%,transparent)]"
                 onClick={() => {
                   setLiveTail(true)
-                  const viewport = getScrollViewport(logsScrollAreaRef.current)
+                  const viewport = logsViewportRef.current
                   if (viewport) {
                     viewport.scrollTop = 0
                   }
