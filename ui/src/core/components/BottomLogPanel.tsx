@@ -1,46 +1,41 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'motion/react'
-import { Inbox, Maximize2, Minimize2, Radio, Search } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'motion/react';
+import { Inbox, Maximize2, Minimize2, Radio, Search } from 'lucide-react';
 
-import {
-  Button,
-  Input,
-  Tabs,
-  TabsContent,
-} from '@/components/ui'
+import { Button, Input, Tabs, TabsContent } from '@/components/ui';
 
-import type { FlowConfig, LogEntry, TraceJourney } from '../types'
-import { formatRunLabel, formatStepDisplayLabel, isRunBackedJourney } from '../runPresentation'
-import { useLayoutStore } from '../../stores/layout'
-import { buildLogSearchText } from '../logPresentation'
+import type { FlowConfig, LogEntry, TraceJourney } from '../types';
+import { formatRunLabel, formatStepDisplayLabel, isRunBackedJourney } from '../runPresentation';
+import { useLayoutStore } from '../../stores/layout';
+import { buildLogSearchText } from '../logPresentation';
 import {
   bottomPanelSizing,
   getBottomPanelSnapFromHeight,
   getBottomPanelSnapHeight,
-} from './bottomPanelSizing'
-import { LogsTable } from './LogsTable'
-import { RunsTable } from './RunsTable'
+} from './bottomPanelSizing';
+import { LogsTable } from './LogsTable';
+import { RunsTable } from './RunsTable';
 
 interface BottomLogPanelProps {
-  flow: FlowConfig
-  globalLogs: LogEntry[]
-  journeys: TraceJourney[]
-  selectedTraceId?: string
-  selectedLogSeq?: string
-  isBackfilling?: boolean
-  hasMoreOlder?: boolean
-  historyLimitReached?: boolean
-  wasLiveBufferTruncated?: boolean
-  onLoadOlder?: () => Promise<void> | void
-  onSelectNode: (nodeId: string) => void
-  onSelectLog: (entry: LogEntry) => void
-  onSelectTrace: (traceId?: string) => void
+  flow: FlowConfig;
+  globalLogs: LogEntry[];
+  journeys: TraceJourney[];
+  selectedTraceId?: string;
+  selectedLogSeq?: string;
+  isBackfilling?: boolean;
+  hasMoreOlder?: boolean;
+  historyLimitReached?: boolean;
+  wasLiveBufferTruncated?: boolean;
+  onLoadOlder?: () => Promise<void> | void;
+  onSelectNode: (nodeId: string) => void;
+  onSelectLog: (entry: LogEntry) => void;
+  onSelectTrace: (traceId?: string) => void;
 }
 
-type PanelTab = 'logs' | 'traces'
+type PanelTab = 'logs' | 'traces';
 
 function resolveNodeFamily(color: string | undefined): string | undefined {
-  return color ?? undefined
+  return color ?? undefined;
 }
 
 export function BottomLogPanel({
@@ -56,260 +51,255 @@ export function BottomLogPanel({
   onSelectLog,
   onSelectTrace,
 }: BottomLogPanelProps) {
-  const snap = useLayoutStore((state) => state.bottomPanelSnap)
-  const setSnap = useLayoutStore((state) => state.setBottomPanelSnap)
-  const tab = useLayoutStore((state) => state.bottomPanelTab)
-  const setTab = useLayoutStore((state) => state.setBottomPanelTab)
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'error'>('all')
-  const [liveTail, setLiveTail] = useState(true)
-  const logsViewportRef = useRef<HTMLDivElement | null>(null)
-  const dragRef = useRef<{ startY: number; startHeight: number } | null>(null)
-  const [dragHeight, setDragHeight] = useState<number | null>(null)
-  const [customHeight, setCustomHeight] = useState<number | null>(null)
-  const [isPointerDown, setIsPointerDown] = useState(false)
-  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800
+  const snap = useLayoutStore((state) => state.bottomPanelSnap);
+  const setSnap = useLayoutStore((state) => state.setBottomPanelSnap);
+  const tab = useLayoutStore((state) => state.bottomPanelTab);
+  const setTab = useLayoutStore((state) => state.setBottomPanelTab);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'error'>('all');
+  const [liveTail, setLiveTail] = useState(true);
+  const logsViewportRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const [dragHeight, setDragHeight] = useState<number | null>(null);
+  const [customHeight, setCustomHeight] = useState<number | null>(null);
+  const [isPointerDown, setIsPointerDown] = useState(false);
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
 
-  const isWhisper = snap === 'whisper'
-  const isFull = snap === 'full'
+  const isWhisper = snap === 'whisper';
+  const isFull = snap === 'full';
   const displayHeight =
     dragHeight ??
     (snap === 'partial' && customHeight !== null
       ? customHeight
-      : getBottomPanelSnapHeight(snap, viewportHeight))
+      : getBottomPanelSnapHeight(snap, viewportHeight));
 
   const flowLogs = useMemo(
     () => globalLogs.filter((entry) => entry.eventType === 'log'),
     [globalLogs],
-  )
+  );
 
   const nodeLabels = useMemo(() => {
-    const map = new Map<string, string>()
+    const map = new Map<string, string>();
     for (const node of flow.nodes) {
-      map.set(node.id, node.label)
+      map.set(node.id, node.label);
     }
-    return map
-  }, [flow.nodes])
+    return map;
+  }, [flow.nodes]);
 
   const nodeFamilies = useMemo(() => {
-    const map = new Map<string, string>()
+    const map = new Map<string, string>();
     for (const node of flow.nodes) {
-      const family = resolveNodeFamily(node.style?.color)
-      if (family) map.set(node.id, family)
+      const family = resolveNodeFamily(node.style?.color);
+      if (family) map.set(node.id, family);
     }
-    return map
-  }, [flow.nodes])
+    return map;
+  }, [flow.nodes]);
 
   const filteredLogs = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    return [...flowLogs]
-      .filter((entry) => {
-        const executionId = entry.runId ?? entry.traceId
-        if (selectedTraceId && executionId !== selectedTraceId) {
-          return false
+    const query = search.trim().toLowerCase();
+    return [...flowLogs].filter((entry) => {
+      const executionId = entry.runId ?? entry.traceId;
+      if (selectedTraceId && executionId !== selectedTraceId) {
+        return false;
+      }
+      if (statusFilter !== 'all') {
+        const matchesErrorFilter = entry.level === 'error' || entry.signal === 'critical';
+        if (!matchesErrorFilter) {
+          return false;
         }
-        if (statusFilter !== 'all') {
-          const matchesErrorFilter = entry.level === 'error' || entry.signal === 'critical'
-          if (!matchesErrorFilter) {
-            return false
-          }
-        }
-        if (!query) {
-          return true
-        }
-        const nodeLabel = entry.nodeId ? nodeLabels.get(entry.nodeId) : undefined
-        return buildLogSearchText(entry, nodeLabel).includes(query)
-      })
-  }, [flowLogs, nodeLabels, search, selectedTraceId, statusFilter])
+      }
+      if (!query) {
+        return true;
+      }
+      const nodeLabel = entry.nodeId ? nodeLabels.get(entry.nodeId) : undefined;
+      return buildLogSearchText(entry, nodeLabel).includes(query);
+    });
+  }, [flowLogs, nodeLabels, search, selectedTraceId, statusFilter]);
 
-  const runBackedJourneys = useMemo(
-    () => journeys.filter(isRunBackedJourney),
-    [journeys],
-  )
+  const runBackedJourneys = useMemo(() => journeys.filter(isRunBackedJourney), [journeys]);
 
   const filteredJourneys = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    const ordered = [...runBackedJourneys]
-      .sort(
+    const query = search.trim().toLowerCase();
+    const ordered = [...runBackedJourneys].sort(
       (left, right) => Date.parse(right.lastUpdatedAt) - Date.parse(left.lastUpdatedAt),
-      )
+    );
 
     return ordered.filter((journey) => {
       if (statusFilter !== 'all' && journey.status !== 'error') {
-        return false
+        return false;
       }
       if (!query) {
-        return true
+        return true;
       }
-      const stage = journey.steps.at(-1)
+      const stage = journey.steps.at(-1);
       return (
         journey.traceId.toLowerCase().includes(query) ||
         formatRunLabel(journey).toLowerCase().includes(query) ||
         (stage ? formatStepDisplayLabel(stage).toLowerCase().includes(query) : false) ||
         (journey.errorSummary?.toLowerCase().includes(query) ?? false)
-      )
-    })
-  }, [runBackedJourneys, search, statusFilter])
-  const canLoadOlder = hasMoreOlder || wasLiveBufferTruncated
+      );
+    });
+  }, [runBackedJourneys, search, statusFilter]);
+  const canLoadOlder = hasMoreOlder || wasLiveBufferTruncated;
 
   const logsEmptyState = useMemo(() => {
     if (flowLogs.length === 0) {
       return {
         title: 'Waiting for activity',
         body: 'Logs will appear here when the flow runs.',
-      }
+      };
     }
 
     if (canLoadOlder || isBackfilling) {
       return {
         title: 'No logs in the loaded window',
         body: 'Load older activity or clear filters to see more.',
-      }
+      };
     }
 
     return {
       title: 'No logs match the current filters',
       body: 'Try clearing search to see more flow activity.',
-    }
-  }, [canLoadOlder, flowLogs.length, isBackfilling])
+    };
+  }, [canLoadOlder, flowLogs.length, isBackfilling]);
 
   const runsEmptyState = useMemo(() => {
     if (journeys.length === 0) {
       return {
         title: 'Waiting for activity',
         body: 'Runs will appear here when the flow runs.',
-      }
+      };
     }
 
     if (canLoadOlder || isBackfilling) {
       return {
         title: 'No runs in the loaded window',
         body: 'Load older activity to bring earlier runs into view.',
-      }
+      };
     }
 
     if (!journeys.some((journey) => isRunBackedJourney(journey))) {
       return {
         title: 'No runs yet',
         body: 'Ambient flow activity still appears in Logs until a run-backed execution starts.',
-      }
+      };
     }
 
     return {
       title: 'No runs match the current filters',
       body: 'Try clearing search to see more runs.',
-    }
-  }, [canLoadOlder, isBackfilling, journeys])
+    };
+  }, [canLoadOlder, isBackfilling, journeys]);
 
   useEffect(() => {
     if (!liveTail || isWhisper || tab !== 'logs') {
-      return
+      return;
     }
-    const viewport = logsViewportRef.current
+    const viewport = logsViewportRef.current;
     if (!viewport) {
-      return
+      return;
     }
-    viewport.scrollTop = 0
-  }, [isWhisper, filteredLogs, liveTail, tab])
+    viewport.scrollTop = 0;
+  }, [isWhisper, filteredLogs, liveTail, tab]);
 
   useEffect(() => {
     if (isWhisper || tab !== 'logs') {
-      return
+      return;
     }
 
-    const viewport = logsViewportRef.current
+    const viewport = logsViewportRef.current;
     if (!viewport) {
-      return
+      return;
     }
 
     const onScroll = () => {
-      setLiveTail(viewport.scrollTop < 12)
+      setLiveTail(viewport.scrollTop < 12);
 
-      const canScrollOlder = viewport.scrollHeight > viewport.clientHeight + 12
+      const canScrollOlder = viewport.scrollHeight > viewport.clientHeight + 12;
       const distanceFromOlderEdge =
-        viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop
+        viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop;
       if (
         canScrollOlder &&
         distanceFromOlderEdge < 120 &&
         (hasMoreOlder || wasLiveBufferTruncated) &&
         !isBackfilling
       ) {
-        void onLoadOlder()
+        void onLoadOlder();
       }
-    }
+    };
 
-    viewport.addEventListener('scroll', onScroll)
-    onScroll()
+    viewport.addEventListener('scroll', onScroll);
+    onScroll();
 
-    return () => viewport.removeEventListener('scroll', onScroll)
-  }, [hasMoreOlder, isBackfilling, isWhisper, onLoadOlder, tab, wasLiveBufferTruncated])
+    return () => viewport.removeEventListener('scroll', onScroll);
+  }, [hasMoreOlder, isBackfilling, isWhisper, onLoadOlder, tab, wasLiveBufferTruncated]);
 
-  const TAP_THRESHOLD = 5
+  const TAP_THRESHOLD = 5;
 
   const onDragStart = useCallback(
     (event: React.PointerEvent) => {
-      const target = event.target as HTMLElement
-      if (target.closest('button, input, [role="tab"], [role="tablist"]')) return
-      event.preventDefault()
-      setIsPointerDown(true)
-      target.setPointerCapture(event.pointerId)
+      const target = event.target as HTMLElement;
+      if (target.closest('button, input, [role="tab"], [role="tablist"]')) return;
+      event.preventDefault();
+      setIsPointerDown(true);
+      target.setPointerCapture(event.pointerId);
       const startHeight =
         snap === 'partial' && customHeight !== null
           ? customHeight
-          : getBottomPanelSnapHeight(snap, window.innerHeight)
-      dragRef.current = { startY: event.clientY, startHeight }
-      let moved = false
+          : getBottomPanelSnapHeight(snap, window.innerHeight);
+      dragRef.current = { startY: event.clientY, startHeight };
+      let moved = false;
 
       const onPointerMove = (moveEvent: PointerEvent) => {
-        if (!dragRef.current) return
-        const delta = dragRef.current.startY - moveEvent.clientY
-        if (!moved && Math.abs(delta) < TAP_THRESHOLD) return
-        moved = true
-        const maxHeight = window.innerHeight - bottomPanelSizing.appHeaderHeight
+        if (!dragRef.current) return;
+        const delta = dragRef.current.startY - moveEvent.clientY;
+        if (!moved && Math.abs(delta) < TAP_THRESHOLD) return;
+        moved = true;
+        const maxHeight = window.innerHeight - bottomPanelSizing.appHeaderHeight;
         const nextHeight = Math.min(
           Math.max(dragRef.current.startHeight + delta, bottomPanelSizing.whisperHeight),
           maxHeight,
-        )
-        setDragHeight(nextHeight)
-      }
+        );
+        setDragHeight(nextHeight);
+      };
 
       const onPointerUp = (upEvent: PointerEvent) => {
-        window.removeEventListener('pointermove', onPointerMove)
-        window.removeEventListener('pointerup', onPointerUp)
-        if (!dragRef.current) return
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        if (!dragRef.current) return;
 
-        const delta = dragRef.current.startY - upEvent.clientY
+        const delta = dragRef.current.startY - upEvent.clientY;
         const finalHeight = Math.max(
           dragRef.current.startHeight + delta,
           bottomPanelSizing.whisperHeight,
-        )
-        dragRef.current = null
-        setDragHeight(null)
-        setIsPointerDown(false)
+        );
+        dragRef.current = null;
+        setDragHeight(null);
+        setIsPointerDown(false);
 
         if (!moved) {
           if (snap === 'whisper') {
-            setSnap('partial')
-            setCustomHeight(null)
+            setSnap('partial');
+            setCustomHeight(null);
           }
-          return
+          return;
         }
 
-        const resolved = getBottomPanelSnapFromHeight(finalHeight, window.innerHeight)
+        const resolved = getBottomPanelSnapFromHeight(finalHeight, window.innerHeight);
         if (resolved === 'whisper' || resolved === 'full') {
-          setSnap(resolved)
-          setCustomHeight(null)
+          setSnap(resolved);
+          setCustomHeight(null);
         } else {
-          setSnap('partial')
-          setCustomHeight(finalHeight)
+          setSnap('partial');
+          setCustomHeight(finalHeight);
         }
-      }
+      };
 
-      window.addEventListener('pointermove', onPointerMove)
-      window.addEventListener('pointerup', onPointerUp)
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
     },
     [customHeight, setSnap, snap],
-  )
+  );
 
   return (
     <motion.div
@@ -340,7 +330,12 @@ export function BottomLogPanel({
         ) : (
           <div className="flex flex-1 items-center gap-6">
             <div className="flex shrink-0 items-center gap-1 rounded-lg bg-[var(--surface-inset)] p-1">
-              {([['logs', 'Logs', flowLogs.length], ['traces', 'Runs', runBackedJourneys.length]] as const).map(([value, label, count]) => (
+              {(
+                [
+                  ['logs', 'Logs', flowLogs.length],
+                  ['traces', 'Runs', runBackedJourneys.length],
+                ] as const
+              ).map(([value, label, count]) => (
                 <button
                   key={value}
                   type="button"
@@ -408,7 +403,10 @@ export function BottomLogPanel({
                 variant="hud"
                 size="icon"
                 className="size-7"
-                onClick={() => { setSnap(isFull ? 'partial' : 'full'); setCustomHeight(null) }}
+                onClick={() => {
+                  setSnap(isFull ? 'partial' : 'full');
+                  setCustomHeight(null);
+                }}
                 aria-label={isFull ? 'Exit full screen' : 'Full screen'}
               >
                 {isFull ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
@@ -450,10 +448,10 @@ export function BottomLogPanel({
                 variant="outline"
                 className="w-full rounded-none border-[var(--status-warning)] py-2 text-sm text-[var(--status-warning)] [background-color:color-mix(in_srgb,var(--status-warning)_12%,transparent)] hover:[background-color:color-mix(in_srgb,var(--status-warning)_16%,transparent)]"
                 onClick={() => {
-                  setLiveTail(true)
-                  const viewport = logsViewportRef.current
+                  setLiveTail(true);
+                  const viewport = logsViewportRef.current;
                   if (viewport) {
-                    viewport.scrollTop = 0
+                    viewport.scrollTop = 0;
                   }
                 }}
               >
@@ -480,5 +478,5 @@ export function BottomLogPanel({
         </Tabs>
       ) : null}
     </motion.div>
-  )
+  );
 }

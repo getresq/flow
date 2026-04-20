@@ -1,51 +1,56 @@
-import type { LogEntry } from './types'
-import { summarizeStepOutcome } from './stepOutcomePresentation'
-import { combinedStepRef } from './stepRefs'
+import type { LogEntry } from './types';
+import { summarizeStepOutcome } from './stepOutcomePresentation';
+import { combinedStepRef } from './stepRefs';
 
-export function getLogSelectionId(entry: Pick<LogEntry, 'selectionId' | 'seq'>): string | undefined {
+export function getLogSelectionId(
+  entry: Pick<LogEntry, 'selectionId' | 'seq'>,
+): string | undefined {
   // Prefer the explicit UI selection key. Relay seq remains the fallback for
   // older callers that only carry live sequence identity.
-  return entry.selectionId ?? (entry.seq != null ? String(entry.seq) : undefined)
+  return entry.selectionId ?? (entry.seq != null ? String(entry.seq) : undefined);
 }
 
 interface FlowLogPresentationInput {
-  stepId?: string
-  nodeId?: string
-  stepName?: string
-  message: string
-  retryable?: boolean
-  errorClass?: string
-  attributes?: Record<string, unknown>
+  stepId?: string;
+  nodeId?: string;
+  stepName?: string;
+  message: string;
+  retryable?: boolean;
+  errorClass?: string;
+  attributes?: Record<string, unknown>;
 }
 
 function defaultDisplayMessage(stageLabel: string | undefined, message: string): string {
   if (!stageLabel) {
-    return message
+    return message;
   }
 
-  return `${stageLabel}: ${message}`
+  return `${stageLabel}: ${message}`;
 }
 
 function preferredLogStepLabel(
   input: Pick<FlowLogPresentationInput, 'nodeId' | 'stepId' | 'stepName'>,
 ): string | undefined {
-  return input.stepName ?? combinedStepRef(input.nodeId, input.stepId) ?? input.stepId
+  return input.stepName ?? combinedStepRef(input.nodeId, input.stepId) ?? input.stepId;
 }
 
 export function buildFlowLogDisplayMessage(input: FlowLogPresentationInput): string {
-  const summary = summarizeStepOutcome(input)
+  const summary = summarizeStepOutcome(input);
   if (summary) {
-    return summary
+    return summary;
   }
 
-  return defaultDisplayMessage(preferredLogStepLabel(input), input.message)
+  return defaultDisplayMessage(preferredLogStepLabel(input), input.message);
 }
 
 export function getLogDisplayMessage(
-  entry: Pick<LogEntry, 'displayMessage' | 'message' | 'stepId' | 'stepName' | 'componentId' | 'nodeId'>,
+  entry: Pick<
+    LogEntry,
+    'displayMessage' | 'message' | 'stepId' | 'stepName' | 'componentId' | 'nodeId'
+  >,
 ): string {
   if (entry.displayMessage) {
-    return entry.displayMessage
+    return entry.displayMessage;
   }
 
   return defaultDisplayMessage(
@@ -55,13 +60,20 @@ export function getLogDisplayMessage(
       nodeId: entry.nodeId ?? entry.componentId,
     }),
     entry.message,
-  )
+  );
 }
 
 export function buildLogSearchText(
   entry: Pick<
     LogEntry,
-    'displayMessage' | 'message' | 'stepId' | 'stepName' | 'componentId' | 'runId' | 'traceId' | 'nodeId'
+    | 'displayMessage'
+    | 'message'
+    | 'stepId'
+    | 'stepName'
+    | 'componentId'
+    | 'runId'
+    | 'traceId'
+    | 'nodeId'
   >,
   nodeLabel?: string,
 ): string {
@@ -78,5 +90,5 @@ export function buildLogSearchText(
   ]
     .filter(Boolean)
     .join(' ')
-    .toLowerCase()
+    .toLowerCase();
 }

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Search } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Search } from 'lucide-react';
 
 import {
   Button,
@@ -9,34 +9,34 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui'
+} from '@/components/ui';
 
-import { buildLogSearchText } from '../logPresentation'
-import { LogsTable } from './LogsTable'
-import type { FlowConfig, LogEntry } from '../types'
-import type { SourceMode } from '../hooks/useUrlState'
+import { buildLogSearchText } from '../logPresentation';
+import { LogsTable } from './LogsTable';
+import type { FlowConfig, LogEntry } from '../types';
+import type { SourceMode } from '../hooks/useUrlState';
 
 interface LogsViewProps {
-  flow: FlowConfig
-  logs: LogEntry[]
-  selectedTraceId?: string
-  sourceMode: SourceMode
-  isBackfilling?: boolean
-  hasMoreOlder?: boolean
-  historyLimitReached?: boolean
-  wasLiveBufferTruncated?: boolean
-  onLoadOlder?: () => Promise<void> | void
-  onSelectNode: (nodeId?: string) => void
-  onSelectTrace: (traceId?: string) => void
+  flow: FlowConfig;
+  logs: LogEntry[];
+  selectedTraceId?: string;
+  sourceMode: SourceMode;
+  isBackfilling?: boolean;
+  hasMoreOlder?: boolean;
+  historyLimitReached?: boolean;
+  wasLiveBufferTruncated?: boolean;
+  onLoadOlder?: () => Promise<void> | void;
+  onSelectNode: (nodeId?: string) => void;
+  onSelectTrace: (traceId?: string) => void;
 }
 
 function resolveNodeDisplayLabel(nodeId: string, nodeLabels: Map<string, string>): string {
-  const label = nodeLabels.get(nodeId)?.trim()
-  return label || nodeId
+  const label = nodeLabels.get(nodeId)?.trim();
+  return label || nodeId;
 }
 
 function resolveNodeFamily(color: string | undefined): string | undefined {
-  return color ?? undefined
+  return color ?? undefined;
 }
 
 export function LogsView({
@@ -52,151 +52,159 @@ export function LogsView({
   onSelectNode,
   onSelectTrace,
 }: LogsViewProps) {
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'error'>('all')
-  const [nodeFilter, setNodeFilter] = useState<string>('all')
-  const [liveTail, setLiveTail] = useState(true)
-  const logsViewportRef = useRef<HTMLDivElement | null>(null)
-  const [logsViewportElement, setLogsViewportElement] = useState<HTMLDivElement | null>(null)
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'error'>('all');
+  const [nodeFilter, setNodeFilter] = useState<string>('all');
+  const [liveTail, setLiveTail] = useState(true);
+  const logsViewportRef = useRef<HTMLDivElement | null>(null);
+  const [logsViewportElement, setLogsViewportElement] = useState<HTMLDivElement | null>(null);
   const handleLogsViewportRef = useCallback((element: HTMLDivElement | null) => {
-    logsViewportRef.current = element
-    setLogsViewportElement(element)
-  }, [])
+    logsViewportRef.current = element;
+    setLogsViewportElement(element);
+  }, []);
 
   const nodeLabels = useMemo(() => {
-    const map = new Map<string, string>()
+    const map = new Map<string, string>();
     flow.nodes.forEach((node) => {
-      map.set(node.id, node.label)
-    })
-    return map
-  }, [flow.nodes])
+      map.set(node.id, node.label);
+    });
+    return map;
+  }, [flow.nodes]);
 
   const nodeFamilies = useMemo(() => {
-    const map = new Map<string, string>()
+    const map = new Map<string, string>();
     flow.nodes.forEach((node) => {
-      const family = resolveNodeFamily(node.style?.color)
-      if (family) map.set(node.id, family)
-    })
-    return map
-  }, [flow.nodes])
+      const family = resolveNodeFamily(node.style?.color);
+      if (family) map.set(node.id, family);
+    });
+    return map;
+  }, [flow.nodes]);
 
   const availableNodeIds = useMemo(() => {
-    const ids = new Set<string>()
+    const ids = new Set<string>();
 
     for (const entry of logs) {
       if (entry.eventType !== 'log' || !entry.nodeId) {
-        continue
+        continue;
       }
-      ids.add(entry.nodeId)
+      ids.add(entry.nodeId);
     }
 
     if (nodeFilter !== 'all') {
-      ids.add(nodeFilter)
+      ids.add(nodeFilter);
     }
 
     return [...ids].sort((left, right) =>
-      resolveNodeDisplayLabel(left, nodeLabels).localeCompare(resolveNodeDisplayLabel(right, nodeLabels)),
-    )
-  }, [logs, nodeFilter, nodeLabels])
+      resolveNodeDisplayLabel(left, nodeLabels).localeCompare(
+        resolveNodeDisplayLabel(right, nodeLabels),
+      ),
+    );
+  }, [logs, nodeFilter, nodeLabels]);
 
   const filteredLogs = useMemo(() => {
-    const query = search.trim().toLowerCase()
+    const query = search.trim().toLowerCase();
 
     return logs.filter((entry) => {
       if (entry.eventType !== 'log') {
-        return false
+        return false;
       }
       if (selectedTraceId && (entry.runId ?? entry.traceId) !== selectedTraceId) {
-        return false
+        return false;
       }
       if (statusFilter !== 'all') {
-        const isCritical = entry.level === 'error' || entry.signal === 'critical'
-        if (!isCritical) return false
+        const isCritical = entry.level === 'error' || entry.signal === 'critical';
+        if (!isCritical) return false;
       }
       if (nodeFilter !== 'all' && entry.nodeId !== nodeFilter) {
-        return false
+        return false;
       }
       if (!query) {
-        return true
+        return true;
       }
 
-      const nodeLabel = entry.nodeId ? resolveNodeDisplayLabel(entry.nodeId, nodeLabels).toLowerCase() : ''
-      return buildLogSearchText(entry, nodeLabel).includes(query)
-    })
-  }, [logs, nodeFilter, nodeLabels, search, selectedTraceId, statusFilter])
+      const nodeLabel = entry.nodeId
+        ? resolveNodeDisplayLabel(entry.nodeId, nodeLabels).toLowerCase()
+        : '';
+      return buildLogSearchText(entry, nodeLabel).includes(query);
+    });
+  }, [logs, nodeFilter, nodeLabels, search, selectedTraceId, statusFilter]);
 
-  const hasAnyFlowLogs = useMemo(
-    () => logs.some((entry) => entry.eventType === 'log'),
-    [logs],
-  )
-  const canLoadOlder = hasMoreOlder || wasLiveBufferTruncated
+  const hasAnyFlowLogs = useMemo(() => logs.some((entry) => entry.eventType === 'log'), [logs]);
+  const canLoadOlder = hasMoreOlder || wasLiveBufferTruncated;
   const historyStatusLabel = isBackfilling
     ? 'Loading older activity…'
     : historyLimitReached
       ? 'Reached retained history limit'
       : canLoadOlder
         ? 'Older activity available'
-        : 'Live + recent history'
+        : 'Live + recent history';
 
   const logsEmptyState = useMemo(() => {
     if (!hasAnyFlowLogs) {
       return {
         title: 'Waiting for activity',
         body: 'Logs will appear here when the flow runs.',
-      }
+      };
     }
 
     if (canLoadOlder || isBackfilling) {
       return {
         title: 'No logs in the loaded window',
         body: 'Load older activity or clear filters to see more.',
-      }
+      };
     }
 
     return {
       title: 'No logs match the current filters',
       body: 'Try clearing search, node, or error filters to see more flow activity.',
-    }
-  }, [canLoadOlder, hasAnyFlowLogs, isBackfilling])
+    };
+  }, [canLoadOlder, hasAnyFlowLogs, isBackfilling]);
 
   useEffect(() => {
     if (!liveTail || sourceMode !== 'live') {
-      return
+      return;
     }
 
-    const viewport = logsViewportRef.current
+    const viewport = logsViewportRef.current;
     if (viewport) {
-      viewport.scrollTop = 0
+      viewport.scrollTop = 0;
     }
-  }, [filteredLogs, liveTail, logsViewportElement, sourceMode])
+  }, [filteredLogs, liveTail, logsViewportElement, sourceMode]);
 
   useEffect(() => {
-    const viewport = logsViewportElement
+    const viewport = logsViewportElement;
     if (!viewport || sourceMode !== 'live') {
-      return
+      return;
     }
 
     const onScroll = () => {
-      setLiveTail(viewport.scrollTop < 12)
+      setLiveTail(viewport.scrollTop < 12);
 
-      const canScrollOlder = viewport.scrollHeight > viewport.clientHeight + 12
+      const canScrollOlder = viewport.scrollHeight > viewport.clientHeight + 12;
       const distanceFromOlderEdge =
-        viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop
+        viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop;
       if (
         canScrollOlder &&
         distanceFromOlderEdge < 120 &&
         (hasMoreOlder || wasLiveBufferTruncated) &&
         !isBackfilling
       ) {
-        void onLoadOlder()
+        void onLoadOlder();
       }
-    }
+    };
 
-    viewport.addEventListener('scroll', onScroll)
-    onScroll()
+    viewport.addEventListener('scroll', onScroll);
+    onScroll();
 
-    return () => viewport.removeEventListener('scroll', onScroll)
-  }, [hasMoreOlder, isBackfilling, logsViewportElement, onLoadOlder, sourceMode, wasLiveBufferTruncated])
+    return () => viewport.removeEventListener('scroll', onScroll);
+  }, [
+    hasMoreOlder,
+    isBackfilling,
+    logsViewportElement,
+    onLoadOlder,
+    sourceMode,
+    wasLiveBufferTruncated,
+  ]);
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-hidden px-4 py-4 sm:px-6">
@@ -289,16 +297,16 @@ export function LogsView({
           liveTail={liveTail && sourceMode === 'live'}
           scrollViewportRef={handleLogsViewportRef}
           onSelectLog={(entry) => {
-            const executionId = entry.runId ?? entry.traceId
+            const executionId = entry.runId ?? entry.traceId;
             if (executionId) {
-              onSelectTrace(executionId)
+              onSelectTrace(executionId);
             }
             if (entry.nodeId) {
-              onSelectNode(entry.nodeId)
+              onSelectNode(entry.nodeId);
             }
           }}
         />
       )}
     </div>
-  )
+  );
 }

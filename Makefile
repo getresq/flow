@@ -1,4 +1,4 @@
-.PHONY: dev dev-relay dev-ui test test-relay test-ui build-cli test-cli test-cli-integration replay verify-ingest print-endpoints smoke-relay-ingest smoke-vector-fanout
+.PHONY: dev dev-relay dev-ui test test-relay test-ui lint lint-relay lint-ui fmt-check fmt-check-relay fmt-check-ui build-cli test-cli test-cli-integration replay verify-ingest print-endpoints smoke-relay-ingest smoke-vector-fanout
 
 RESQ_FLOW_BASE_URL ?= http://localhost:4200
 RESQ_FLOW_VECTOR_LOGS_URL ?= http://localhost:4318/v1/logs
@@ -20,6 +20,22 @@ test-relay: ## Run Rust relay tests
 
 test-ui: ## Run frontend tests
 	cd ui && bun test
+
+lint: lint-relay lint-ui ## Run strict lint checks
+
+lint-relay: ## Run Rust clippy with warnings denied
+	cd relay && cargo clippy --all-targets --all-features -- -D warnings
+
+lint-ui: ## Run UI oxlint and typecheck
+	cd ui && bun run lint:errors && bun run typecheck
+
+fmt-check: fmt-check-relay fmt-check-ui ## Check formatting
+
+fmt-check-relay: ## Check Rust formatting
+	cd relay && cargo fmt --all --check
+
+fmt-check-ui: ## Check UI formatting
+	cd ui && bun run fmt:check
 
 build-cli: ## Build the CLI package
 	cd cli && bun run build

@@ -97,12 +97,11 @@ pub async fn recv_reset(socket: &mut WsClient) -> Option<String> {
             .expect("socket closed")
             .expect("websocket error");
 
-        if let Message::Text(text) = message {
-            if let Ok(resq_flow_relay::WsEnvelope::Reset { reason }) =
+        if let Message::Text(text) = message
+            && let Ok(resq_flow_relay::WsEnvelope::Reset { reason }) =
                 serde_json::from_str::<resq_flow_relay::WsEnvelope>(&text)
-            {
-                return reason;
-            }
+        {
+            return reason;
         }
     }
 }

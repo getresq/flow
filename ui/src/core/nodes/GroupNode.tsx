@@ -1,12 +1,12 @@
-import { NodeResizer, type NodeProps } from '@xyflow/react'
+import { NodeResizer, type NodeProps } from '@xyflow/react';
 
-import { renderHandles } from './nodePrimitives'
-import type { FlowNode } from './types'
+import { renderHandles } from './nodePrimitives';
+import type { FlowNode } from './types';
 
-const defaultHandles = [] as const
+const defaultHandles = [] as const;
 
 export function GroupNode({ id, data, selected }: NodeProps<FlowNode>) {
-  const label = data.label.trim()
+  const label = data.label.trim();
 
   return (
     <div className="relative h-full w-full rounded-2xl border border-dashed border-[var(--border-default)] bg-[var(--surface-overlay)]/20">
@@ -26,5 +26,5 @@ export function GroupNode({ id, data, selected }: NodeProps<FlowNode>) {
         />
       ) : null}
     </div>
-  )
+  );
 }

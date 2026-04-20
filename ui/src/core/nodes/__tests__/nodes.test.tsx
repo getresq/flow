@@ -1,18 +1,18 @@
-import { ReactFlowProvider, type NodeProps } from '@xyflow/react'
-import { render, screen } from '@testing-library/react'
-import type { ReactElement } from 'react'
-import { describe, expect, it } from 'vitest'
+import { ReactFlowProvider, type NodeProps } from '@xyflow/react';
+import { render, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { describe, expect, it } from 'vitest';
 
-import { AnnotationNode } from '../AnnotationNode'
-import { BadgeNode } from '../BadgeNode'
-import { CircleNode } from '../CircleNode'
-import { CylinderNode } from '../CylinderNode'
-import { DiamondNode } from '../DiamondNode'
-import { GroupNode } from '../GroupNode'
-import { OctagonNode } from '../OctagonNode'
-import { RectangleNode } from '../RectangleNode'
-import { RoundedRectNode } from '../RoundedRectNode'
-import type { FlowNode, FlowNodeData } from '../types'
+import { AnnotationNode } from '../AnnotationNode';
+import { BadgeNode } from '../BadgeNode';
+import { CircleNode } from '../CircleNode';
+import { CylinderNode } from '../CylinderNode';
+import { DiamondNode } from '../DiamondNode';
+import { GroupNode } from '../GroupNode';
+import { OctagonNode } from '../OctagonNode';
+import { RectangleNode } from '../RectangleNode';
+import { RoundedRectNode } from '../RoundedRectNode';
+import type { FlowNode, FlowNodeData } from '../types';
 
 function baseNodeProps(overrides: Partial<FlowNodeData> = {}): NodeProps<FlowNode> {
   return {
@@ -42,20 +42,20 @@ function baseNodeProps(overrides: Partial<FlowNodeData> = {}): NodeProps<FlowNod
       },
       ...overrides,
     },
-  } as unknown as NodeProps<FlowNode>
+  } as unknown as NodeProps<FlowNode>;
 }
 
 function renderNode(component: ReactElement) {
-  render(<ReactFlowProvider>{component}</ReactFlowProvider>)
+  render(<ReactFlowProvider>{component}</ReactFlowProvider>);
 }
 
 describe('shape nodes', () => {
   it('renders rectangle node content', () => {
-    renderNode(<RectangleNode {...baseNodeProps({ style: { color: 'ocean' } })} />)
+    renderNode(<RectangleNode {...baseNodeProps({ style: { color: 'ocean' } })} />);
 
-    expect(screen.getByText('Node Label')).toBeInTheDocument()
-    expect(screen.getByText('Node sublabel')).toBeInTheDocument()
-  })
+    expect(screen.getByText('Node Label')).toBeInTheDocument();
+    expect(screen.getByText('Node sublabel')).toBeInTheDocument();
+  });
 
   it('renders rounded rectangle, diamond, circle, badge, octagon, group, and annotation nodes', () => {
     renderNode(
@@ -68,20 +68,20 @@ describe('shape nodes', () => {
         <GroupNode {...baseNodeProps({ label: 'Group Boundary' })} />
         <AnnotationNode {...baseNodeProps({ label: 'Annotation text block' })} />
       </>,
-    )
+    );
 
-    expect(screen.getByText('Rounded')).toBeInTheDocument()
-    expect(screen.getByText('Decision')).toBeInTheDocument()
-    expect(screen.getByText('Storage')).toBeInTheDocument()
-    expect(screen.getByText('Badge')).toBeInTheDocument()
-    expect(screen.getByText('Stop')).toBeInTheDocument()
-    expect(screen.getByText('Group Boundary')).toBeInTheDocument()
-    expect(screen.getByText('Annotation text block')).toBeInTheDocument()
-  })
+    expect(screen.getByText('Rounded')).toBeInTheDocument();
+    expect(screen.getByText('Decision')).toBeInTheDocument();
+    expect(screen.getByText('Storage')).toBeInTheDocument();
+    expect(screen.getByText('Badge')).toBeInTheDocument();
+    expect(screen.getByText('Stop')).toBeInTheDocument();
+    expect(screen.getByText('Group Boundary')).toBeInTheDocument();
+    expect(screen.getByText('Annotation text block')).toBeInTheDocument();
+  });
 
   it('renders nodes for each status without error', () => {
     const withOcean = (status: Parameters<typeof baseNodeProps>[0]) =>
-      baseNodeProps({ style: { color: 'ocean' }, ...status })
+      baseNodeProps({ style: { color: 'ocean' }, ...status });
 
     renderNode(
       <>
@@ -89,10 +89,10 @@ describe('shape nodes', () => {
         <RectangleNode {...withOcean({ status: { status: 'active', updatedAt: Date.now() } })} />
         <RectangleNode {...withOcean({ status: { status: 'error', updatedAt: Date.now() } })} />
       </>,
-    )
+    );
 
-    expect(screen.getAllByText('Node Label')).toHaveLength(3)
-  })
+    expect(screen.getAllByText('Node Label')).toHaveLength(3);
+  });
 
   it('renders cylinders with concrete resource tags and hides duplicate titles', () => {
     renderNode(
@@ -113,10 +113,10 @@ describe('shape nodes', () => {
           })}
         />
       </>,
-    )
+    );
 
-    expect(screen.getByText('S3')).toBeInTheDocument()
-    expect(screen.queryByText(/^postgres$/i)).toBeInTheDocument()
-    expect(screen.getByText('PG')).toBeInTheDocument()
-  })
-})
+    expect(screen.getByText('S3')).toBeInTheDocument();
+    expect(screen.queryByText(/^postgres$/i)).toBeInTheDocument();
+    expect(screen.getByText('PG')).toBeInTheDocument();
+  });
+});

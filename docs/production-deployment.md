@@ -32,6 +32,7 @@ The relay:
 
 - accepts OTLP traces at `/v1/traces`
 - accepts OTLP logs at `/v1/logs`
+- serves runtime flow definitions at `/v1/flows`
 - serves live WebSocket updates at `/ws`
 - serves flow-aware history at `/v1/history`
 - applies exact flow matching from `ui/src/flow-contracts`
@@ -43,6 +44,8 @@ Avoid running one relay sidecar per producer task. A per-task relay fragments li
 Serve the UI as a normal static web app or from an application container. The browser needs a stable route to the relay WebSocket and history API.
 
 For production, the relay URL must be deployment-configurable or same-origin. A hardcoded `ws://localhost:4200/ws` URL is only suitable for local development.
+
+Flow definitions should be external JSON config. The UI bundle should not compile product-specific graph data. Use `RESQ_FLOW_CONFIG_DIR` to point the relay at the flow definition files and `RESQ_FLOW_CONTRACT_DIR` to point it at the telemetry contracts used for relay-side matching.
 
 ### Collector Sidecar
 

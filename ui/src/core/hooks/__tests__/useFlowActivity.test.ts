@@ -1,8 +1,8 @@
-import { act, renderHook, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { useFlowActivity } from '../useFlowActivity'
-import type { FlowEvent } from '../../types'
+import { useFlowActivity } from '../useFlowActivity';
+import type { FlowEvent } from '../../types';
 
 function createHistoryResponse(body: unknown, status = 200): Response {
   return new Response(status === 200 ? JSON.stringify(body) : null, {
@@ -10,7 +10,7 @@ function createHistoryResponse(body: unknown, status = 200): Response {
     headers: {
       'content-type': 'application/json',
     },
-  })
+  });
 }
 
 const liveEvents: FlowEvent[] = [
@@ -38,15 +38,15 @@ const liveEvents: FlowEvent[] = [
       component_id: 'analyze-worker',
     },
   },
-]
+];
 
-const originalFetch = globalThis.fetch
+const originalFetch = globalThis.fetch;
 
 describe('useFlowActivity', () => {
   afterEach(() => {
-    globalThis.fetch = originalFetch
-    vi.restoreAllMocks()
-  })
+    globalThis.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
 
   it('hydrates recent history on mount and merges it with live events without duplicating overlap', async () => {
     const fetchMock = vi.fn(async () =>
@@ -87,8 +87,8 @@ describe('useFlowActivity', () => {
         next_cursor: 'cursor-1',
         warnings: [],
       }),
-    )
-    globalThis.fetch = fetchMock as typeof fetch
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
 
     const { result } = renderHook(() =>
       useFlowActivity({
@@ -97,33 +97,33 @@ describe('useFlowActivity', () => {
         liveEvents,
         wasLiveBufferTruncated: true,
       }),
-    )
+    );
 
     await waitFor(() => {
-      expect(result.current.retainedHistoryEvents).toHaveLength(2)
-      expect(result.current.events).toHaveLength(3)
-    })
+      expect(result.current.retainedHistoryEvents).toHaveLength(2);
+      expect(result.current.events).toHaveLength(3);
+    });
 
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(result.current.anchorTo).toBe('2026-04-11T10:12:10.000Z')
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.current.anchorTo).toBe('2026-04-11T10:12:10.000Z');
     expect(result.current.loadedWindow).toEqual({
       from: '2026-04-11T04:10:10.000Z',
       to: '2026-04-11T10:12:10.000Z',
-    })
-    expect(result.current.hasMoreOlder).toBe(true)
+    });
+    expect(result.current.hasMoreOlder).toBe(true);
     expect(result.current.events.map((event) => event.message)).toEqual([
       'older event',
       'live event',
       'shared event',
-    ])
-  })
+    ]);
+  });
 
   it('resets retained history on cursor invalidation and re-anchors silently on the next load', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockImplementationOnce(async (input) => {
-        const url = new URL(String(input))
-        expect(url.searchParams.get('cursor')).toBeNull()
+        const url = new URL(String(input));
+        expect(url.searchParams.get('cursor')).toBeNull();
         return createHistoryResponse({
           from: '2026-04-11T04:10:10.000Z',
           to: '2026-04-11T10:12:10.000Z',
@@ -135,16 +135,16 @@ describe('useFlowActivity', () => {
           has_more_older: true,
           next_cursor: 'cursor-stale',
           warnings: [],
-        })
+        });
       })
       .mockImplementationOnce(async (input) => {
-        const url = new URL(String(input))
-        expect(url.searchParams.get('cursor')).toBe('cursor-stale')
-        return createHistoryResponse({}, 400)
+        const url = new URL(String(input));
+        expect(url.searchParams.get('cursor')).toBe('cursor-stale');
+        return createHistoryResponse({}, 400);
       })
       .mockImplementationOnce(async (input) => {
-        const url = new URL(String(input))
-        expect(url.searchParams.get('cursor')).toBeNull()
+        const url = new URL(String(input));
+        expect(url.searchParams.get('cursor')).toBeNull();
         return createHistoryResponse({
           from: '2026-04-11T04:10:10.000Z',
           to: '2026-04-11T10:12:10.000Z',
@@ -168,9 +168,9 @@ describe('useFlowActivity', () => {
           has_more_older: false,
           next_cursor: null,
           warnings: [],
-        })
-      })
-    globalThis.fetch = fetchMock as typeof fetch
+        });
+      });
+    globalThis.fetch = fetchMock as typeof fetch;
 
     const { result } = renderHook(() =>
       useFlowActivity({
@@ -179,31 +179,31 @@ describe('useFlowActivity', () => {
         liveEvents: [],
         wasLiveBufferTruncated: true,
       }),
-    )
+    );
 
     await waitFor(() => {
-      expect(result.current.hasMoreOlder).toBe(true)
-      expect(result.current.anchorTo).toBe('2026-04-11T10:12:10.000Z')
-    })
+      expect(result.current.hasMoreOlder).toBe(true);
+      expect(result.current.anchorTo).toBe('2026-04-11T10:12:10.000Z');
+    });
 
     await act(async () => {
-      await result.current.loadOlder()
-    })
+      await result.current.loadOlder();
+    });
 
     await waitFor(() => {
-      expect(result.current.retainedHistoryEvents).toEqual([])
-      expect(result.current.anchorTo).toBeUndefined()
-    })
+      expect(result.current.retainedHistoryEvents).toEqual([]);
+      expect(result.current.anchorTo).toBeUndefined();
+    });
 
     await act(async () => {
-      await result.current.loadOlder()
-    })
+      await result.current.loadOlder();
+    });
 
     await waitFor(() => {
-      expect(result.current.retainedHistoryEvents).toHaveLength(1)
-      expect(result.current.anchorTo).toBe('2026-04-11T10:12:10.000Z')
-    })
-  })
+      expect(result.current.retainedHistoryEvents).toHaveLength(1);
+      expect(result.current.anchorTo).toBe('2026-04-11T10:12:10.000Z');
+    });
+  });
 
   it('clears the live-buffer truncation nudge after the first successful backfill page', async () => {
     const fetchMock = vi.fn(async () =>
@@ -231,8 +231,8 @@ describe('useFlowActivity', () => {
         next_cursor: null,
         warnings: [],
       }),
-    )
-    globalThis.fetch = fetchMock as typeof fetch
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
 
     const { result } = renderHook(() =>
       useFlowActivity({
@@ -241,12 +241,12 @@ describe('useFlowActivity', () => {
         liveEvents: [],
         wasLiveBufferTruncated: true,
       }),
-    )
+    );
 
     await waitFor(() => {
-      expect(result.current.retainedHistoryEvents).toHaveLength(1)
-      expect(result.current.wasLiveBufferTruncated).toBe(false)
-      expect(result.current.hasMoreOlder).toBe(false)
-    })
-  })
-})
+      expect(result.current.retainedHistoryEvents).toHaveLength(1);
+      expect(result.current.wasLiveBufferTruncated).toBe(false);
+      expect(result.current.hasMoreOlder).toBe(false);
+    });
+  });
+});

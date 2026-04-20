@@ -1,23 +1,26 @@
-import type { NodeProps } from '@xyflow/react'
+import type { NodeProps } from '@xyflow/react';
 
-import { NodeStatusBadge } from '../components/NodeStatusBadge'
-import { nodeContainerClass, renderHandles } from './nodePrimitives'
-import type { FlowNode } from './types'
+import { NodeStatusBadge } from '../components/NodeStatusBadge';
+import { nodeContainerClass, renderHandles } from './nodePrimitives';
+import type { FlowNode } from './types';
 
 const defaultHandles = [
   { position: 'top', type: 'both' },
   { position: 'right', type: 'both' },
   { position: 'bottom', type: 'both' },
   { position: 'left', type: 'both' },
-] as const
+] as const;
 
 export function CircleNode({ id, data }: NodeProps<FlowNode>) {
-  const status = data.status?.status ?? 'idle'
-  const icon = data.style?.icon ? data.style.icon.toUpperCase().slice(0, 3) : null
+  const status = data.status?.status ?? 'idle';
+  const icon = data.style?.icon ? data.style.icon.toUpperCase().slice(0, 3) : null;
 
   return (
     <div className="relative h-28 w-28">
-      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full bg-[var(--flow-surface-bg)]" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-full bg-[var(--flow-surface-bg)]"
+      />
       {renderHandles(id, data.handles, [...defaultHandles])}
       <div
         className={`${nodeContainerClass({
@@ -39,5 +42,5 @@ export function CircleNode({ id, data }: NodeProps<FlowNode>) {
         />
       </div>
     </div>
-  )
+  );
 }

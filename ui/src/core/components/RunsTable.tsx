@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react';
 import {
   flexRender,
   getCoreRowModel,
@@ -6,7 +6,7 @@ import {
   useReactTable,
   type ColumnDef,
   type SortingState,
-} from '@tanstack/react-table'
+} from '@tanstack/react-table';
 
 import {
   ScrollArea,
@@ -16,68 +16,65 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui'
+} from '@/components/ui';
 
-import { formatEasternTime } from '../time'
-import type { TraceJourney, TraceStatus } from '../types'
+import { formatEasternTime } from '../time';
+import type { TraceJourney, TraceStatus } from '../types';
 import {
   canonicalStepId,
   formatRunLabel,
   formatStepDisplayLabel,
   getJourneySummaryStep,
-} from '../runPresentation'
-import { DurationBadge } from './DurationBadge'
-import { sortIndicator } from './tableUtils'
+} from '../runPresentation';
+import { DurationBadge } from './DurationBadge';
+import { sortIndicator } from './tableUtils';
 
 interface RunsTableProps {
-  journeys: TraceJourney[]
-  selectedTraceId?: string
-  onSelectTrace: (traceId?: string) => void
+  journeys: TraceJourney[];
+  selectedTraceId?: string;
+  onSelectTrace: (traceId?: string) => void;
 }
 
 interface RunRowData {
-  traceId: string
-  runLabel: string
-  latestStep: string
-  latestStepId?: string
-  status: TraceStatus
-  durationMs?: number
-  updatedAt: string
-  issue: string
+  traceId: string;
+  runLabel: string;
+  latestStep: string;
+  latestStepId?: string;
+  status: TraceStatus;
+  durationMs?: number;
+  updatedAt: string;
+  issue: string;
 }
 
 const STATUS_CLASSES: Record<TraceStatus, string> = {
-  error:   'bg-[color-mix(in_srgb,var(--status-error)_12%,transparent)] text-[var(--status-error)]',
-  success: 'bg-[color-mix(in_srgb,var(--status-success)_12%,transparent)] text-[var(--status-success)]',
-  partial: 'bg-[color-mix(in_srgb,var(--status-warning)_12%,transparent)] text-[var(--status-warning)]',
+  error: 'bg-[color-mix(in_srgb,var(--status-error)_12%,transparent)] text-[var(--status-error)]',
+  success:
+    'bg-[color-mix(in_srgb,var(--status-success)_12%,transparent)] text-[var(--status-success)]',
+  partial:
+    'bg-[color-mix(in_srgb,var(--status-warning)_12%,transparent)] text-[var(--status-warning)]',
   running: 'bg-[var(--surface-inset)] text-[var(--text-muted)]',
-}
+};
 
 function statusRank(status: TraceStatus) {
   if (status === 'error') {
-    return 0
+    return 0;
   }
   if (status === 'running') {
-    return 1
+    return 1;
   }
   if (status === 'partial') {
-    return 2
+    return 2;
   }
-  return 3
+  return 3;
 }
 
-
-export function RunsTable({
-  journeys,
-  selectedTraceId,
-  onSelectTrace,
-}: RunsTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'updated', desc: true }])
+export function RunsTable({ journeys, selectedTraceId, onSelectTrace }: RunsTableProps) {
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'updated', desc: true }]);
 
   const data = useMemo<RunRowData[]>(
     () =>
       journeys.map((journey) => {
-        const summaryStage = getJourneySummaryStep(journey)
+        const summaryStage = getJourneySummaryStep(journey);
         return {
           traceId: journey.traceId,
           runLabel: formatRunLabel(journey),
@@ -87,10 +84,10 @@ export function RunsTable({
           durationMs: journey.durationMs,
           updatedAt: journey.lastUpdatedAt,
           issue: journey.errorSummary ?? '-',
-        }
+        };
       }),
     [journeys],
-  )
+  );
 
   const columns = useMemo<ColumnDef<RunRowData>[]>(
     () => [
@@ -98,7 +95,9 @@ export function RunsTable({
         id: 'run',
         accessorKey: 'runLabel',
         header: 'Run',
-        cell: ({ row }) => <span className="truncate font-mono text-[13px] leading-5">{row.original.runLabel}</span>,
+        cell: ({ row }) => (
+          <span className="truncate font-mono text-[13px] leading-5">{row.original.runLabel}</span>
+        ),
       },
       {
         id: 'latestStep',
@@ -129,7 +128,9 @@ export function RunsTable({
         sortingFn: (rowA, rowB) =>
           statusRank(rowA.original.status) - statusRank(rowB.original.status),
         cell: ({ row }) => (
-          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${STATUS_CLASSES[row.original.status]}`}>
+          <span
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${STATUS_CLASSES[row.original.status]}`}
+          >
             {row.original.status}
           </span>
         ),
@@ -178,7 +179,10 @@ export function RunsTable({
         header: 'Issue',
         cell: ({ row }) =>
           row.original.issue !== '-' ? (
-            <span className="block truncate font-mono text-[13px] leading-5 text-[var(--status-error)]" title={row.original.issue}>
+            <span
+              className="block truncate font-mono text-[13px] leading-5 text-[var(--status-error)]"
+              title={row.original.issue}
+            >
               {row.original.issue}
             </span>
           ) : (
@@ -187,7 +191,7 @@ export function RunsTable({
       },
     ],
     [],
-  )
+  );
 
   const table = useReactTable({
     data,
@@ -197,7 +201,7 @@ export function RunsTable({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => row.traceId,
-  })
+  });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -215,7 +219,9 @@ export function RunsTable({
             <TableRow key={headerGroup.id} className="cursor-default hover:bg-transparent">
               {headerGroup.headers.map((header) => (
                 <TableHead key={header.id}>
-                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(header.column.columnDef.header, header.getContext())}
                 </TableHead>
               ))}
             </TableRow>
@@ -241,7 +247,7 @@ export function RunsTable({
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => {
-                const selected = selectedTraceId === row.original.traceId
+                const selected = selectedTraceId === row.original.traceId;
                 return (
                   <TableRow
                     key={row.id}
@@ -254,12 +260,12 @@ export function RunsTable({
                       </TableCell>
                     ))}
                   </TableRow>
-                )
+                );
               })
             )}
           </TableBody>
         </Table>
       </ScrollArea>
     </div>
-  )
+  );
 }

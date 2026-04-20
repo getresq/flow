@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
-import { RunsTable } from '../RunsTable'
-import type { TraceJourney } from '../../types'
+import { RunsTable } from '../RunsTable';
+import type { TraceJourney } from '../../types';
 
 const journeys: TraceJourney[] = [
   {
@@ -98,54 +98,38 @@ const journeys: TraceJourney[] = [
       replyDraftId: '0',
     },
   },
-]
+];
 
 describe('RunsTable', () => {
   it('sorts by duration and keeps the selected row highlighted', async () => {
-    render(
-      <RunsTable
-        journeys={journeys}
-        selectedTraceId="run-b"
-        onSelectTrace={vi.fn()}
-      />,
-    )
+    render(<RunsTable journeys={journeys} selectedTraceId="run-b" onSelectTrace={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /duration/i }))
+    fireEvent.click(screen.getByRole('button', { name: /duration/i }));
 
-    const rows = screen.getAllByRole('row').slice(1)
-    expect(within(rows[0]).getByText('support@resq.dev')).toBeInTheDocument()
-    const selectedRow = rows.find((row) => row.getAttribute('data-state') === 'selected')
-    expect(selectedRow).toBeDefined()
-    expect(within(selectedRow!).getByText('billing@resq.dev')).toBeInTheDocument()
-  })
+    const rows = screen.getAllByRole('row').slice(1);
+    expect(within(rows[0]).getByText('support@resq.dev')).toBeInTheDocument();
+    const selectedRow = rows.find((row) => row.getAttribute('data-state') === 'selected');
+    expect(selectedRow).toBeDefined();
+    expect(within(selectedRow!).getByText('billing@resq.dev')).toBeInTheDocument();
+  });
 
   it('selects and deselects a row on click', async () => {
-    const onSelectTrace = vi.fn()
+    const onSelectTrace = vi.fn();
 
-    render(
-      <RunsTable
-        journeys={journeys}
-        onSelectTrace={onSelectTrace}
-      />,
-    )
+    render(<RunsTable journeys={journeys} onSelectTrace={onSelectTrace} />);
 
-    fireEvent.click(screen.getByText('billing@resq.dev'))
-    expect(onSelectTrace).toHaveBeenCalledWith('run-b')
-    expect(screen.getByText('Provider timeout')).toBeInTheDocument()
-  })
+    fireEvent.click(screen.getByText('billing@resq.dev'));
+    expect(onSelectTrace).toHaveBeenCalledWith('run-b');
+    expect(screen.getByText('Provider timeout')).toBeInTheDocument();
+  });
 
   it('shows meaningful run labels, latest steps, and compact long durations', () => {
-    render(
-      <RunsTable
-        journeys={journeys}
-        onSelectTrace={vi.fn()}
-      />,
-    )
+    render(<RunsTable journeys={journeys} onSelectTrace={vi.fn()} />);
 
-    expect(screen.getByRole('columnheader', { name: /latest step/i })).toBeInTheDocument()
-    expect(screen.getByText('ops@resq.dev')).toBeInTheDocument()
-    expect(screen.getByText('awaiting manual approval')).toBeInTheDocument()
-    expect(screen.getByText('20536d 11h')).toBeInTheDocument()
-    expect(screen.queryByText(/^0$/)).not.toBeInTheDocument()
-  })
-})
+    expect(screen.getByRole('columnheader', { name: /latest step/i })).toBeInTheDocument();
+    expect(screen.getByText('ops@resq.dev')).toBeInTheDocument();
+    expect(screen.getByText('awaiting manual approval')).toBeInTheDocument();
+    expect(screen.getByText('20536d 11h')).toBeInTheDocument();
+    expect(screen.queryByText(/^0$/)).not.toBeInTheDocument();
+  });
+});

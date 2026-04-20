@@ -14,11 +14,13 @@ resq-flow-x86_64-unknown-linux-gnu/
   bin/resq-flow-relay
   contracts/
     ...
+  flows/
+    ...
   ui/
     ...
 ```
 
-Downstream deployments can pin a release tag, download the tarball during image build, verify the checksum, and install `bin/resq-flow-relay`.
+Downstream deployments can pin a release tag, download the tarball during image build, verify the checksum, and install `bin/resq-flow-relay`. Flow-specific data stays in the `contracts/` and `flows/` config directories.
 
 ## Creating A Release
 
@@ -39,7 +41,7 @@ After building the relay and UI locally, package the same artifact shape with:
 cargo build --locked --release --manifest-path relay/Cargo.toml
 cd ui && bun install --frozen-lockfile && bun run build
 cd ..
-scripts/package-release.sh x86_64-unknown-linux-gnu relay/target/release/resq-flow-relay ui/dist ui/src/flow-contracts dist
+scripts/package-release.sh x86_64-unknown-linux-gnu relay/target/release/resq-flow-relay ui/dist ui/src/flow-contracts ui/src/flow-definitions dist
 ```
 
 The package script requires Linux `sha256sum`, which is available in the release workflow runner.

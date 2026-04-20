@@ -1,0 +1,379 @@
+{
+  "id": "demo-pipeline",
+  "name": "Demo Pipeline",
+  "description": "A compact sample flow that exercises triggers, queues, workers, decisions, detail steps, and resource writes.",
+  "contract": {
+    "version": 1,
+    "id": "demo-pipeline",
+    "name": "Demo Pipeline",
+    "telemetry": {
+      "log_events": ["flow_event"],
+      "queue_prefixes": ["intake-queue", "publish-queue"],
+      "function_prefixes": [],
+      "worker_prefixes": ["intake-worker", "publish-worker"],
+      "step_prefixes": [
+        "external-event",
+        "intake-worker.",
+        "normalize-record",
+        "input-valid",
+        "publish-worker."
+      ],
+      "span_prefixes": [],
+      "span_names": []
+    },
+    "keep_context": {
+      "parent_spans": true,
+      "root_spans": true,
+      "error_events": true,
+      "unmapped_events_for_kept_traces": true
+    }
+  },
+  "hasGraph": true,
+  "nodes": [
+    {
+      "id": "external-event",
+      "label": "External Event",
+      "description": "Simulated ingress event that starts the sample pipeline.",
+      "position": {
+        "x": 120,
+        "y": 20
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "emerald"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "intake-queue",
+      "label": "Intake Queue",
+      "description": "Buffers accepted events before intake processing begins.",
+      "position": {
+        "x": 120,
+        "y": 150
+      },
+      "type": "roundedRect",
+      "eyebrow": "QUEUE",
+      "style": {
+        "color": "amber",
+        "icon": "queue"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "intake-worker",
+      "label": "Intake Worker",
+      "description": "Consumes incoming work and prepares it for publication.",
+      "position": {
+        "x": 120,
+        "y": 280
+      },
+      "type": "roundedRect",
+      "eyebrow": "WORKER",
+      "style": {
+        "color": "ocean",
+        "icon": "worker"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "parse-input",
+      "label": "Parse Input",
+      "description": "Extracts the structured fields needed for downstream processing.",
+      "position": {
+        "x": -80,
+        "y": 430
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "persist-raw",
+      "label": "Persist Raw",
+      "description": "Stores the raw accepted record for audit and replay.",
+      "position": {
+        "x": 160,
+        "y": 430
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "postgres",
+      "label": "Postgres",
+      "style": {
+        "icon": "pg",
+        "color": "teal"
+      },
+      "description": "Primary relational store for the demo pipeline.",
+      "position": {
+        "x": 430,
+        "y": 520
+      },
+      "type": "cylinder",
+      "size": {
+        "width": 88,
+        "height": 104
+      }
+    },
+    {
+      "id": "normalize-record",
+      "label": "Normalize Record",
+      "description": "Builds the publishable output shape after intake completes.",
+      "position": {
+        "x": 120,
+        "y": 590
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "sky"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "input-valid",
+      "label": "Input Valid?",
+      "description": "Decision gate that either publishes the record or rejects it.",
+      "position": {
+        "x": 165,
+        "y": 735
+      },
+      "type": "diamond",
+      "style": {
+        "color": "violet"
+      },
+      "size": {
+        "width": 92,
+        "height": 92
+      }
+    },
+    {
+      "id": "reject-record",
+      "label": "Reject Record",
+      "description": "Non-happy-path branch for invalid input.",
+      "position": {
+        "x": 430,
+        "y": 760
+      },
+      "handles": [
+        {
+          "id": "in-left",
+          "position": "left",
+          "type": "target"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "publish-queue",
+      "label": "Publish Queue",
+      "description": "Buffers validated work for publishing.",
+      "position": {
+        "x": 120,
+        "y": 900
+      },
+      "type": "roundedRect",
+      "eyebrow": "QUEUE",
+      "style": {
+        "color": "amber",
+        "icon": "queue"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "publish-worker",
+      "label": "Publish Worker",
+      "description": "Publishes the normalized record and archives the final output.",
+      "position": {
+        "x": 120,
+        "y": 1030
+      },
+      "type": "roundedRect",
+      "eyebrow": "WORKER",
+      "style": {
+        "color": "ocean",
+        "icon": "worker"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "persist-result",
+      "label": "Persist Result",
+      "description": "Writes the final result row into Postgres.",
+      "position": {
+        "x": -80,
+        "y": 1180
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "archive-output",
+      "label": "Archive Output",
+      "description": "Stores the published artifact in object storage.",
+      "position": {
+        "x": 160,
+        "y": 1180
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "object-store",
+      "label": "Object Store",
+      "style": {
+        "icon": "s3",
+        "color": "teal"
+      },
+      "description": "Archive bucket for demo artifacts.",
+      "position": {
+        "x": 430,
+        "y": 1265
+      },
+      "type": "cylinder",
+      "size": {
+        "width": 88,
+        "height": 104
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "external-event-intake-queue",
+      "source": "external-event",
+      "target": "intake-queue"
+    },
+    {
+      "id": "intake-queue-intake-worker",
+      "source": "intake-queue",
+      "target": "intake-worker"
+    },
+    {
+      "id": "intake-worker-parse-input",
+      "source": "intake-worker",
+      "target": "parse-input"
+    },
+    {
+      "id": "parse-input-persist-raw",
+      "source": "parse-input",
+      "target": "persist-raw"
+    },
+    {
+      "id": "persist-raw-postgres",
+      "source": "persist-raw",
+      "target": "postgres"
+    },
+    {
+      "id": "persist-raw-normalize-record",
+      "source": "persist-raw",
+      "target": "normalize-record"
+    },
+    {
+      "id": "normalize-record-input-valid",
+      "source": "normalize-record",
+      "target": "input-valid"
+    },
+    {
+      "id": "input-valid-publish-queue",
+      "source": "input-valid",
+      "sourceHandle": "input-valid-out-bottom",
+      "target": "publish-queue",
+      "label": "Yes"
+    },
+    {
+      "id": "input-valid-reject-record",
+      "source": "input-valid",
+      "sourceHandle": "input-valid-out-right",
+      "target": "reject-record",
+      "targetHandle": "reject-record-in-left",
+      "label": "No"
+    },
+    {
+      "id": "publish-queue-publish-worker",
+      "source": "publish-queue",
+      "target": "publish-worker"
+    },
+    {
+      "id": "publish-worker-persist-result",
+      "source": "publish-worker",
+      "target": "persist-result"
+    },
+    {
+      "id": "persist-result-postgres",
+      "source": "persist-result",
+      "target": "postgres"
+    },
+    {
+      "id": "persist-result-archive-output",
+      "source": "persist-result",
+      "target": "archive-output"
+    },
+    {
+      "id": "archive-output-object-store",
+      "source": "archive-output",
+      "target": "object-store"
+    }
+  ],
+  "spanMapping": {
+    "external-event": "external-event",
+    "intake-queue": "intake-queue",
+    "intake-worker": "intake-worker",
+    "normalize-record": "normalize-record",
+    "input-valid": "input-valid",
+    "publish-queue": "publish-queue",
+    "publish-worker": "publish-worker",
+    "intake-worker.parse-input": "parse-input",
+    "intake-worker.persist-raw": "persist-raw",
+    "publish-worker.persist-result": "persist-result",
+    "publish-worker.archive-output": "archive-output"
+  }
+}

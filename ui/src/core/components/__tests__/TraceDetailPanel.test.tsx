@@ -1,8 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
-import { TraceDetailContent } from '../TraceDetailPanel'
-import type { FlowEdgeConfig, FlowNodeConfig, TraceJourney } from '../../types'
+import { TraceDetailContent } from '../TraceDetailPanel';
+import type { FlowEdgeConfig, FlowNodeConfig, TraceJourney } from '../../types';
 
 const flowNodes: FlowNodeConfig[] = [
   {
@@ -12,9 +12,9 @@ const flowNodes: FlowNodeConfig[] = [
     position: { x: 0, y: 0 },
     layout: { order: 10 },
   },
-]
+];
 
-const flowEdges: FlowEdgeConfig[] = []
+const flowEdges: FlowEdgeConfig[] = [];
 
 const journey: TraceJourney = {
   traceId: 'trace-1',
@@ -49,16 +49,16 @@ const journey: TraceJourney = {
     threadId: 'thread-1',
     replyDraftId: 'draft-1',
   },
-}
+};
 
 describe('TraceDetailPanel', () => {
   it('no longer renders a "Run details" section in the overview body', () => {
-    render(<TraceDetailContent journey={journey} />)
-    expect(screen.queryByText('Run details')).not.toBeInTheDocument()
-  })
+    render(<TraceDetailContent journey={journey} />);
+    expect(screen.queryByText('Run details')).not.toBeInTheDocument();
+  });
 
   it('renders one card per grouped node showing the summary and a node-drill button', () => {
-    const onSelectNode = vi.fn()
+    const onSelectNode = vi.fn();
 
     render(
       <TraceDetailContent
@@ -96,23 +96,23 @@ describe('TraceDetailPanel', () => {
         flowEdges={flowEdges}
         onSelectNode={onSelectNode}
       />,
-    )
+    );
 
     // Card header = node label
-    expect(screen.getByText('Incoming Worker')).toBeInTheDocument()
+    expect(screen.getByText('Incoming Worker')).toBeInTheDocument();
 
     // Success run: no subtext (badge alone conveys status).
-    expect(screen.queryByText('Completed')).not.toBeInTheDocument()
-    expect(screen.queryByText('Final result')).not.toBeInTheDocument()
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument();
+    expect(screen.queryByText('Final result')).not.toBeInTheDocument();
 
     // No expand, no detail rows
-    expect(screen.queryByText(/\+\d+ step/i)).not.toBeInTheDocument()
-    expect(screen.queryByText('Write metadata')).not.toBeInTheDocument()
+    expect(screen.queryByText(/\+\d+ step/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Write metadata')).not.toBeInTheDocument();
 
     // Node drill still works
-    fireEvent.click(screen.getByRole('button', { name: /open incoming worker node/i }))
-    expect(onSelectNode).toHaveBeenCalledWith('incoming-worker')
-  })
+    fireEvent.click(screen.getByRole('button', { name: /open incoming worker node/i }));
+    expect(onSelectNode).toHaveBeenCalledWith('incoming-worker');
+  });
 
   it('surfaces the first error as the summary when the group contains one', () => {
     render(
@@ -151,11 +151,11 @@ describe('TraceDetailPanel', () => {
         flowNodes={flowNodes}
         flowEdges={flowEdges}
       />,
-    )
+    );
 
     // First error wins the summary, even though a later success step came after.
-    expect(screen.getByText('auth denied')).toBeInTheDocument()
-  })
+    expect(screen.getByText('auth denied')).toBeInTheDocument();
+  });
 
   it('omits node navigation for the shared unmapped bucket', () => {
     render(
@@ -178,9 +178,11 @@ describe('TraceDetailPanel', () => {
           nodePath: [],
         }}
       />,
-    )
+    );
 
-    expect(screen.getByText('Other Activity')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /open other activity node/i })).not.toBeInTheDocument()
-  })
-})
+    expect(screen.getByText('Other Activity')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /open other activity node/i }),
+    ).not.toBeInTheDocument();
+  });
+});

@@ -1,13 +1,13 @@
-import clsx from 'clsx'
+import clsx from 'clsx';
 
-import type { NodeStatus } from '../types'
-import { DurationBadge } from './DurationBadge'
+import type { NodeStatus } from '../types';
+import { DurationBadge } from './DurationBadge';
 
 interface NodeStatusBadgeProps {
-  status: NodeStatus
-  durationMs?: number
-  durationVisibleUntil?: number
-  className?: string
+  status: NodeStatus;
+  durationMs?: number;
+  durationVisibleUntil?: number;
+  className?: string;
 }
 
 export function NodeStatusBadge({
@@ -16,8 +16,8 @@ export function NodeStatusBadge({
   durationVisibleUntil,
   className,
 }: NodeStatusBadgeProps) {
-  const now = Date.now()
-  const faded = Boolean(durationVisibleUntil && now > durationVisibleUntil)
+  const now = Date.now();
+  const faded = Boolean(durationVisibleUntil && now > durationVisibleUntil);
 
   return (
     <div className={clsx('inline-flex items-center gap-2', className)}>
@@ -25,13 +25,13 @@ export function NodeStatusBadge({
         data-testid={`status-badge-${status}`}
         className={clsx(
           'size-1.5 rounded-full',
-          status === 'idle'    && 'bg-[var(--status-idle)]',
-          status === 'active'  && 'bg-[var(--status-active)] animate-flow-pulse',
+          status === 'idle' && 'bg-[var(--status-idle)]',
+          status === 'active' && 'bg-[var(--status-active)] animate-flow-pulse',
           status === 'success' && 'bg-[var(--status-success)]',
-          status === 'error'   && 'bg-[var(--status-error)]',
+          status === 'error' && 'bg-[var(--status-error)]',
         )}
       />
       <DurationBadge durationMs={durationMs} faded={faded} />
     </div>
-  )
+  );
 }

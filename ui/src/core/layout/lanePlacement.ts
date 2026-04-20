@@ -1,20 +1,20 @@
-import type { FlowNodeConfig, LayoutLane } from '../types'
-import { resolveNodeDimensions } from '../nodeSizing'
+import type { FlowNodeConfig, LayoutLane } from '../types';
+import { resolveNodeDimensions } from '../nodeSizing';
 
 export interface Position {
-  x: number
-  y: number
+  x: number;
+  y: number;
 }
 
-const SIDECAR_GAP = 180
-const RESOURCE_GAP = 180
+const SIDECAR_GAP = 180;
+const RESOURCE_GAP = 180;
 
 function nodeDimensions(node: FlowNodeConfig) {
-  return resolveNodeDimensions(node)
+  return resolveNodeDimensions(node);
 }
 
 function rightEdge(node: FlowNodeConfig, position: Position) {
-  return position.x + nodeDimensions(node).width
+  return position.x + nodeDimensions(node).width;
 }
 
 function laneNodes(
@@ -22,7 +22,9 @@ function laneNodes(
   runtimePositions: Map<string, Position>,
   lane: LayoutLane,
 ) {
-  return nodes.filter((node) => !node.parentId && !runtimePositions.has(node.id) && node.layout?.lane === lane)
+  return nodes.filter(
+    (node) => !node.parentId && !runtimePositions.has(node.id) && node.layout?.lane === lane,
+  );
 }
 
 export function applyLaneTemplatePositions(
@@ -30,57 +32,55 @@ export function applyLaneTemplatePositions(
   basePositions: Map<string, Position>,
   runtimePositions: Map<string, Position>,
 ): Map<string, Position> {
-  const nextPositions = new Map(basePositions)
-  const rootNodes = nodes.filter((node) => !node.parentId)
+  const nextPositions = new Map(basePositions);
+  const rootNodes = nodes.filter((node) => !node.parentId);
 
-  const sidecarNodes = laneNodes(rootNodes, runtimePositions, 'sidecar')
-  const resourceNodes = laneNodes(rootNodes, runtimePositions, 'resource')
+  const sidecarNodes = laneNodes(rootNodes, runtimePositions, 'sidecar');
+  const resourceNodes = laneNodes(rootNodes, runtimePositions, 'resource');
 
   if (sidecarNodes.length === 0 && resourceNodes.length === 0) {
-    return nextPositions
+    return nextPositions;
   }
 
   const backboneNodes = rootNodes.filter(
     (node) =>
       !runtimePositions.has(node.id) &&
-      (node.layout?.lane === undefined || node.layout?.lane === 'main' || node.layout?.lane === 'branch'),
-  )
+      (node.layout?.lane === undefined ||
+        node.layout?.lane === 'main' ||
+        node.layout?.lane === 'branch'),
+  );
 
   const backboneRightEdge = backboneNodes.reduce((maxEdge, node) => {
-    const position = nextPositions.get(node.id) ?? node.position
-    return Math.max(maxEdge, rightEdge(node, position))
-  }, Number.NEGATIVE_INFINITY)
+    const position = nextPositions.get(node.id) ?? node.position;
+    return Math.max(maxEdge, rightEdge(node, position));
+  }, Number.NEGATIVE_INFINITY);
 
   const sidecarBaseX =
-    sidecarNodes.length > 0
-      ? backboneRightEdge + SIDECAR_GAP
-      : Number.NEGATIVE_INFINITY
+    sidecarNodes.length > 0 ? backboneRightEdge + SIDECAR_GAP : Number.NEGATIVE_INFINITY;
 
   for (const node of sidecarNodes) {
-    const position = nextPositions.get(node.id) ?? node.position
+    const position = nextPositions.get(node.id) ?? node.position;
     nextPositions.set(node.id, {
       x: sidecarBaseX,
       y: position.y,
-    })
+    });
   }
 
   const sidecarRightEdge = sidecarNodes.reduce((maxEdge, node) => {
-    const position = nextPositions.get(node.id) ?? node.position
-    return Math.max(maxEdge, rightEdge(node, position))
-  }, sidecarBaseX)
+    const position = nextPositions.get(node.id) ?? node.position;
+    return Math.max(maxEdge, rightEdge(node, position));
+  }, sidecarBaseX);
 
   const resourceBaseX =
-    resourceNodes.length > 0
-      ? sidecarRightEdge + RESOURCE_GAP
-      : Number.NEGATIVE_INFINITY
+    resourceNodes.length > 0 ? sidecarRightEdge + RESOURCE_GAP : Number.NEGATIVE_INFINITY;
 
   for (const node of resourceNodes) {
-    const position = nextPositions.get(node.id) ?? node.position
+    const position = nextPositions.get(node.id) ?? node.position;
     nextPositions.set(node.id, {
       x: resourceBaseX,
       y: position.y,
-    })
+    });
   }
 
-  return nextPositions
+  return nextPositions;
 }

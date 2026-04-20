@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Badge,
@@ -10,103 +10,118 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui'
+} from '@/components/ui';
 
-import { buildLogSearchText, getLogDisplayMessage } from '../logPresentation'
-import { formatEasternTime } from '../time'
-import { DurationBadge } from './DurationBadge'
-import type { FlowConfig, LogEntry } from '../types'
+import { buildLogSearchText, getLogDisplayMessage } from '../logPresentation';
+import { formatEasternTime } from '../time';
+import { DurationBadge } from './DurationBadge';
+import type { FlowConfig, LogEntry } from '../types';
 
 interface LogPanelProps {
-  flow: FlowConfig
-  globalLogs: LogEntry[]
-  selectedNodeId?: string
-  onSelectNode: (nodeId: string) => void
+  flow: FlowConfig;
+  globalLogs: LogEntry[];
+  selectedNodeId?: string;
+  onSelectNode: (nodeId: string) => void;
 }
 
 function logVariant(level: LogEntry['level']): 'destructive' | 'success' {
-  return level === 'error' ? 'destructive' : 'success'
+  return level === 'error' ? 'destructive' : 'success';
 }
 
 function compareLogEntriesDescending(left: LogEntry, right: LogEntry): number {
   if (typeof left.seq === 'number' && typeof right.seq === 'number' && left.seq !== right.seq) {
-    return right.seq - left.seq
+    return right.seq - left.seq;
   }
 
-  return Date.parse(right.timestamp) - Date.parse(left.timestamp)
+  return Date.parse(right.timestamp) - Date.parse(left.timestamp);
 }
 
 export function LogPanel({ flow, globalLogs, selectedNodeId, onSelectNode }: LogPanelProps) {
-  const [open, setOpen] = useState(true)
-  const [levelFilter, setLevelFilter] = useState<'all' | 'info' | 'error'>('all')
-  const [search, setSearch] = useState('')
-  const [nodeFilter, setNodeFilter] = useState<string | 'all'>('all')
-  const [liveTail, setLiveTail] = useState(true)
-  const listRef = useRef<HTMLDivElement | null>(null)
-  const effectiveNodeFilter = selectedNodeId ?? nodeFilter
+  const [open, setOpen] = useState(true);
+  const [levelFilter, setLevelFilter] = useState<'all' | 'info' | 'error'>('all');
+  const [search, setSearch] = useState('');
+  const [nodeFilter, setNodeFilter] = useState<string | 'all'>('all');
+  const [liveTail, setLiveTail] = useState(true);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const effectiveNodeFilter = selectedNodeId ?? nodeFilter;
 
   const nodeLabels = useMemo(() => {
-    const map = new Map<string, string>()
+    const map = new Map<string, string>();
     for (const node of flow.nodes) {
-      map.set(node.id, node.label)
+      map.set(node.id, node.label);
     }
-    return map
-  }, [flow.nodes])
+    return map;
+  }, [flow.nodes]);
 
   const filteredLogs = useMemo(() => {
-    const query = search.trim().toLowerCase()
+    const query = search.trim().toLowerCase();
 
     return [...globalLogs]
       .filter((entry) => {
         if (levelFilter !== 'all' && entry.level !== levelFilter) {
-          return false
+          return false;
         }
 
         if (effectiveNodeFilter !== 'all' && entry.nodeId !== effectiveNodeFilter) {
-          return false
+          return false;
         }
 
         if (!query) {
-          return true
+          return true;
         }
 
-        return buildLogSearchText(entry, entry.nodeId ? nodeLabels.get(entry.nodeId) : undefined).includes(query)
+        return buildLogSearchText(
+          entry,
+          entry.nodeId ? nodeLabels.get(entry.nodeId) : undefined,
+        ).includes(query);
       })
-      .sort(compareLogEntriesDescending)
-  }, [effectiveNodeFilter, globalLogs, levelFilter, nodeLabels, search])
+      .sort(compareLogEntriesDescending);
+  }, [effectiveNodeFilter, globalLogs, levelFilter, nodeLabels, search]);
 
   useEffect(() => {
     if (!open || !liveTail) {
-      return
+      return;
     }
 
-    const viewport = listRef.current?.querySelector('[data-radix-scroll-area-viewport]')
+    const viewport = listRef.current?.querySelector('[data-radix-scroll-area-viewport]');
     if (viewport instanceof HTMLDivElement) {
-      viewport.scrollTop = 0
+      viewport.scrollTop = 0;
     }
-  }, [filteredLogs, liveTail, open])
+  }, [filteredLogs, liveTail, open]);
 
   if (!open) {
     return (
       <aside className="w-16 border-l border-[var(--border-default)] bg-[var(--surface-primary)]/90 p-3">
-        <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => setOpen(true)}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => setOpen(true)}
+        >
           Logs
         </Button>
       </aside>
-    )
+    );
   }
 
   return (
     <aside className="flex w-[340px] flex-col border-l border-[var(--border-default)] bg-[var(--surface-primary)]/90">
       <div className="flex items-center justify-between border-b border-[var(--border-default)] px-4 py-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--text-primary)]">Live logs</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--text-primary)]">
+          Live logs
+        </h2>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
           Collapse
         </Button>
       </div>
 
       <div className="space-y-3 border-b border-[var(--border-default)] px-4 py-3">
-        <Input placeholder="Search logs" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <Input
+          placeholder="Search logs"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
 
         <div className="flex gap-2">
           {(['all', 'info', 'error'] as const).map((level) => (
@@ -122,7 +137,10 @@ export function LogPanel({ flow, globalLogs, selectedNodeId, onSelectNode }: Log
           ))}
         </div>
 
-        <Select value={effectiveNodeFilter} onValueChange={(value) => setNodeFilter(value as string | 'all')}>
+        <Select
+          value={effectiveNodeFilter}
+          onValueChange={(value) => setNodeFilter(value as string | 'all')}
+        >
           <SelectTrigger>
             <SelectValue placeholder="All nodes" />
           </SelectTrigger>
@@ -142,14 +160,16 @@ export function LogPanel({ flow, globalLogs, selectedNodeId, onSelectNode }: Log
         className="flex-1"
         onScrollCapture={(event) => {
           if (event.target instanceof HTMLDivElement) {
-            setLiveTail(event.target.scrollTop < 12)
+            setLiveTail(event.target.scrollTop < 12);
           }
         }}
       >
         <div className="space-y-3 px-4 py-3">
           {filteredLogs.map((entry, index) => {
-            const nodeLabel = entry.nodeId ? nodeLabels.get(entry.nodeId) ?? entry.nodeId : 'unmapped'
-            const timestamp = formatEasternTime(entry.timestamp, { precise: true })
+            const nodeLabel = entry.nodeId
+              ? (nodeLabels.get(entry.nodeId) ?? entry.nodeId)
+              : 'unmapped';
+            const timestamp = formatEasternTime(entry.timestamp, { precise: true });
 
             return (
               <button
@@ -161,12 +181,16 @@ export function LogPanel({ flow, globalLogs, selectedNodeId, onSelectNode }: Log
                 <div className="mb-2 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                   <span className="font-mono">{timestamp}</span>
                   <Badge variant="secondary">{nodeLabel}</Badge>
-                  <Badge variant={logVariant(entry.level)}>{entry.level === 'error' ? 'Error' : 'OK'}</Badge>
+                  <Badge variant={logVariant(entry.level)}>
+                    {entry.level === 'error' ? 'Error' : 'OK'}
+                  </Badge>
                   <DurationBadge className="ml-auto" durationMs={entry.durationMs} />
                 </div>
-                <p className="truncate text-sm text-[var(--text-primary)]">{getLogDisplayMessage(entry)}</p>
+                <p className="truncate text-sm text-[var(--text-primary)]">
+                  {getLogDisplayMessage(entry)}
+                </p>
               </button>
-            )
+            );
           })}
         </div>
       </ScrollArea>
@@ -177,10 +201,10 @@ export function LogPanel({ flow, globalLogs, selectedNodeId, onSelectNode }: Log
           variant="secondary"
           className="justify-start rounded-none border-t border-[var(--border-default)]"
           onClick={() => {
-            setLiveTail(true)
-            const viewport = listRef.current?.querySelector('[data-radix-scroll-area-viewport]')
+            setLiveTail(true);
+            const viewport = listRef.current?.querySelector('[data-radix-scroll-area-viewport]');
             if (viewport instanceof HTMLDivElement) {
-              viewport.scrollTop = 0
+              viewport.scrollTop = 0;
             }
           }}
         >
@@ -188,5 +212,5 @@ export function LogPanel({ flow, globalLogs, selectedNodeId, onSelectNode }: Log
         </Button>
       ) : null}
     </aside>
-  )
+  );
 }

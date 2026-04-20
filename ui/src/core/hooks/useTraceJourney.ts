@@ -1,8 +1,8 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo } from 'react';
 
-import { compareFlowEventsForDisplay, eventExecutionKey, resolveEventKind } from '../events'
-import { inferErrorState, readStringAttribute, resolveMappedNodeId } from '../mapping'
-import { normalizeTraceIdentifierValue } from '../traceIdentifiers'
+import { compareFlowEventsForDisplay, eventExecutionKey, resolveEventKind } from '../events';
+import { inferErrorState, readStringAttribute, resolveMappedNodeId } from '../mapping';
+import { normalizeTraceIdentifierValue } from '../traceIdentifiers';
 import type {
   FlowEvent,
   SpanMapping,
@@ -11,78 +11,78 @@ import type {
   TraceJourneyState,
   TraceStep,
   TraceStatus,
-} from '../types'
+} from '../types';
 
 interface MutableStep {
-  instanceId: string
-  stepId: string
-  label: string
-  nodeId?: string
-  startSeq: number
-  endSeq: number
-  startTs: string
-  endTs?: string
-  attempt?: number
-  status: TraceStatus
-  errorSummary?: string
-  attrs?: Record<string, unknown>
+  instanceId: string;
+  stepId: string;
+  label: string;
+  nodeId?: string;
+  startSeq: number;
+  endSeq: number;
+  startTs: string;
+  endTs?: string;
+  attempt?: number;
+  status: TraceStatus;
+  errorSummary?: string;
+  attrs?: Record<string, unknown>;
 }
 
 interface MutableJourney {
-  traceId: string
-  startedAt: string
-  endedAt?: string
-  lastUpdatedAt: string
-  eventCount: number
-  nodePath: string[]
-  nodePathSet: Set<string>
-  stepsById: Map<string, MutableStep>
-  stepOrder: string[]
-  identifiers: TraceIdentifiers
+  traceId: string;
+  startedAt: string;
+  endedAt?: string;
+  lastUpdatedAt: string;
+  eventCount: number;
+  nodePath: string[];
+  nodePathSet: Set<string>;
+  stepsById: Map<string, MutableStep>;
+  stepOrder: string[];
+  identifiers: TraceIdentifiers;
 }
 
 function readAttempt(attributes: Record<string, unknown> | undefined): number | undefined {
-  const value = attributes?.attempt
+  const value = attributes?.attempt;
   if (typeof value === 'number' && Number.isFinite(value)) {
-    return value
+    return value;
   }
   if (typeof value === 'string') {
-    const parsed = Number(value)
+    const parsed = Number(value);
     if (Number.isFinite(parsed)) {
-      return parsed
+      return parsed;
     }
   }
-  return undefined
+  return undefined;
 }
 
 function durationFromIso(start: string, end: string | undefined): number | undefined {
   if (!end) {
-    return undefined
+    return undefined;
   }
 
-  const startMs = Date.parse(start)
-  const endMs = Date.parse(end)
+  const startMs = Date.parse(start);
+  const endMs = Date.parse(end);
   if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs < startMs) {
-    return undefined
+    return undefined;
   }
-  return endMs - startMs
+  return endMs - startMs;
 }
 
 function resolveStepId(event: FlowEvent, nodeId: string | null): string {
-  const explicitStep = readStringAttribute(event.attributes, 'step_id')
+  const explicitStep = readStringAttribute(event.attributes, 'step_id');
   if (explicitStep) {
-    return explicitStep
+    return explicitStep;
   }
   if (nodeId) {
-    return nodeId
+    return nodeId;
   }
   if (event.span_name) {
-    return event.span_name
+    return event.span_name;
   }
   if (event.event_kind) {
-    return event.event_kind
+    return event.event_kind;
   }
-  return event.type
+  return event.type;
 }
 
 function resolveStepKey(event: FlowEvent, stepId: string, nodeId: string | null): string {
@@ -92,34 +92,37 @@ function resolveStepKey(event: FlowEvent, stepId: string, nodeId: string | null)
     event.node_key ??
     readStringAttribute(event.attributes, 'function_name') ??
     event.span_name ??
-    event.type
+    event.type;
 
-  return `${componentKey}::${stepId}`
+  return `${componentKey}::${stepId}`;
 }
 
-function resolveLatestStepInstanceKey(stepOrder: string[], baseStepKey: string): string | undefined {
+function resolveLatestStepInstanceKey(
+  stepOrder: string[],
+  baseStepKey: string,
+): string | undefined {
   for (let index = stepOrder.length - 1; index >= 0; index -= 1) {
-    const stepKey = stepOrder[index]
+    const stepKey = stepOrder[index];
     if (stepKey === baseStepKey || stepKey.startsWith(`${baseStepKey}#`)) {
-      return stepKey
+      return stepKey;
     }
   }
 
-  return undefined
+  return undefined;
 }
 
 function nextStepInstanceKey(stepOrder: string[], baseStepKey: string): string {
-  let occurrence = 2
-  let candidate = `${baseStepKey}#${occurrence}`
+  let occurrence = 2;
+  let candidate = `${baseStepKey}#${occurrence}`;
   while (stepOrder.includes(candidate)) {
-    occurrence += 1
-    candidate = `${baseStepKey}#${occurrence}`
+    occurrence += 1;
+    candidate = `${baseStepKey}#${occurrence}`;
   }
-  return candidate
+  return candidate;
 }
 
 function resolveStepLabel(event: FlowEvent, stepId: string): string {
-  return readStringAttribute(event.attributes, 'step_name') ?? stepId
+  return readStringAttribute(event.attributes, 'step_name') ?? stepId;
 }
 
 function mergeStepAttributes(
@@ -127,61 +130,65 @@ function mergeStepAttributes(
   incoming: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined {
   if (!existing) {
-    return incoming
+    return incoming;
   }
   if (!incoming) {
-    return existing
+    return existing;
   }
-  return { ...existing, ...incoming }
+  return { ...existing, ...incoming };
 }
 
 function resolveStepStatus(event: FlowEvent, current: TraceStatus): TraceStatus {
   if (inferErrorState(event)) {
-    return 'error'
+    return 'error';
   }
   if (current === 'error') {
-    return current
+    return current;
   }
 
-  const outcome = readStringAttribute(event.attributes, 'outcome')?.toLowerCase()
+  const outcome = readStringAttribute(event.attributes, 'outcome')?.toLowerCase();
   if (outcome === 'success' || outcome === 'ok') {
-    return 'success'
+    return 'success';
   }
   if (resolveEventKind(event) === 'node_finished') {
-    return 'success'
+    return 'success';
   }
-  return current
+  return current;
 }
 
 function resolveErrorSummary(event: FlowEvent): string | undefined {
-  const errorMessage = readStringAttribute(event.attributes, 'error_message')
+  const errorMessage = readStringAttribute(event.attributes, 'error_message');
   if (errorMessage) {
-    return errorMessage
+    return errorMessage;
   }
-  const errorCode = readStringAttribute(event.attributes, 'error_code')
-  const errorClass = readStringAttribute(event.attributes, 'error_class')
+  const errorCode = readStringAttribute(event.attributes, 'error_code');
+  const errorClass = readStringAttribute(event.attributes, 'error_class');
   if (errorClass && errorCode) {
-    return `${errorClass}:${errorCode}`
+    return `${errorClass}:${errorCode}`;
   }
   if (errorClass) {
-    return errorClass
+    return errorClass;
   }
   if (errorCode) {
-    return errorCode
+    return errorCode;
   }
-  const outcome = readStringAttribute(event.attributes, 'outcome')
+  const outcome = readStringAttribute(event.attributes, 'outcome');
   if (outcome && outcome.toLowerCase() === 'error') {
-    return 'outcome:error'
+    return 'outcome:error';
   }
-  return undefined
+  return undefined;
 }
 
-function setIdentifierIfEmpty(target: TraceIdentifiers, key: keyof TraceIdentifiers, value: string | undefined) {
-  const normalized = normalizeTraceIdentifierValue(value)
+function setIdentifierIfEmpty(
+  target: TraceIdentifiers,
+  key: keyof TraceIdentifiers,
+  value: string | undefined,
+) {
+  const normalized = normalizeTraceIdentifierValue(value);
   if (!normalized || target[key]) {
-    return
+    return;
   }
-  target[key] = normalized
+  target[key] = normalized;
 }
 
 function materializeJourneys(journeyMap: Map<string, MutableJourney>): TraceJourney[] {
@@ -191,11 +198,11 @@ function materializeJourneys(journeyMap: Map<string, MutableJourney>): TraceJour
         .map((stepId) => journey.stepsById.get(stepId))
         .filter((stage): stage is MutableStep => Boolean(stage))
         .sort((left, right) => {
-          const bySeq = left.startSeq - right.startSeq
+          const bySeq = left.startSeq - right.startSeq;
           if (bySeq !== 0) {
-            return bySeq
+            return bySeq;
           }
-          return Date.parse(left.startTs) - Date.parse(right.startTs)
+          return Date.parse(left.startTs) - Date.parse(right.startTs);
         })
         .map((stage) => ({
           instanceId: stage.instanceId,
@@ -211,19 +218,19 @@ function materializeJourneys(journeyMap: Map<string, MutableJourney>): TraceJour
           attempt: stage.attempt,
           errorSummary: stage.errorSummary,
           attrs: stage.attrs,
-        }))
+        }));
 
-      const hasError = steps.some((stage) => stage.status === 'error')
-      const hasRunning = steps.some((stage) => stage.status === 'running')
-      const hasSuccess = steps.some((stage) => stage.status === 'success')
+      const hasError = steps.some((stage) => stage.status === 'error');
+      const hasRunning = steps.some((stage) => stage.status === 'running');
+      const hasSuccess = steps.some((stage) => stage.status === 'success');
 
-      let status: TraceStatus = 'running'
+      let status: TraceStatus = 'running';
       if (hasError) {
-        status = 'error'
+        status = 'error';
       } else if (hasRunning && hasSuccess) {
-        status = 'partial'
+        status = 'partial';
       } else if (!hasRunning) {
-        status = 'success'
+        status = 'success';
       }
 
       const rootEntity =
@@ -232,7 +239,7 @@ function materializeJourneys(journeyMap: Map<string, MutableJourney>): TraceJour
         journey.identifiers.runId ??
         journey.identifiers.jobId ??
         journey.identifiers.requestId ??
-        journey.identifiers.mailboxOwner
+        journey.identifiers.mailboxOwner;
 
       return {
         traceId: journey.traceId,
@@ -247,15 +254,15 @@ function materializeJourneys(journeyMap: Map<string, MutableJourney>): TraceJour
         lastUpdatedAt: journey.lastUpdatedAt,
         eventCount: journey.eventCount,
         identifiers: journey.identifiers,
-      }
+      };
     })
     .sort((left, right) => {
-      const byTs = Date.parse(right.lastUpdatedAt) - Date.parse(left.lastUpdatedAt)
+      const byTs = Date.parse(right.lastUpdatedAt) - Date.parse(left.lastUpdatedAt);
       if (byTs !== 0) {
-        return byTs
+        return byTs;
       }
-      return right.eventCount - left.eventCount
-    })
+      return right.eventCount - left.eventCount;
+    });
 }
 
 export function useTraceJourney(
@@ -264,19 +271,19 @@ export function useTraceJourney(
   _sessionKey?: number | string,
 ): TraceJourneyState {
   const journeys = useMemo(() => {
-    const journeyMap = new Map<string, MutableJourney>()
-    const orderedEvents = [...events].sort(compareFlowEventsForDisplay)
+    const journeyMap = new Map<string, MutableJourney>();
+    const orderedEvents = [...events].sort(compareFlowEventsForDisplay);
 
     for (let index = 0; index < orderedEvents.length; index += 1) {
-      const event = orderedEvents[index]
-      const executionKey = eventExecutionKey(event)
+      const event = orderedEvents[index];
+      const executionKey = eventExecutionKey(event);
       if (!executionKey) {
-        continue
+        continue;
       }
 
-      const traceId = executionKey
-      const seq = typeof event.seq === 'number' ? event.seq : index + 1
-      const nodeId = resolveMappedNodeId(event, spanMapping)
+      const traceId = executionKey;
+      const seq = typeof event.seq === 'number' ? event.seq : index + 1;
+      const nodeId = resolveMappedNodeId(event, spanMapping);
       const journey = journeyMap.get(traceId) ?? {
         traceId,
         startedAt: event.timestamp,
@@ -288,51 +295,91 @@ export function useTraceJourney(
         stepsById: new Map<string, MutableStep>(),
         stepOrder: [],
         identifiers: {},
-      }
+      };
 
-      journey.eventCount += 1
-      journey.lastUpdatedAt = event.timestamp
-      journey.endedAt = event.timestamp
+      journey.eventCount += 1;
+      journey.lastUpdatedAt = event.timestamp;
+      journey.endedAt = event.timestamp;
 
       if (nodeId && !journey.nodePathSet.has(nodeId)) {
-        journey.nodePath.push(nodeId)
-        journey.nodePathSet.add(nodeId)
+        journey.nodePath.push(nodeId);
+        journey.nodePathSet.add(nodeId);
       }
 
-      setIdentifierIfEmpty(journey.identifiers, 'mailboxOwner', readStringAttribute(event.attributes, 'mailbox_owner'))
-      setIdentifierIfEmpty(journey.identifiers, 'provider', readStringAttribute(event.attributes, 'provider'))
-      setIdentifierIfEmpty(journey.identifiers, 'flowId', readStringAttribute(event.attributes, 'flow_id'))
-      setIdentifierIfEmpty(journey.identifiers, 'runId', readStringAttribute(event.attributes, 'run_id'))
-      setIdentifierIfEmpty(journey.identifiers, 'componentId', readStringAttribute(event.attributes, 'component_id'))
-      setIdentifierIfEmpty(journey.identifiers, 'threadId', readStringAttribute(event.attributes, 'thread_id'))
+      setIdentifierIfEmpty(
+        journey.identifiers,
+        'mailboxOwner',
+        readStringAttribute(event.attributes, 'mailbox_owner'),
+      );
+      setIdentifierIfEmpty(
+        journey.identifiers,
+        'provider',
+        readStringAttribute(event.attributes, 'provider'),
+      );
+      setIdentifierIfEmpty(
+        journey.identifiers,
+        'flowId',
+        readStringAttribute(event.attributes, 'flow_id'),
+      );
+      setIdentifierIfEmpty(
+        journey.identifiers,
+        'runId',
+        readStringAttribute(event.attributes, 'run_id'),
+      );
+      setIdentifierIfEmpty(
+        journey.identifiers,
+        'componentId',
+        readStringAttribute(event.attributes, 'component_id'),
+      );
+      setIdentifierIfEmpty(
+        journey.identifiers,
+        'threadId',
+        readStringAttribute(event.attributes, 'thread_id'),
+      );
       setIdentifierIfEmpty(
         journey.identifiers,
         'replyDraftId',
         readStringAttribute(event.attributes, 'reply_draft_id'),
-      )
-      setIdentifierIfEmpty(journey.identifiers, 'jobId', readStringAttribute(event.attributes, 'job_id'))
-      setIdentifierIfEmpty(journey.identifiers, 'requestId', readStringAttribute(event.attributes, 'request_id'))
-      setIdentifierIfEmpty(journey.identifiers, 'contentHash', readStringAttribute(event.attributes, 'content_hash'))
-      setIdentifierIfEmpty(journey.identifiers, 'journeyKey', readStringAttribute(event.attributes, 'journey_key'))
+      );
+      setIdentifierIfEmpty(
+        journey.identifiers,
+        'jobId',
+        readStringAttribute(event.attributes, 'job_id'),
+      );
+      setIdentifierIfEmpty(
+        journey.identifiers,
+        'requestId',
+        readStringAttribute(event.attributes, 'request_id'),
+      );
+      setIdentifierIfEmpty(
+        journey.identifiers,
+        'contentHash',
+        readStringAttribute(event.attributes, 'content_hash'),
+      );
+      setIdentifierIfEmpty(
+        journey.identifiers,
+        'journeyKey',
+        readStringAttribute(event.attributes, 'journey_key'),
+      );
 
-      const stepId = resolveStepId(event, nodeId)
-      const baseStepKey = resolveStepKey(event, stepId, nodeId)
-      const previousStepKey = journey.stepOrder[journey.stepOrder.length - 1]
-      const latestStageInstanceKey = resolveLatestStepInstanceKey(journey.stepOrder, baseStepKey)
+      const stepId = resolveStepId(event, nodeId);
+      const baseStepKey = resolveStepKey(event, stepId, nodeId);
+      const previousStepKey = journey.stepOrder[journey.stepOrder.length - 1];
+      const latestStageInstanceKey = resolveLatestStepInstanceKey(journey.stepOrder, baseStepKey);
       const stepKey =
         latestStageInstanceKey && previousStepKey === latestStageInstanceKey
           ? latestStageInstanceKey
           : latestStageInstanceKey
             ? nextStepInstanceKey(journey.stepOrder, baseStepKey)
-            : baseStepKey
+            : baseStepKey;
 
       if (previousStepKey && previousStepKey !== stepKey) {
-        const previousStep = journey.stepsById.get(previousStepKey)
+        const previousStep = journey.stepsById.get(previousStepKey);
         if (previousStep && previousStep.status === 'running') {
-          previousStep.status = 'success'
-          previousStep.endSeq = Math.max(previousStep.endSeq, seq)
-          previousStep.endTs = event.timestamp
-          journey.stepsById.set(previousStepKey, previousStep)
+          previousStep.status = 'success';
+          previousStep.endSeq = Math.max(previousStep.endSeq, seq);
+          previousStep.endTs = event.timestamp;
+          journey.stepsById.set(previousStepKey, previousStep);
         }
       }
 
@@ -346,48 +393,48 @@ export function useTraceJourney(
         startTs: event.timestamp,
         endTs: event.timestamp,
         status: 'running',
-      }
+      };
 
       if (!journey.stepsById.has(stepKey)) {
-        journey.stepOrder.push(stepKey)
+        journey.stepOrder.push(stepKey);
       }
 
-      const nextLabel = resolveStepLabel(event, stepId)
+      const nextLabel = resolveStepLabel(event, stepId);
       if (stage.label === stage.stepId || nextLabel !== stepId) {
-        stage.label = nextLabel
+        stage.label = nextLabel;
       }
-      stage.nodeId = stage.nodeId ?? nodeId ?? undefined
-      stage.endSeq = Math.max(stage.endSeq, seq)
-      stage.endTs = event.timestamp
-      stage.attrs = mergeStepAttributes(stage.attrs, event.attributes)
-      stage.status = resolveStepStatus(event, stage.status)
+      stage.nodeId = stage.nodeId ?? nodeId ?? undefined;
+      stage.endSeq = Math.max(stage.endSeq, seq);
+      stage.endTs = event.timestamp;
+      stage.attrs = mergeStepAttributes(stage.attrs, event.attributes);
+      stage.status = resolveStepStatus(event, stage.status);
 
-      const attempt = readAttempt(event.attributes)
+      const attempt = readAttempt(event.attributes);
       if (typeof attempt === 'number') {
-        stage.attempt = Math.max(stage.attempt ?? 0, attempt)
+        stage.attempt = Math.max(stage.attempt ?? 0, attempt);
       }
 
       if (stage.status === 'error') {
-        stage.errorSummary = stage.errorSummary ?? resolveErrorSummary(event)
+        stage.errorSummary = stage.errorSummary ?? resolveErrorSummary(event);
       }
 
-      journey.stepsById.set(stepKey, stage)
-      journeyMap.set(traceId, journey)
+      journey.stepsById.set(stepKey, stage);
+      journeyMap.set(traceId, journey);
     }
 
-    return materializeJourneys(journeyMap)
-  }, [events, spanMapping])
+    return materializeJourneys(journeyMap);
+  }, [events, spanMapping]);
 
   const journeyByTraceId = useMemo(
     () => new Map(journeys.map((journey) => [journey.traceId, journey])),
     [journeys],
-  )
+  );
 
-  const clearJourneys = useCallback(() => {}, [])
+  const clearJourneys = useCallback(() => {}, []);
 
   return {
     journeys,
     journeyByTraceId,
     clearJourneys,
-  }
+  };
 }

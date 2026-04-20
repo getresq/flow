@@ -7,7 +7,13 @@
     "queue_prefixes": ["intake-queue", "publish-queue"],
     "function_prefixes": [],
     "worker_prefixes": ["intake-worker", "publish-worker"],
-    "step_prefixes": ["external-event", "intake-worker.", "normalize-record", "input-valid", "publish-worker."],
+    "step_prefixes": [
+      "external-event",
+      "intake-worker.",
+      "normalize-record",
+      "input-valid",
+      "publish-worker."
+    ],
     "span_prefixes": [],
     "span_names": []
   },

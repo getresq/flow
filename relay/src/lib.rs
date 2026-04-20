@@ -13,10 +13,12 @@ use tower_http::services::{ServeDir, ServeFile};
 mod contracts;
 mod devtools;
 mod error;
+mod flow_definitions;
 mod health;
 mod history;
 mod ingest;
 mod models;
+mod paths;
 mod ws;
 
 use contracts::{FlowMatcher, FlowRegistry};
@@ -33,6 +35,7 @@ pub(crate) struct AppState {
     matcher: FlowMatcher,
     ingest: IngestHealth,
     history_client: reqwest::Client,
+    flow_definition_dir: Option<PathBuf>,
 }
 
 impl AppState {
@@ -42,6 +45,7 @@ impl AppState {
         matcher: FlowMatcher,
         ingest: IngestHealth,
         history_client: reqwest::Client,
+        flow_definition_dir: Option<PathBuf>,
     ) -> Self {
         Self {
             bind: Arc::new(bind),
@@ -49,6 +53,7 @@ impl AppState {
             matcher,
             ingest,
             history_client,
+            flow_definition_dir,
         }
     }
 }
@@ -72,7 +77,9 @@ fn build_app_with_registry(bind: String, registry: FlowRegistry) -> Result<Route
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
         .map(PathBuf::from);
-    build_app_with_registry_and_ui_dir(bind, registry, ui_dir)
+    let ui_dir = ui_dir.or_else(|| paths::package_relative_dir("ui"));
+    let flow_definition_dir = Some(flow_definitions::default_flow_definition_dir());
+    build_app_with_registry_and_dirs(bind, registry, ui_dir, flow_definition_dir)
 }
 
 pub fn build_app_with_contract_dir_and_ui_dir(
@@ -81,13 +88,33 @@ pub fn build_app_with_contract_dir_and_ui_dir(
     ui_dir: impl AsRef<Path>,
 ) -> Result<Router, RelayError> {
     let registry = FlowRegistry::load_from_dir(contract_dir.as_ref())?;
-    build_app_with_registry_and_ui_dir(bind.into(), registry, Some(ui_dir.as_ref().to_path_buf()))
+    build_app_with_registry_and_dirs(
+        bind.into(),
+        registry,
+        Some(ui_dir.as_ref().to_path_buf()),
+        Some(flow_definitions::default_flow_definition_dir()),
+    )
 }
 
-fn build_app_with_registry_and_ui_dir(
+pub fn build_app_with_contract_dir_and_flow_definition_dir(
+    bind: impl Into<String>,
+    contract_dir: impl AsRef<Path>,
+    flow_definition_dir: impl AsRef<Path>,
+) -> Result<Router, RelayError> {
+    let registry = FlowRegistry::load_from_dir(contract_dir.as_ref())?;
+    build_app_with_registry_and_dirs(
+        bind.into(),
+        registry,
+        None,
+        Some(flow_definition_dir.as_ref().to_path_buf()),
+    )
+}
+
+fn build_app_with_registry_and_dirs(
     bind: String,
     registry: FlowRegistry,
     ui_dir: Option<PathBuf>,
+    flow_definition_dir: Option<PathBuf>,
 ) -> Result<Router, RelayError> {
     let history_client = history::build_history_client()?;
     let state = AppState::new(
@@ -96,6 +123,7 @@ fn build_app_with_registry_and_ui_dir(
         FlowMatcher::new(registry),
         IngestHealth::default(),
         history_client,
+        flow_definition_dir,
     );
     Ok(build_router(state, ui_dir))
 }
@@ -105,6 +133,7 @@ fn build_router(state: AppState, ui_dir: Option<PathBuf>) -> Router {
         .route("/v1/dev/reset", post(devtools::reset_live_session))
         .route("/v1/traces", post(ingest::post_traces))
         .route("/v1/logs", post(ingest::post_logs))
+        .route("/v1/flows", get(flow_definitions::get_flow_definitions))
         .route("/v1/history", get(history::get_history))
         .route("/ws", get(ws::ws_upgrade))
         .route("/health", get(health::health))

@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest';
 
-import { buildFlowLogDisplayMessage, buildLogSearchText } from '../logPresentation'
-import type { LogEntry } from '../types'
+import { buildFlowLogDisplayMessage, buildLogSearchText } from '../logPresentation';
+import type { LogEntry } from '../types';
 
 describe('logPresentation', () => {
   it('summarizes analyze final results for manual review', () => {
@@ -17,8 +17,8 @@ describe('logPresentation', () => {
           auto_approved: false,
         },
       }),
-    ).toBe('drafted; awaiting manual review')
-  })
+    ).toBe('drafted; awaiting manual review');
+  });
 
   it('summarizes analyze final results for manual approval', () => {
     expect(
@@ -33,8 +33,8 @@ describe('logPresentation', () => {
           auto_approved: false,
         },
       }),
-    ).toBe('drafted; awaiting manual approval')
-  })
+    ).toBe('drafted; awaiting manual approval');
+  });
 
   it('summarizes analyze final results for autosend execution', () => {
     expect(
@@ -49,8 +49,8 @@ describe('logPresentation', () => {
           auto_approved: true,
         },
       }),
-    ).toBe('auto-send approved; execution enqueued')
-  })
+    ).toBe('auto-send approved; execution enqueued');
+  });
 
   it('summarizes send enqueue and send outcomes', () => {
     expect(
@@ -62,7 +62,7 @@ describe('logPresentation', () => {
           reply_status: 'sending',
         },
       }),
-    ).toBe('send queued')
+    ).toBe('send queued');
 
     expect(
       buildFlowLogDisplayMessage({
@@ -75,7 +75,7 @@ describe('logPresentation', () => {
           result_action: 'sent',
         },
       }),
-    ).toBe('sent')
+    ).toBe('sent');
 
     expect(
       buildFlowLogDisplayMessage({
@@ -89,7 +89,7 @@ describe('logPresentation', () => {
           error_message: 'retryable send failure: provider timeout',
         },
       }),
-    ).toBe('retryable send failure')
+    ).toBe('retryable send failure');
 
     expect(
       buildFlowLogDisplayMessage({
@@ -102,8 +102,8 @@ describe('logPresentation', () => {
           result_action: 'not_sent',
         },
       }),
-    ).toBe('terminal send failure')
-  })
+    ).toBe('terminal send failure');
+  });
 
   it('summarizes extract transitions with consistent phrasing', () => {
     expect(
@@ -112,7 +112,7 @@ describe('logPresentation', () => {
         nodeId: 'extract-worker',
         message: 'extract worker started thread extract pass',
       }),
-    ).toBe('extract started')
+    ).toBe('extract started');
 
     expect(
       buildFlowLogDisplayMessage({
@@ -120,8 +120,8 @@ describe('logPresentation', () => {
         nodeId: 'extract-worker',
         message: 'extract finalized thread extract pass',
       }),
-    ).toBe('extract completed')
-  })
+    ).toBe('extract completed');
+  });
 
   it('keeps raw message searchable even when a summary is shown', () => {
     const entry: LogEntry = {
@@ -136,11 +136,11 @@ describe('logPresentation', () => {
       signal: 'meaningful',
       defaultVisible: true,
       eventType: 'log',
-    }
+    };
 
-    const searchText = buildLogSearchText(entry, 'Approve action batch')
-    expect(searchText).toContain('send queued')
-    expect(searchText).toContain('queued send reply job')
-    expect(searchText).toContain('approve action batch')
-  })
-})
+    const searchText = buildLogSearchText(entry, 'Approve action batch');
+    expect(searchText).toContain('send queued');
+    expect(searchText).toContain('queued send reply job');
+    expect(searchText).toContain('approve action batch');
+  });
+});

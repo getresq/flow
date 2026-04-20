@@ -1,13 +1,13 @@
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react';
 
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui'
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui';
 
 interface HudIdentityPillProps {
-  flowName: string
-  connected: boolean
-  reconnecting: boolean
-  relayWsUrl: string
-  onNavigateBack: () => void
+  flowName: string;
+  connected: boolean;
+  reconnecting: boolean;
+  relayWsUrl: string;
+  onNavigateBack: () => void;
 }
 
 export function HudIdentityPill({
@@ -17,16 +17,12 @@ export function HudIdentityPill({
   relayWsUrl,
   onNavigateBack,
 }: HudIdentityPillProps) {
-  const connectionLabel = connected
-    ? 'Connected'
-    : reconnecting
-      ? 'Reconnecting…'
-      : 'Disconnected'
+  const connectionLabel = connected ? 'Connected' : reconnecting ? 'Reconnecting…' : 'Disconnected';
   const connectionTooltip = connected
     ? `Connected to relay at ${relayWsUrl}`
     : reconnecting
       ? `Reconnecting to relay at ${relayWsUrl}`
-      : `Disconnected from relay at ${relayWsUrl}`
+      : `Disconnected from relay at ${relayWsUrl}`;
 
   return (
     <div className="flex items-center gap-1.5">
@@ -61,5 +57,5 @@ export function HudIdentityPill({
         <TooltipContent>{connectionTooltip}</TooltipContent>
       </Tooltip>
     </div>
-  )
+  );
 }

@@ -1,27 +1,27 @@
-import demoFixture from './fixtures/demo-pipeline-replay.json'
-import type { FlowEvent } from '../core/types'
+import demoFixture from './fixtures/demo-pipeline-replay.json';
+import type { FlowEvent } from '../core/types';
 
-const DEFAULT_WS_URL = 'ws://localhost:4200/ws'
+const DEFAULT_WS_URL = 'ws://localhost:4200/ws';
 
 function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function formatReplayTimestamp(timestampMs: number): string {
-  return new Date(timestampMs).toISOString()
+  return new Date(timestampMs).toISOString();
 }
 
 function shiftReplayTimestamp(timestamp: string | undefined, offsetMs: number): string | undefined {
   if (!timestamp) {
-    return undefined
+    return undefined;
   }
 
-  const parsed = Date.parse(timestamp)
+  const parsed = Date.parse(timestamp);
   if (!Number.isFinite(parsed)) {
-    return timestamp
+    return timestamp;
   }
 
-  return formatReplayTimestamp(parsed + offsetMs)
+  return formatReplayTimestamp(parsed + offsetMs);
 }
 
 export function rebaseReplayEventsForLivePlayback(
@@ -29,98 +29,101 @@ export function rebaseReplayEventsForLivePlayback(
   anchorTimeMs = Date.now(),
 ): FlowEvent[] {
   if (events.length === 0) {
-    return events
+    return events;
   }
 
-  const firstEventTimeMs = Date.parse(events[0].timestamp)
+  const firstEventTimeMs = Date.parse(events[0].timestamp);
   if (!Number.isFinite(firstEventTimeMs)) {
-    return events
+    return events;
   }
 
-  const offsetMs = anchorTimeMs - firstEventTimeMs
+  const offsetMs = anchorTimeMs - firstEventTimeMs;
 
   return events.map((event) => ({
     ...event,
     timestamp: shiftReplayTimestamp(event.timestamp, offsetMs) ?? event.timestamp,
     start_time: shiftReplayTimestamp(event.start_time, offsetMs),
     end_time: shiftReplayTimestamp(event.end_time, offsetMs),
-  }))
+  }));
 }
 
 async function connectRelay(url: string): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url)
+    const ws = new WebSocket(url);
     const timeout = setTimeout(() => {
-      ws.close()
-      reject(new Error(`timed out connecting to relay at ${url}`))
-    }, 2_000)
+      ws.close();
+      reject(new Error(`timed out connecting to relay at ${url}`));
+    }, 2_000);
 
     ws.onopen = () => {
-      clearTimeout(timeout)
-      resolve(ws)
-    }
+      clearTimeout(timeout);
+      resolve(ws);
+    };
 
     ws.onerror = () => {
-      clearTimeout(timeout)
-      reject(new Error(`failed to connect to relay at ${url}`))
-    }
-  })
+      clearTimeout(timeout);
+      reject(new Error(`failed to connect to relay at ${url}`));
+    };
+  });
 }
 
 function resetRelaySession(socket: WebSocket, reason = 'replay') {
-  socket.send(JSON.stringify({ type: 'reset', reason }))
+  socket.send(JSON.stringify({ type: 'reset', reason }));
 }
 
-export const demoReplayEvents = demoFixture as FlowEvent[]
+export const demoReplayEvents = demoFixture as FlowEvent[];
 
 async function replayToRelay(socket: WebSocket, events: FlowEvent[]) {
   for (let index = 0; index < events.length; index += 1) {
-    const event = events[index]
-    const next = events[index + 1]
+    const event = events[index];
+    const next = events[index + 1];
 
-    socket.send(JSON.stringify(event))
+    socket.send(JSON.stringify(event));
     // eslint-disable-next-line no-console
-    console.log(`[replay] sent ${event.type} ${event.span_name ?? event.message ?? ''}`)
+    console.log(`[replay] sent ${event.type} ${event.span_name ?? event.message ?? ''}`);
 
     if (!next) {
-      continue
+      continue;
     }
 
-    const delta = Math.max(Date.parse(next.timestamp) - Date.parse(event.timestamp), 0)
+    const delta = Math.max(Date.parse(next.timestamp) - Date.parse(event.timestamp), 0);
     if (delta > 0) {
-      await delay(delta)
+      await delay(delta);
     }
   }
 }
 
 async function main() {
   // eslint-disable-next-line no-console
-  console.log(`[replay] loaded demo pipeline (${demoReplayEvents.length} events)`)
+  console.log(`[replay] loaded demo pipeline (${demoReplayEvents.length} events)`);
 
   try {
-    const socket = await connectRelay(DEFAULT_WS_URL)
+    const socket = await connectRelay(DEFAULT_WS_URL);
     // eslint-disable-next-line no-console
-    console.log(`[replay] connected to ${DEFAULT_WS_URL}`)
-    resetRelaySession(socket)
+    console.log(`[replay] connected to ${DEFAULT_WS_URL}`);
+    resetRelaySession(socket);
     // eslint-disable-next-line no-console
-    console.log('[replay] reset live session')
-    const livePlaybackEvents = rebaseReplayEventsForLivePlayback(demoReplayEvents, Date.now())
-    await replayToRelay(socket, livePlaybackEvents)
-    socket.close()
+    console.log('[replay] reset live session');
+    const livePlaybackEvents = rebaseReplayEventsForLivePlayback(demoReplayEvents, Date.now());
+    await replayToRelay(socket, livePlaybackEvents);
+    socket.close();
     // eslint-disable-next-line no-console
-    console.log('[replay] complete')
-    return
+    console.log('[replay] complete');
+    return;
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('[replay] relay unavailable; start the relay first with `make dev` or `make dev-relay`', error)
-    process.exit(1)
+    console.error(
+      '[replay] relay unavailable; start the relay first with `make dev` or `make dev-relay`',
+      error,
+    );
+    process.exit(1);
   }
 }
 
 if (import.meta.main) {
   main().catch((error) => {
     // eslint-disable-next-line no-console
-    console.error('[replay] failed', error)
-    process.exit(1)
-  })
+    console.error('[replay] failed', error);
+    process.exit(1);
+  });
 }

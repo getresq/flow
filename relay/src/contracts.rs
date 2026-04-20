@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{RelayError, RelayResult};
 use crate::models::{FlowEvent, infer_error_state};
+use crate::paths::env_or_package_or_source_dir;
 
-const DEFAULT_CONTRACT_DIR: &str = "../ui/src/flow-contracts";
 const TRACE_CONTEXT_TTL_SECS: i64 = 30 * 60;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -58,9 +58,11 @@ pub struct FlowRegistry {
 
 impl FlowRegistry {
     pub fn load_default() -> RelayResult<Self> {
-        let path = std::env::var("RESQ_FLOW_CONTRACT_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| PathBuf::from(DEFAULT_CONTRACT_DIR));
+        let path = env_or_package_or_source_dir(
+            "RESQ_FLOW_CONTRACT_DIR",
+            "contracts",
+            "../ui/src/flow-contracts",
+        );
         Self::load_from_dir(&path)
     }
 

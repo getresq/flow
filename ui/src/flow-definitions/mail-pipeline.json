@@ -1,0 +1,2234 @@
+{
+  "id": "mail-pipeline",
+  "name": "Mail Pipeline",
+  "description": "Real-time view of queue, worker, decision, and persistence steps for mail processing.",
+  "contract": {
+    "version": 1,
+    "id": "mail-pipeline",
+    "name": "Mail Pipeline",
+    "telemetry": {
+      "log_events": ["flow_event"],
+      "queue_prefixes": ["rrq:queue:mail-"],
+      "function_prefixes": ["handle_mail_"],
+      "worker_prefixes": ["mail_"],
+      "step_prefixes": [
+        "backfill-worker.",
+        "incoming-schedule-process.",
+        "incoming-worker.",
+        "analyze-decision.",
+        "draft-reply.",
+        "autosend-decision.",
+        "extract-worker.",
+        "send-process."
+      ],
+      "span_prefixes": ["handle_mail_"],
+      "span_names": ["insert_reply_draft"]
+    },
+    "keep_context": {
+      "parent_spans": true,
+      "root_spans": true,
+      "error_events": true,
+      "unmapped_events_for_kept_traces": true
+    }
+  },
+  "hasGraph": true,
+  "seedPositions": {
+    "actions-queue": {
+      "x": -50.84323570771462,
+      "y": 1793.7494729932932
+    },
+    "actions-worker": {
+      "x": -51.24599662254413,
+      "y": 1897.9439511636342
+    },
+    "actions-execute": {
+      "x": -52.44365930360359,
+      "y": 2006.6765815502008
+    },
+    "actions-failed": {
+      "x": 44.39754559296771,
+      "y": 2122.8733604828994
+    },
+    "actions-send-enqueue": {
+      "x": -168.0593044876383,
+      "y": 2123.3394136129377
+    },
+    "analyze-decision": {
+      "x": -5.538980484623856,
+      "y": 1236.968161625165
+    },
+    "analyze-error": {
+      "x": 200.94970987358067,
+      "y": 1294.3064948536257
+    },
+    "analyze-prechecks": {
+      "x": -52.28160918118865,
+      "y": 1114.013331622266
+    },
+    "analyze-queue": {
+      "x": -51.628602339710504,
+      "y": 898.519474350221
+    },
+    "analyze-worker": {
+      "x": -52.386619610757315,
+      "y": 1005.1929317318807
+    },
+    "autosend-approved": {
+      "x": -52.51066929516721,
+      "y": 1695.0192402826124
+    },
+    "autosend-decision": {
+      "x": -7.3532472503002495,
+      "y": 1514.511367082775
+    },
+    "backfill-cursor-write": {
+      "x": 590.7615161957777,
+      "y": 492.31497527761803
+    },
+    "backfill-queue": {
+      "x": 591.9204472635556,
+      "y": 162.8714047628132
+    },
+    "backfill-thread-metadata-write": {
+      "x": 592.1714632908122,
+      "y": 381.875930246516
+    },
+    "backfill-worker": {
+      "x": 592.9558721234165,
+      "y": 278.80302299382
+    },
+    "cron-enqueue": {
+      "x": 40.53759037822563,
+      "y": 194.0598634109286
+    },
+    "cron-scheduler": {
+      "x": 41.24359816721122,
+      "y": 71.23835953495794
+    },
+    "draft-reply": {
+      "x": -53.30479392175575,
+      "y": 1393.6029162559998
+    },
+    "extract-ai": {
+      "x": 583.2655167194363,
+      "y": 1092.0924837124273
+    },
+    "extract-ai-success": {
+      "x": 631.7097621908678,
+      "y": 1195.1641685511033
+    },
+    "extract-fail-1": {
+      "x": 801.5938109127137,
+      "y": 1453.6322371956853
+    },
+    "extract-queue": {
+      "x": 582.6136226302858,
+      "y": 892.4016318972572
+    },
+    "extract-record-success": {
+      "x": 588.6301715610407,
+      "y": 1452.2909392798024
+    },
+    "extract-worker": {
+      "x": 582.7371852592612,
+      "y": 993.7381689946454
+    },
+    "incoming-check-enqueue": {
+      "x": -167.7923461455415,
+      "y": 585.6896868077788
+    },
+    "incoming-queue": {
+      "x": 41.08545528760233,
+      "y": 279.3975263075628
+    },
+    "incoming-schedule-process": {
+      "x": 42.275767414659654,
+      "y": 499.22613268329394
+    },
+    "incoming-scheduled-at": {
+      "x": 41.74306730566859,
+      "y": 584.81119060383
+    },
+    "incoming-thread-metadata-write": {
+      "x": 255.51265493476075,
+      "y": 499.99166439711814
+    },
+    "incoming-worker": {
+      "x": 41.86980544355677,
+      "y": 385.3595148950661
+    },
+    "manual-approval-api": {
+      "x": 242.75175058770662,
+      "y": 1638.7026273947372
+    },
+    "pause-manual-approval": {
+      "x": 242.0658629287808,
+      "y": 1566.4021729740425
+    },
+    "postgres-extract": {
+      "x": 842.2921610006707,
+      "y": 1535.106920236163
+    },
+    "postgres-backfill": {
+      "x": 571.0328013843466,
+      "y": 575.2776213398357
+    },
+    "postgres-incoming": {
+      "x": 265.23328067465417,
+      "y": 694.744730575439
+    },
+    "reuse-batch-stop": {
+      "x": 200.15544807527715,
+      "y": 1154.472098446457
+    },
+    "s3-backfill": {
+      "x": 696.7184563328632,
+      "y": 576.7954162750631
+    },
+    "s3-incoming": {
+      "x": 384.0993316493749,
+      "y": 694.9557089082347
+    },
+    "send-process": {
+      "x": -165.7215436416462,
+      "y": 2423.9926537324745
+    },
+    "send-needs-review": {
+      "x": 40.4590117961362,
+      "y": 2574.7871998981536
+    },
+    "send-queue": {
+      "x": -166.92380380832432,
+      "y": 2203.285236704941
+    },
+    "send-sent": {
+      "x": -375.18228676195935,
+      "y": 2575.7895291282957
+    },
+    "send-terminal-nonsend": {
+      "x": -168.35232056234267,
+      "y": 2573.784870668011
+    },
+    "send-worker": {
+      "x": -166.88623413776926,
+      "y": 2312.352862111939
+    },
+    "skip-owner-stop": {
+      "x": 199.63133528332935,
+      "y": 1085.389008603997
+    },
+    "skip-thread-status": {
+      "x": 198.6311418180552,
+      "y": 1234.781413989415
+    },
+    "trigger-oauth": {
+      "x": 592.7114919163067,
+      "y": 64.32156227516816
+    },
+    "update-history": {
+      "x": 261.3429957639721,
+      "y": 584.2796350673192
+    },
+    "upsert-contacts": {
+      "x": 587.1960506566711,
+      "y": 1362.6369103060138
+    }
+  },
+  "nodes": [
+    {
+      "id": "trigger-oauth",
+      "label": "Email Account Connected",
+      "description": "External mailbox connection trigger that starts the mail pipeline.",
+      "notes": [
+        "Stores Gmail auth state in mail_oauth_tokens.",
+        "Resets the backfill cursor and kicks off the backfill start job."
+      ],
+      "position": {
+        "x": -270,
+        "y": -40
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "emerald"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "backfill-queue",
+      "label": "Backfill Queue",
+      "notes": [
+        "Holds both backfill start jobs and backfill chunk jobs.",
+        "Uses mail_cursors.backfill_page_token to control paging.",
+        "An empty token starts from the first page; a saved token resumes from that page.",
+        "A done marker skips future fetch/enqueue for the mailbox."
+      ],
+      "position": {
+        "x": 110,
+        "y": -70
+      },
+      "type": "roundedRect",
+      "eyebrow": "QUEUE",
+      "style": {
+        "color": "amber",
+        "icon": "queue"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "backfill-worker",
+      "label": "Backfill Worker",
+      "description": "Backfills historical mail for newly connected accounts.",
+      "notes": [
+        "Consumes both backfill start jobs and backfill chunk jobs.",
+        "Fetches historical threads, stores raw payloads, records thread metadata, and hands off extract work."
+      ],
+      "position": {
+        "x": 185,
+        "y": 60
+      },
+      "bullets": ["1 worker at a time", "(configurable to n workers)"],
+      "handles": [
+        {
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        },
+        {
+          "id": "out-right",
+          "position": "right",
+          "type": "source"
+        },
+        {
+          "id": "out-left",
+          "position": "left",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "eyebrow": "WORKER",
+      "style": {
+        "color": "ocean",
+        "icon": "worker"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "cron-scheduler",
+      "label": "Cron Scheduler",
+      "description": "Recurring scheduler boundary that decides when mailbox checks should run.",
+      "position": {
+        "x": 175,
+        "y": 220
+      },
+      "type": "roundedRect",
+      "eyebrow": "CRON",
+      "style": {
+        "color": "slate",
+        "icon": "cron"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "cron-enqueue",
+      "label": "Enqueue Cron Tick",
+      "description": "Queues the recurring cron tick that drives mailbox checks every minute.",
+      "position": {
+        "x": 150,
+        "y": 320
+      },
+      "handles": [
+        {
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "incoming-queue",
+      "label": "Incoming Queue",
+      "notes": [
+        "Holds both the recurring mailbox-sweep work and mailbox incoming-check work.",
+        "Jobs can arrive from multiple vendors and mailboxes."
+      ],
+      "position": {
+        "x": 145,
+        "y": 405
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "eyebrow": "QUEUE",
+      "style": {
+        "color": "amber",
+        "icon": "queue"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "incoming-worker",
+      "label": "Incoming Worker",
+      "description": "Checks connected inboxes for new mail and hands off downstream work.",
+      "notes": [
+        "Picks up both scheduled mailbox-sweep work and mailbox incoming-check work from the Incoming Queue.",
+        "If no incoming_history_id exists yet, incoming processing writes the baseline cursor and stops."
+      ],
+      "position": {
+        "x": 205,
+        "y": 535
+      },
+      "bullets": ["1 worker at a time", "(configurable to n workers)"],
+      "handles": [
+        {
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "eyebrow": "WORKER",
+      "style": {
+        "color": "ocean",
+        "icon": "worker"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "incoming-schedule-process",
+      "label": "Schedule Incoming Checks",
+      "description": "Finds mailboxes that should get an incoming check and prepares the next queue work.",
+      "notes": [
+        "Reads connected mailbox rows from mail_oauth_tokens.",
+        "Looks up mail_cursors.incoming_check_scheduled_at to find mailboxes due for a check."
+      ],
+      "position": {
+        "x": -455,
+        "y": 702
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "incoming-check-enqueue",
+      "label": "Enqueue Incoming Check",
+      "description": "Queues a mailbox incoming check when unread mail should be processed.",
+      "position": {
+        "x": -555,
+        "y": 815
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "incoming-scheduled-at",
+      "label": "Write Schedule Cursor",
+      "description": "Updates the scheduled incoming-check cursor timestamp in Postgres.",
+      "notes": [
+        "Writes mail_cursors.incoming_check_scheduled_at in Postgres.",
+        "Marks when the mailbox was last scheduled for an incoming check."
+      ],
+      "position": {
+        "x": -340,
+        "y": 815
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "incoming-thread-metadata-write",
+      "label": "Persist Incoming Mail",
+      "description": "Stores incoming thread payloads, records normalized thread state, and queues follow-on work.",
+      "notes": [
+        "Incoming path only.",
+        "Stores raw thread artifacts in the thread store.",
+        "Writes mail_threads rows with s3_key, content_hash, subject, participants, and ingest timestamp.",
+        "Queues extract and analyze follow-on work for eligible incoming threads."
+      ],
+      "position": {
+        "x": 310,
+        "y": 730
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "backfill-thread-metadata-write",
+      "label": "Persist Backfill Mail",
+      "description": "Stores historical thread payloads, records normalized thread state, and queues follow-on work.",
+      "notes": [
+        "Backfill path only.",
+        "Stores raw thread artifacts in the thread store.",
+        "Writes mail_threads rows with s3_key, content_hash, subject, participants, and ingest timestamp.",
+        "Queues extract follow-on work for eligible historical threads."
+      ],
+      "position": {
+        "x": 720,
+        "y": 730
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "backfill-cursor-write",
+      "label": "Advance Backfill Cursor",
+      "description": "Updates the backfill cursor state in Postgres.",
+      "notes": [
+        "Writes the next mail_cursors.backfill_page_token value or the done marker.",
+        "When another page exists, this step also schedules the next backfill chunk job."
+      ],
+      "position": {
+        "x": 720,
+        "y": 900
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "s3-incoming",
+      "label": "S3",
+      "style": {
+        "icon": "s3",
+        "color": "teal"
+      },
+      "description": "Thread artifact store for raw mailbox thread data.",
+      "notes": [
+        "Shared thread artifact store. Duplicated visually in this lane for readability — the backfill lane writes to the same bucket.",
+        "Receives raw incoming thread artifacts keyed per stored mailbox thread payload."
+      ],
+      "position": {
+        "x": 200,
+        "y": 750
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        }
+      ],
+      "type": "cylinder",
+      "size": {
+        "width": 88,
+        "height": 104
+      }
+    },
+    {
+      "id": "postgres-incoming",
+      "label": "Postgres",
+      "style": {
+        "icon": "postgres",
+        "color": "teal"
+      },
+      "description": "Primary relational store for mail auth, cursors, and thread state.",
+      "notes": [
+        "Shared Postgres store. Duplicated visually in this lane for readability — the backfill lane writes to the same database.",
+        "Stores mailbox auth state in mail_oauth_tokens, incoming and backfill cursors in mail_cursors, and normalized thread state in mail_threads."
+      ],
+      "position": {
+        "x": 510,
+        "y": 910
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        }
+      ],
+      "type": "cylinder",
+      "size": {
+        "width": 88,
+        "height": 104
+      }
+    },
+    {
+      "id": "s3-backfill",
+      "label": "S3",
+      "style": {
+        "icon": "s3",
+        "color": "teal"
+      },
+      "description": "Thread artifact store for raw mailbox thread data.",
+      "notes": [
+        "Shared thread artifact store. Duplicated visually in this lane for readability — the incoming lane writes to the same bucket.",
+        "Receives raw historical thread artifacts keyed per stored mailbox thread payload."
+      ],
+      "position": {
+        "x": 620,
+        "y": 750
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        }
+      ],
+      "type": "cylinder",
+      "size": {
+        "width": 88,
+        "height": 104
+      }
+    },
+    {
+      "id": "postgres-backfill",
+      "label": "Postgres",
+      "style": {
+        "icon": "postgres",
+        "color": "teal"
+      },
+      "description": "Primary relational store for mail auth, cursors, and thread state.",
+      "notes": [
+        "Shared Postgres store. Duplicated visually in this lane for readability — the incoming lane writes to the same database.",
+        "Stores mailbox auth state in mail_oauth_tokens, incoming and backfill cursors in mail_cursors, and normalized thread state in mail_threads."
+      ],
+      "position": {
+        "x": 920,
+        "y": 910
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        }
+      ],
+      "type": "cylinder",
+      "size": {
+        "width": 88,
+        "height": 104
+      }
+    },
+    {
+      "id": "update-history",
+      "label": "Advance Incoming Cursor",
+      "description": "Updates the incoming history cursor after downstream queue handoff succeeds.",
+      "notes": [
+        "Incoming path only.",
+        "Writes mail_cursors.incoming_history_id in Postgres.",
+        "Skips the write when no next_cursor is returned."
+      ],
+      "position": {
+        "x": 310,
+        "y": 900
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "analyze-queue",
+      "label": "Analyze Queue",
+      "notes": ["Holds handle_analyze_reply jobs for run-start threads."],
+      "position": {
+        "x": 980,
+        "y": 1010
+      },
+      "layout": {
+        "order": 56
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "eyebrow": "QUEUE",
+      "style": {
+        "color": "amber",
+        "icon": "queue"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "analyze-worker",
+      "label": "Analyze Worker",
+      "description": "Analyzes extracted mail and decides whether to draft a reply.",
+      "position": {
+        "x": 1005,
+        "y": 1160
+      },
+      "bullets": ["1 worker at a time", "(configurable to n workers)"],
+      "layout": {
+        "lane": "main",
+        "order": 58
+      },
+      "type": "roundedRect",
+      "eyebrow": "WORKER",
+      "style": {
+        "color": "ocean",
+        "icon": "worker"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "analyze-prechecks",
+      "label": "Analyze Prechecks",
+      "description": "Loads the stored thread and clears the early stop or batch-reuse checks before the LLM branch runs.",
+      "notes": [
+        "Stops if the latest sender is the mailbox owner.",
+        "Reuses an active action batch for the same thread/content when one already exists."
+      ],
+      "position": {
+        "x": 1005,
+        "y": 1260
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        },
+        {
+          "id": "out-right",
+          "position": "right",
+          "type": "source"
+        }
+      ],
+      "layout": {
+        "lane": "main",
+        "order": 60
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "sky"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "analyze-decision",
+      "label": "Next Action?",
+      "description": "Runs propose-mode analysis to choose the next thread action after prechecks pass.",
+      "notes": [
+        "The LLM can return skip, needs_review, or draft_reply.",
+        "Main analyze result telemetry lands here."
+      ],
+      "position": {
+        "x": 1035,
+        "y": 1455
+      },
+      "layout": {
+        "lane": "main",
+        "order": 62,
+        "branch": {
+          "anchorId": "analyze-prechecks",
+          "track": "primary",
+          "rank": 0
+        }
+      },
+      "type": "diamond",
+      "style": {
+        "color": "violet"
+      },
+      "size": {
+        "width": 92,
+        "height": 92
+      }
+    },
+    {
+      "id": "skip-owner-stop",
+      "label": "Skip Internal Sender",
+      "description": "Stops analyze when the latest sender is the mailbox owner.",
+      "position": {
+        "x": 1275,
+        "y": 1270
+      },
+      "layout": {
+        "lane": "branch",
+        "order": 61,
+        "branch": {
+          "anchorId": "analyze-prechecks",
+          "track": "right",
+          "rank": 0,
+          "domain": "analyze",
+          "column": 0
+        }
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "reuse-batch-stop",
+      "label": "Reuse Existing Batch",
+      "description": "Reuses the latest active action batch and updates thread reply state from that batch.",
+      "position": {
+        "x": 1300,
+        "y": 1370
+      },
+      "layout": {
+        "lane": "branch",
+        "order": 62,
+        "branch": {
+          "anchorId": "analyze-prechecks",
+          "track": "right",
+          "rank": 1,
+          "domain": "analyze",
+          "column": 0
+        }
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "skip-thread-status",
+      "label": "Mark Skipped",
+      "description": "Writes mail_threads.reply_status = skipped and ends this branch.",
+      "position": {
+        "x": 1310,
+        "y": 1560
+      },
+      "layout": {
+        "lane": "branch",
+        "order": 63,
+        "branch": {
+          "anchorId": "analyze-decision",
+          "track": "right",
+          "rank": 0,
+          "domain": "analyze",
+          "column": 0
+        }
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "analyze-error",
+      "label": "Needs Review",
+      "description": "Falls back to needs_review when analyze returns an error, malformed output, or draft-generation fallback.",
+      "notes": ["Some needs-review outcomes happen without a draft ever being created."],
+      "position": {
+        "x": 1210,
+        "y": 1665
+      },
+      "layout": {
+        "lane": "branch",
+        "order": 64,
+        "branch": {
+          "anchorId": "analyze-decision",
+          "track": "right",
+          "rank": 1,
+          "domain": "analyze",
+          "column": 0,
+          "dx": 0,
+          "dy": 8
+        }
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "draft-reply",
+      "label": "Draft Reply",
+      "description": "Generates the reply draft and writes the reply_drafts row before approval or send decisions continue.",
+      "notes": [
+        "If supported proposed actions exist, draft status becomes approval_pending and an action batch is created.",
+        "If supported actions are missing or unsupported, draft status becomes needs_review."
+      ],
+      "position": {
+        "x": 930,
+        "y": 1690
+      },
+      "layout": {
+        "lane": "main",
+        "order": 66,
+        "branch": {
+          "anchorId": "analyze-decision",
+          "track": "primary",
+          "rank": 0
+        }
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "sky"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "autosend-decision",
+      "label": "Auto Send?",
+      "description": "Checks whether autosend is enabled and the action batch can be auto-approved.",
+      "notes": [
+        "Human approval and auto-approval both converge on the same approved-actions execution queue."
+      ],
+      "position": {
+        "x": 1035,
+        "y": 2145
+      },
+      "layout": {
+        "lane": "main",
+        "order": 72,
+        "branch": {
+          "anchorId": "draft-reply",
+          "track": "primary",
+          "rank": 0
+        }
+      },
+      "type": "diamond",
+      "style": {
+        "color": "violet"
+      },
+      "size": {
+        "width": 92,
+        "height": 92
+      }
+    },
+    {
+      "id": "pause-manual-approval",
+      "label": "Pause Approval",
+      "description": "Stops the flow until someone manually approves the pending action batch.",
+      "position": {
+        "x": 1290,
+        "y": 2195
+      },
+      "layout": {
+        "lane": "branch",
+        "order": 73,
+        "branch": {
+          "anchorId": "autosend-decision",
+          "track": "right",
+          "rank": 0,
+          "domain": "approval",
+          "column": 0,
+          "dx": 10
+        }
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "manual-approval-api",
+      "label": "Approve Batch",
+      "description": "Manual approval path that approves the batch and enqueues the approved-actions job.",
+      "position": {
+        "x": 1280,
+        "y": 2335
+      },
+      "layout": {
+        "lane": "branch",
+        "order": 74,
+        "branch": {
+          "anchorId": "pause-manual-approval",
+          "track": "primary",
+          "rank": 0
+        }
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "autosend-approved",
+      "label": "Auto Approve",
+      "description": "Auto-approves the batch and enqueues the approved-actions job.",
+      "notes": ["Reverts the batch to pending approval if the execute-approved enqueue fails."],
+      "position": {
+        "x": 835,
+        "y": 2325
+      },
+      "layout": {
+        "lane": "main",
+        "order": 76,
+        "branch": {
+          "anchorId": "autosend-decision",
+          "track": "primary",
+          "rank": 0,
+          "dy": 6
+        }
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "actions-queue",
+      "label": "Actions Queue",
+      "notes": ["Holds execute-approved-actions jobs from both auto approval and manual approval."],
+      "position": {
+        "x": 985,
+        "y": 2525
+      },
+      "layout": {
+        "lane": "main",
+        "order": 77
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "eyebrow": "QUEUE",
+      "style": {
+        "color": "amber",
+        "icon": "queue"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "actions-worker",
+      "label": "Actions Worker",
+      "description": "Claims the approved batch, executes pending actions, and prepares the send handoff.",
+      "notes": [
+        "If action execution fails, the batch is marked failed before send is ever queued."
+      ],
+      "position": {
+        "x": 1005,
+        "y": 2670
+      },
+      "bullets": ["1 worker at a time", "(configurable to n workers)"],
+      "layout": {
+        "lane": "main",
+        "order": 78
+      },
+      "type": "roundedRect",
+      "eyebrow": "WORKER",
+      "style": {
+        "color": "ocean",
+        "icon": "worker"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "actions-execute",
+      "label": "Run Approved Actions",
+      "description": "Executes approved actions for the batch and prepares the send handoff.",
+      "notes": ["Only successful execution continues to the send queue handoff."],
+      "position": {
+        "x": 985,
+        "y": 2820
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom-send",
+          "position": "bottom",
+          "type": "source",
+          "offset": -18
+        },
+        {
+          "id": "out-bottom-failed",
+          "position": "bottom",
+          "type": "source",
+          "offset": 18
+        }
+      ],
+      "layout": {
+        "lane": "main",
+        "order": 79
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "sky"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "actions-send-enqueue",
+      "label": "Queue Send",
+      "description": "Enqueues send-reply work after approved actions complete successfully.",
+      "notes": ["This is the boundary into the next send section."],
+      "position": {
+        "x": 955,
+        "y": 2960
+      },
+      "layout": {
+        "lane": "main",
+        "order": 80,
+        "branch": {
+          "anchorId": "actions-execute",
+          "track": "primary",
+          "rank": 0
+        }
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "actions-failed",
+      "label": "Action Failed",
+      "description": "Marks the action batch as failed and updates reply state before send is skipped.",
+      "notes": ["Some failures also recover the draft back to needs review."],
+      "position": {
+        "x": 1240,
+        "y": 2960
+      },
+      "layout": {
+        "lane": "branch",
+        "order": 80,
+        "branch": {
+          "anchorId": "actions-execute",
+          "track": "right",
+          "rank": 0,
+          "domain": "actions",
+          "column": 0
+        }
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "extract-queue",
+      "label": "Extract Queue",
+      "notes": [
+        "Receives handle_mail_extract jobs from both incoming and backfill persistence steps.",
+        "Each job carries stored thread lineage such as thread_id, s3_key, content_hash, and run_id.",
+        "AI provider credentials are required for extract execution."
+      ],
+      "position": {
+        "x": 1565,
+        "y": 900
+      },
+      "layout": {
+        "lane": "sidecar",
+        "order": 64
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "eyebrow": "QUEUE",
+      "style": {
+        "color": "amber",
+        "icon": "queue"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "extract-worker",
+      "label": "Extract Worker",
+      "description": "Runs thread extraction and persists durable extract results from stored mail.",
+      "notes": [
+        "Owns AI extraction, durable contact persistence, contact-thread insight persistence, and final extract state recording."
+      ],
+      "position": {
+        "x": 1580,
+        "y": 1035
+      },
+      "bullets": ["1 worker at a time", "(configurable to n workers)"],
+      "layout": {
+        "lane": "sidecar",
+        "order": 68
+      },
+      "type": "roundedRect",
+      "eyebrow": "WORKER",
+      "style": {
+        "color": "ocean",
+        "icon": "worker"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "extract-ai",
+      "label": "Run Extract",
+      "description": "Loads the stored thread payload and runs one AI extract pass for contacts and thread insight.",
+      "position": {
+        "x": 1545,
+        "y": 1215
+      },
+      "layout": {
+        "lane": "sidecar",
+        "order": 70
+      },
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "extract-ai-success",
+      "label": "Extract Succeeded?",
+      "description": "Checks whether the extract step produced a usable result.",
+      "position": {
+        "x": 1615,
+        "y": 1405
+      },
+      "layout": {
+        "lane": "sidecar",
+        "order": 72,
+        "branch": {
+          "anchorId": "extract-ai",
+          "track": "primary",
+          "rank": 0
+        }
+      },
+      "type": "diamond",
+      "style": {
+        "color": "violet"
+      },
+      "size": {
+        "width": 92,
+        "height": 92
+      }
+    },
+    {
+      "id": "extract-fail-1",
+      "label": "Retry Extract",
+      "description": "Records extract error state and returns a retryable job error.",
+      "notes": ["Used for extract execution failures and durable contact persistence failures."],
+      "position": {
+        "x": 1905,
+        "y": 1455
+      },
+      "layout": {
+        "lane": "branch",
+        "order": 73,
+        "branch": {
+          "anchorId": "extract-ai-success",
+          "track": "right",
+          "rank": 0,
+          "domain": "extract",
+          "column": 1
+        }
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "upsert-contacts",
+      "label": "Persist Extract Results",
+      "description": "Writes durable extract results after a successful AI extract.",
+      "notes": [
+        "Upserts normalized contact rows into mail_extracted_contacts.",
+        "Persists contact-thread insights after the durable contact upsert succeeds.",
+        "Contact-thread insight and persist-sink failures warn and continue without retry.",
+        "A durable contact upsert failure returns a retryable job error."
+      ],
+      "position": {
+        "x": 1535,
+        "y": 1605
+      },
+      "layout": {
+        "lane": "sidecar",
+        "order": 74,
+        "branch": {
+          "anchorId": "extract-ai-success",
+          "track": "primary",
+          "rank": 0
+        }
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        },
+        {
+          "id": "out-right",
+          "position": "right",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "postgres-extract",
+      "label": "Postgres",
+      "style": {
+        "icon": "postgres",
+        "color": "teal"
+      },
+      "notes": [
+        "Stores durable extract rows in mail_extracted_contacts.",
+        "Stores contact-thread insights for the thread after contact persistence succeeds.",
+        "Stores thread extract state such as customers_count and final extract error."
+      ],
+      "position": {
+        "x": 2050,
+        "y": 1635
+      },
+      "layout": {
+        "lane": "resource",
+        "order": 75
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        }
+      ],
+      "type": "cylinder",
+      "size": {
+        "width": 88,
+        "height": 104
+      }
+    },
+    {
+      "id": "extract-record-success",
+      "label": "Record Extract State",
+      "description": "Records final extract summary on the thread after durable extract persistence.",
+      "notes": [
+        "Writes customers_count and final extract state to thread state storage.",
+        "This write is best-effort; failures are logged without retrying the whole extract job."
+      ],
+      "position": {
+        "x": 1535,
+        "y": 1795
+      },
+      "layout": {
+        "lane": "sidecar",
+        "order": 76,
+        "branch": {
+          "anchorId": "upsert-contacts",
+          "track": "primary",
+          "rank": 0
+        }
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "send-queue",
+      "label": "Send Queue",
+      "position": {
+        "x": 985,
+        "y": 3135
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom",
+          "position": "bottom",
+          "type": "source"
+        }
+      ],
+      "type": "roundedRect",
+      "eyebrow": "QUEUE",
+      "style": {
+        "color": "amber",
+        "icon": "queue"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "send-worker",
+      "label": "Send Worker",
+      "description": "Picks up queued send-reply jobs and hands off to the send lifecycle.",
+      "notes": [
+        "This worker owns the send precheck telemetry before the send lifecycle finalizes the result."
+      ],
+      "position": {
+        "x": 1005,
+        "y": 3280
+      },
+      "bullets": ["1 worker at a time", "(configurable to n workers)"],
+      "type": "roundedRect",
+      "eyebrow": "WORKER",
+      "style": {
+        "color": "ocean",
+        "icon": "worker"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "send-process",
+      "label": "Send Reply",
+      "description": "Claims the draft, validates send prerequisites, calls the provider, and finalizes the outcome.",
+      "notes": [
+        "Validates thread state, Gmail send scope, recipient, access token, and normalized body before the provider call.",
+        "No-ops if the draft is already approval_pending, sent, or terminal send_failed."
+      ],
+      "position": {
+        "x": 1005,
+        "y": 3450
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        },
+        {
+          "id": "out-bottom-sent",
+          "position": "bottom",
+          "type": "source",
+          "offset": -36
+        },
+        {
+          "id": "out-bottom-terminal",
+          "position": "bottom",
+          "type": "source"
+        },
+        {
+          "id": "out-bottom-review",
+          "position": "bottom",
+          "type": "source",
+          "offset": 36
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "sky"
+      },
+      "size": {
+        "width": 184,
+        "height": 64
+      }
+    },
+    {
+      "id": "send-sent",
+      "label": "Mark Sent",
+      "description": "Marks both the draft and thread as sent after the provider call succeeds.",
+      "position": {
+        "x": 700,
+        "y": 3595
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "send-terminal-nonsend",
+      "label": "Terminal Non-Send",
+      "description": "Records a terminal non-send outcome and updates draft and thread state.",
+      "notes": [
+        "Covers stale drafts, missing auth or scope, invalid recipient, empty body, and terminal provider failures.",
+        "Reply status becomes stale or send_failed depending on the cause."
+      ],
+      "position": {
+        "x": 980,
+        "y": 3595
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    },
+    {
+      "id": "send-needs-review",
+      "label": "Mark Needs Review",
+      "description": "Moves the draft and thread back to needs_review after a retryable provider failure.",
+      "position": {
+        "x": 1260,
+        "y": 3595
+      },
+      "handles": [
+        {
+          "id": "in-top",
+          "position": "top",
+          "type": "target"
+        }
+      ],
+      "type": "roundedRect",
+      "style": {
+        "color": "muted"
+      },
+      "size": {
+        "width": 184,
+        "height": 44
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "trigger-backfill",
+      "source": "trigger-oauth",
+      "target": "backfill-queue"
+    },
+    {
+      "id": "backfill-q-worker",
+      "source": "backfill-queue",
+      "target": "backfill-worker"
+    },
+    {
+      "id": "backfill-write-threads",
+      "source": "backfill-worker",
+      "sourceHandle": "backfill-worker-out-bottom",
+      "target": "backfill-thread-metadata-write",
+      "targetHandle": "backfill-thread-metadata-write-in-top"
+    },
+    {
+      "id": "backfill-thread-write-s3",
+      "source": "backfill-thread-metadata-write",
+      "sourceHandle": "backfill-thread-metadata-write-out-bottom",
+      "target": "s3-backfill",
+      "targetHandle": "s3-backfill-in-top"
+    },
+    {
+      "id": "backfill-thread-metadata-postgres",
+      "source": "backfill-thread-metadata-write",
+      "sourceHandle": "backfill-thread-metadata-write-out-bottom",
+      "target": "postgres-backfill",
+      "targetHandle": "postgres-backfill-in-top"
+    },
+    {
+      "id": "backfill-cursor-write",
+      "source": "backfill-thread-metadata-write",
+      "sourceHandle": "backfill-thread-metadata-write-out-bottom",
+      "target": "backfill-cursor-write",
+      "targetHandle": "backfill-cursor-write-in-top"
+    },
+    {
+      "id": "backfill-cursor-postgres",
+      "source": "backfill-cursor-write",
+      "sourceHandle": "backfill-cursor-write-out-bottom",
+      "target": "postgres-backfill",
+      "targetHandle": "postgres-backfill-in-top"
+    },
+    {
+      "id": "cron-enqueue",
+      "source": "cron-scheduler",
+      "target": "cron-enqueue"
+    },
+    {
+      "id": "cron-enqueue-incoming",
+      "source": "cron-enqueue",
+      "target": "incoming-queue",
+      "targetHandle": "incoming-queue-in-top"
+    },
+    {
+      "id": "incoming-q-worker",
+      "source": "incoming-queue",
+      "sourceHandle": "incoming-queue-out-bottom",
+      "target": "incoming-worker"
+    },
+    {
+      "id": "incoming-worker-schedule",
+      "source": "incoming-worker",
+      "sourceHandle": "incoming-worker-out-bottom",
+      "target": "incoming-schedule-process",
+      "targetHandle": "incoming-schedule-process-in-top"
+    },
+    {
+      "id": "schedule-enqueue",
+      "source": "incoming-schedule-process",
+      "sourceHandle": "incoming-schedule-process-out-bottom",
+      "target": "incoming-check-enqueue",
+      "targetHandle": "incoming-check-enqueue-in-top"
+    },
+    {
+      "id": "schedule-cursor",
+      "source": "incoming-schedule-process",
+      "sourceHandle": "incoming-schedule-process-out-bottom",
+      "target": "incoming-scheduled-at",
+      "targetHandle": "incoming-scheduled-at-in-top"
+    },
+    {
+      "id": "schedule-postgres",
+      "source": "incoming-scheduled-at",
+      "sourceHandle": "incoming-scheduled-at-out-bottom",
+      "target": "postgres-incoming",
+      "targetHandle": "postgres-incoming-in-top"
+    },
+    {
+      "id": "incoming-check-enqueue-queue",
+      "source": "incoming-check-enqueue",
+      "sourceHandle": "incoming-check-enqueue-out-bottom",
+      "target": "incoming-queue",
+      "targetHandle": "incoming-queue-in-top"
+    },
+    {
+      "id": "incoming-write-threads",
+      "source": "incoming-worker",
+      "sourceHandle": "incoming-worker-out-bottom",
+      "target": "incoming-thread-metadata-write",
+      "targetHandle": "incoming-thread-metadata-write-in-top"
+    },
+    {
+      "id": "incoming-thread-write-s3",
+      "source": "incoming-thread-metadata-write",
+      "sourceHandle": "incoming-thread-metadata-write-out-bottom",
+      "target": "s3-incoming",
+      "targetHandle": "s3-incoming-in-top"
+    },
+    {
+      "id": "incoming-thread-metadata-postgres",
+      "source": "incoming-thread-metadata-write",
+      "sourceHandle": "incoming-thread-metadata-write-out-bottom",
+      "target": "postgres-incoming",
+      "targetHandle": "postgres-incoming-in-top"
+    },
+    {
+      "id": "incoming-extract-queue",
+      "source": "incoming-thread-metadata-write",
+      "sourceHandle": "incoming-thread-metadata-write-out-bottom",
+      "target": "extract-queue",
+      "targetHandle": "extract-queue-in-top"
+    },
+    {
+      "id": "backfill-extract-queue",
+      "source": "backfill-thread-metadata-write",
+      "sourceHandle": "backfill-thread-metadata-write-out-bottom",
+      "target": "extract-queue",
+      "targetHandle": "extract-queue-in-top"
+    },
+    {
+      "id": "incoming-analyze-queue",
+      "source": "incoming-thread-metadata-write",
+      "sourceHandle": "incoming-thread-metadata-write-out-bottom",
+      "target": "analyze-queue",
+      "targetHandle": "analyze-queue-in-top"
+    },
+    {
+      "id": "incoming-update-history",
+      "source": "incoming-thread-metadata-write",
+      "sourceHandle": "incoming-thread-metadata-write-out-bottom",
+      "target": "update-history",
+      "targetHandle": "update-history-in-top"
+    },
+    {
+      "id": "update-history-postgres",
+      "source": "update-history",
+      "sourceHandle": "update-history-out-bottom",
+      "target": "postgres-incoming",
+      "targetHandle": "postgres-incoming-in-top"
+    },
+    {
+      "id": "analyze-q-worker",
+      "source": "analyze-queue",
+      "sourceHandle": "analyze-queue-out-bottom",
+      "target": "analyze-worker"
+    },
+    {
+      "id": "analyze-worker-prechecks",
+      "source": "analyze-worker",
+      "sourceHandle": "analyze-worker-out-bottom",
+      "target": "analyze-prechecks",
+      "targetHandle": "analyze-prechecks-in-top"
+    },
+    {
+      "id": "analyze-prechecks-skip-owner",
+      "source": "analyze-prechecks",
+      "sourceHandle": "analyze-prechecks-out-right",
+      "target": "skip-owner-stop",
+      "targetHandle": "skip-owner-stop-in-top"
+    },
+    {
+      "id": "analyze-prechecks-reuse-batch",
+      "source": "analyze-prechecks",
+      "sourceHandle": "analyze-prechecks-out-right",
+      "target": "reuse-batch-stop",
+      "targetHandle": "reuse-batch-stop-in-top"
+    },
+    {
+      "id": "analyze-prechecks-decision",
+      "source": "analyze-prechecks",
+      "sourceHandle": "analyze-prechecks-out-bottom",
+      "target": "analyze-decision",
+      "targetHandle": "analyze-decision-in-top"
+    },
+    {
+      "id": "analyze-skip-status",
+      "source": "analyze-decision",
+      "sourceHandle": "analyze-decision-out-right",
+      "target": "skip-thread-status",
+      "targetHandle": "skip-thread-status-in-top"
+    },
+    {
+      "id": "analyze-error",
+      "source": "analyze-decision",
+      "sourceHandle": "analyze-decision-out-right",
+      "target": "analyze-error",
+      "targetHandle": "analyze-error-in-top"
+    },
+    {
+      "id": "analyze-draft",
+      "source": "analyze-decision",
+      "sourceHandle": "analyze-decision-out-bottom",
+      "target": "draft-reply",
+      "targetHandle": "draft-reply-in-top"
+    },
+    {
+      "id": "draft-autosend",
+      "source": "draft-reply",
+      "target": "autosend-decision",
+      "targetHandle": "autosend-decision-in-top"
+    },
+    {
+      "id": "autosend-pause",
+      "source": "autosend-decision",
+      "sourceHandle": "autosend-decision-out-right",
+      "target": "pause-manual-approval",
+      "label": "No"
+    },
+    {
+      "id": "autosend-approve",
+      "source": "autosend-decision",
+      "sourceHandle": "autosend-decision-out-bottom",
+      "target": "autosend-approved",
+      "label": "Yes"
+    },
+    {
+      "id": "pause-manual-api",
+      "source": "pause-manual-approval",
+      "target": "manual-approval-api"
+    },
+    {
+      "id": "autosend-actions",
+      "source": "autosend-approved",
+      "target": "actions-queue",
+      "targetHandle": "actions-queue-in-top"
+    },
+    {
+      "id": "manual-actions",
+      "source": "manual-approval-api",
+      "target": "actions-queue",
+      "targetHandle": "actions-queue-in-top"
+    },
+    {
+      "id": "actions-q-worker",
+      "source": "actions-queue",
+      "sourceHandle": "actions-queue-out-bottom",
+      "target": "actions-worker"
+    },
+    {
+      "id": "actions-worker-execute",
+      "source": "actions-worker",
+      "sourceHandle": "actions-worker-out-bottom",
+      "target": "actions-execute",
+      "targetHandle": "actions-execute-in-top"
+    },
+    {
+      "id": "actions-queue-send",
+      "source": "actions-execute",
+      "sourceHandle": "actions-execute-out-bottom-send",
+      "target": "actions-send-enqueue",
+      "targetHandle": "actions-send-enqueue-in-top"
+    },
+    {
+      "id": "actions-failed",
+      "source": "actions-execute",
+      "sourceHandle": "actions-execute-out-bottom-failed",
+      "target": "actions-failed",
+      "targetHandle": "actions-failed-in-top"
+    },
+    {
+      "id": "actions-send",
+      "source": "actions-send-enqueue",
+      "sourceHandle": "actions-send-enqueue-out-bottom",
+      "target": "send-queue",
+      "targetHandle": "send-queue-in-top"
+    },
+    {
+      "id": "extract-q-worker",
+      "source": "extract-queue",
+      "sourceHandle": "extract-queue-out-bottom",
+      "target": "extract-worker"
+    },
+    {
+      "id": "extract-worker-ai",
+      "source": "extract-worker",
+      "sourceHandle": "extract-worker-out-bottom",
+      "target": "extract-ai",
+      "targetHandle": "extract-ai-in-top"
+    },
+    {
+      "id": "extract-ai-success",
+      "source": "extract-ai",
+      "sourceHandle": "extract-ai-out-bottom",
+      "target": "extract-ai-success",
+      "targetHandle": "extract-ai-success-in-top"
+    },
+    {
+      "id": "extract-fail-1",
+      "source": "extract-ai-success",
+      "sourceHandle": "extract-ai-success-out-right",
+      "target": "extract-fail-1",
+      "label": "No"
+    },
+    {
+      "id": "extract-persist",
+      "source": "extract-ai-success",
+      "sourceHandle": "extract-ai-success-out-bottom",
+      "target": "upsert-contacts",
+      "label": "Yes"
+    },
+    {
+      "id": "extract-persist-postgres",
+      "source": "upsert-contacts",
+      "sourceHandle": "upsert-contacts-out-bottom",
+      "target": "postgres-extract",
+      "targetHandle": "postgres-extract-in-top"
+    },
+    {
+      "id": "extract-persist-retry",
+      "source": "upsert-contacts",
+      "sourceHandle": "upsert-contacts-out-right",
+      "target": "extract-fail-1",
+      "targetHandle": "extract-fail-1-in-top"
+    },
+    {
+      "id": "extract-state-write",
+      "source": "upsert-contacts",
+      "sourceHandle": "upsert-contacts-out-bottom",
+      "target": "extract-record-success",
+      "targetHandle": "extract-record-success-in-top"
+    },
+    {
+      "id": "extract-state-postgres",
+      "source": "extract-record-success",
+      "sourceHandle": "extract-record-success-out-bottom",
+      "target": "postgres-extract",
+      "targetHandle": "postgres-extract-in-top"
+    },
+    {
+      "id": "send-q-worker",
+      "source": "send-queue",
+      "sourceHandle": "send-queue-out-bottom",
+      "target": "send-worker",
+      "targetHandle": "send-worker-in-top"
+    },
+    {
+      "id": "send-worker-process",
+      "source": "send-worker",
+      "sourceHandle": "send-worker-out-bottom",
+      "target": "send-process",
+      "targetHandle": "send-process-in-top"
+    },
+    {
+      "id": "send-success-branch",
+      "source": "send-process",
+      "sourceHandle": "send-process-out-bottom-sent",
+      "target": "send-sent",
+      "targetHandle": "send-sent-in-top"
+    },
+    {
+      "id": "send-retry-branch",
+      "source": "send-process",
+      "sourceHandle": "send-process-out-bottom-review",
+      "target": "send-needs-review",
+      "targetHandle": "send-needs-review-in-top"
+    },
+    {
+      "id": "send-terminal-branch",
+      "source": "send-process",
+      "sourceHandle": "send-process-out-bottom-terminal",
+      "target": "send-terminal-nonsend",
+      "targetHandle": "send-terminal-nonsend-in-top"
+    }
+  ],
+  "producerMapping": {
+    "handle_mail_backfill_start": "trigger-oauth",
+    "handle_mail_send_reply": "actions-send-enqueue"
+  },
+  "spanMapping": {
+    "cron-scheduler": "cron-scheduler",
+    "backfill-queue": "backfill-queue",
+    "incoming-queue": "incoming-queue",
+    "analyze-queue": "analyze-queue",
+    "extract-queue": "extract-queue",
+    "actions-queue": "actions-queue",
+    "send-queue": "send-queue",
+    "backfill-worker": "backfill-worker",
+    "incoming-worker": "incoming-worker",
+    "analyze-worker": "analyze-worker",
+    "extract-worker": "extract-worker",
+    "actions-worker": "actions-worker",
+    "send-worker": "send-worker",
+    "incoming-schedule-process": "incoming-schedule-process",
+    "analyze-decision": "analyze-decision",
+    "draft-reply": "draft-reply",
+    "autosend-decision": "autosend-decision",
+    "send-process": "send-process",
+    "rrq:queue:mail-backfill": "backfill-queue",
+    "rrq:queue:mail-incoming": "incoming-queue",
+    "rrq:queue:mail-analyze": "analyze-queue",
+    "rrq:queue:mail-extract": "extract-queue",
+    "rrq:queue:mail-actions": "actions-queue",
+    "rrq:queue:mail-send": "send-queue",
+    "backfill-worker.write-threads": "backfill-thread-metadata-write",
+    "backfill-worker.write-metadata": "backfill-thread-metadata-write",
+    "backfill-worker.cursor-update": "backfill-cursor-write",
+    "incoming-worker.write-threads": "incoming-thread-metadata-write",
+    "incoming-worker.write-metadata": "incoming-thread-metadata-write",
+    "incoming-worker.cursor-update": "update-history",
+    "incoming-schedule-process.cursor-update": "incoming-scheduled-at",
+    "handle_mail_cron_tick.enqueue": "cron-enqueue",
+    "handle_mail_incoming_check.enqueue": "incoming-check-enqueue",
+    "analyze-decision.final-result": "analyze-decision",
+    "analyze-decision.reply-status-write": "analyze-decision",
+    "draft-reply.draft-insert": "draft-reply",
+    "draft-reply.draft-status-write": "draft-reply",
+    "autosend-decision.action-batch-auto-approve": "autosend-decision",
+    "autosend-decision.execute-enqueue": "actions-queue",
+    "autosend-decision.execute-result": "autosend-decision",
+    "autosend-decision.send-enqueue": "autosend-decision",
+    "extract-worker.resolve-identity": "extract-worker",
+    "extract-worker.started": "extract-worker",
+    "extract-worker.upsert-contacts": "extract-worker",
+    "extract-worker.upsert-insights": "extract-worker",
+    "extract-worker.final-result": "extract-worker",
+    "extract-worker.state-write": "extract-worker",
+    "send-process.precheck": "send-process",
+    "send-process.provider-call": "send-process",
+    "send-process.finalize": "send-process",
+    "send-process.final-result": "send-process",
+    "handle_mail_backfill_start": "backfill-worker",
+    "handle_mail_backfill_chunk": "backfill-worker",
+    "handle_mail_incoming_check": "incoming-worker",
+    "handle_mail_analyze_reply": "analyze-worker",
+    "handle_mail_extract": "extract-worker",
+    "handle_mail_execute_approved_actions": "actions-worker",
+    "handle_mail_send_reply": "send-worker",
+    "handle_mail_cron_tick": "cron-scheduler",
+    "mail_backfill": "backfill-worker",
+    "mail_incoming": "incoming-worker",
+    "mail_analyze": "analyze-worker",
+    "mail_extract": "extract-worker",
+    "mail_actions": "actions-worker",
+    "mail_send": "send-worker"
+  }
+}

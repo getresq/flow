@@ -1,9 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { BottomLogPanel } from '../BottomLogPanel'
-import type { FlowConfig, LogEntry, TraceJourney } from '../../types'
-import { useLayoutStore } from '../../../stores/layout'
+import { BottomLogPanel } from '../BottomLogPanel';
+import type { FlowConfig, LogEntry, TraceJourney } from '../../types';
+import { useLayoutStore } from '../../../stores/layout';
 
 const flow: FlowConfig = {
   id: 'mail-pipeline',
@@ -37,7 +37,7 @@ const flow: FlowConfig = {
   ],
   edges: [],
   spanMapping: {},
-}
+};
 
 const logs: LogEntry[] = [
   {
@@ -62,7 +62,7 @@ const logs: LogEntry[] = [
     traceId: 'run-1',
     runId: 'run-1',
   },
-]
+];
 
 const runBackedJourneys: TraceJourney[] = [
   {
@@ -77,7 +77,7 @@ const runBackedJourneys: TraceJourney[] = [
       runId: 'run-1',
     },
   },
-]
+];
 
 const ambientJourneys: TraceJourney[] = [
   {
@@ -90,7 +90,7 @@ const ambientJourneys: TraceJourney[] = [
     eventCount: 1,
     identifiers: {},
   },
-]
+];
 
 describe('BottomLogPanel', () => {
   beforeEach(() => {
@@ -100,8 +100,8 @@ describe('BottomLogPanel', () => {
       bottomPanelSnap: 'partial',
       bottomPanelTab: 'logs',
       theme: 'dark',
-    })
-  })
+    });
+  });
 
   it('shows emitted flow logs by default and only lists run-backed journeys on the runs tab', () => {
     render(
@@ -113,15 +113,15 @@ describe('BottomLogPanel', () => {
         onSelectLog={vi.fn()}
         onSelectTrace={vi.fn()}
       />,
-    )
+    );
 
-    expect(screen.getByText(/mail_incoming worker picked up job/i)).toBeInTheDocument()
-    expect(screen.queryByText('span completed: rrq.job')).not.toBeInTheDocument()
+    expect(screen.getByText(/mail_incoming worker picked up job/i)).toBeInTheDocument();
+    expect(screen.queryByText('span completed: rrq.job')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /runs/i }))
+    fireEvent.click(screen.getByRole('button', { name: /runs/i }));
 
-    expect(screen.getByText('Run run-1')).toBeInTheDocument()
-  })
+    expect(screen.getByText('Run run-1')).toBeInTheDocument();
+  });
 
   it('shows the empty state when journeys are ambient-only and have no explicit run id', () => {
     render(
@@ -133,20 +133,20 @@ describe('BottomLogPanel', () => {
         onSelectLog={vi.fn()}
         onSelectTrace={vi.fn()}
       />,
-    )
+    );
 
-    fireEvent.click(screen.getByRole('button', { name: /runs/i }))
+    fireEvent.click(screen.getByRole('button', { name: /runs/i }));
 
-    expect(screen.getByText('No runs yet')).toBeInTheDocument()
+    expect(screen.getByText('No runs yet')).toBeInTheDocument();
     expect(
       screen.getByText(
         'Ambient flow activity still appears in Logs until a run-backed execution starts.',
       ),
-    ).toBeInTheDocument()
-  })
+    ).toBeInTheDocument();
+  });
 
   it('shows whisper state with minimal content', () => {
-    useLayoutStore.setState({ bottomPanelSnap: 'whisper' })
+    useLayoutStore.setState({ bottomPanelSnap: 'whisper' });
 
     render(
       <BottomLogPanel
@@ -157,12 +157,12 @@ describe('BottomLogPanel', () => {
         onSelectLog={vi.fn()}
         onSelectTrace={vi.fn()}
       />,
-    )
+    );
 
-    expect(screen.getByText('Logs')).toBeInTheDocument()
-    expect(screen.getByText('Runs')).toBeInTheDocument()
-    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
-  })
+    expect(screen.getByText('Logs')).toBeInTheDocument();
+    expect(screen.getByText('Runs')).toBeInTheDocument();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  });
 
   it('keeps critical non-error logs visible when the error filter is active', () => {
     render(
@@ -186,18 +186,18 @@ describe('BottomLogPanel', () => {
         onSelectLog={vi.fn()}
         onSelectTrace={vi.fn()}
       />,
-    )
+    );
 
-    fireEvent.click(screen.getByRole('button', { name: /error/i }))
+    fireEvent.click(screen.getByRole('button', { name: /error/i }));
 
-    expect(screen.getByText(/provider timeout/i)).toBeInTheDocument()
-    expect(screen.queryByText(/mail_incoming worker picked up job/i)).not.toBeInTheDocument()
-  })
+    expect(screen.getByText(/provider timeout/i)).toBeInTheDocument();
+    expect(screen.queryByText(/mail_incoming worker picked up job/i)).not.toBeInTheDocument();
+  });
 
   it('routes log rows with a seq through onSelectLog instead of trace and node selection', () => {
-    const onSelectLog = vi.fn()
-    const onSelectTrace = vi.fn()
-    const onSelectNode = vi.fn()
+    const onSelectLog = vi.fn();
+    const onSelectTrace = vi.fn();
+    const onSelectNode = vi.fn();
     const entryWithSeq: LogEntry = {
       timestamp: '2026-03-24T16:00:03.000Z',
       seq: 42,
@@ -209,7 +209,7 @@ describe('BottomLogPanel', () => {
       eventType: 'log',
       traceId: 'run-2',
       runId: 'run-2',
-    }
+    };
 
     render(
       <BottomLogPanel
@@ -220,13 +220,12 @@ describe('BottomLogPanel', () => {
         onSelectLog={onSelectLog}
         onSelectTrace={onSelectTrace}
       />,
-    )
+    );
 
-    fireEvent.click(screen.getByText('provider timeout'))
+    fireEvent.click(screen.getByText('provider timeout'));
 
-    expect(onSelectLog).toHaveBeenCalledWith(entryWithSeq)
-    expect(onSelectTrace).not.toHaveBeenCalled()
-    expect(onSelectNode).not.toHaveBeenCalled()
-  })
-
-})
+    expect(onSelectLog).toHaveBeenCalledWith(entryWithSeq);
+    expect(onSelectTrace).not.toHaveBeenCalled();
+    expect(onSelectNode).not.toHaveBeenCalled();
+  });
+});

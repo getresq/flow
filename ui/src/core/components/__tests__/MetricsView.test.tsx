@@ -1,9 +1,9 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
-import { MetricsView } from '../MetricsView'
-import type { FlowConfig } from '../../types'
+import { MetricsView } from '../MetricsView';
+import type { FlowConfig } from '../../types';
 
 const flow: FlowConfig = {
   id: 'mail-pipeline',
@@ -30,23 +30,23 @@ const flow: FlowConfig = {
   nodes: [],
   edges: [],
   spanMapping: {},
-}
+};
 
 describe('MetricsView', () => {
   it('renders stat cards and sparklines', async () => {
-    const client = new QueryClient()
+    const client = new QueryClient();
 
     render(
       <QueryClientProvider client={client}>
         <MetricsView flow={flow} onSelectTrace={vi.fn()} />
       </QueryClientProvider>,
-    )
+    );
 
-    expect(await screen.findByText('Metrics')).toBeInTheDocument()
-    expect(screen.getByText('Runs')).toBeInTheDocument()
-    expect(screen.getByText('Recent runs')).toBeInTheDocument()
-    expect(screen.getByLabelText('Throughput sparkline')).toBeInTheDocument()
-    expect(screen.getByLabelText('Error sparkline')).toBeInTheDocument()
-    expect(screen.getByLabelText('Latency sparkline')).toBeInTheDocument()
-  })
-})
+    expect(await screen.findByText('Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Runs')).toBeInTheDocument();
+    expect(screen.getByText('Recent runs')).toBeInTheDocument();
+    expect(screen.getByLabelText('Throughput sparkline')).toBeInTheDocument();
+    expect(screen.getByLabelText('Error sparkline')).toBeInTheDocument();
+    expect(screen.getByLabelText('Latency sparkline')).toBeInTheDocument();
+  });
+});

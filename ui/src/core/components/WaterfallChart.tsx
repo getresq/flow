@@ -1,154 +1,150 @@
-import { useMemo } from 'react'
+import { useMemo } from 'react';
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui';
 
-import type { SpanEntry } from '../types'
+import type { SpanEntry } from '../types';
 
 interface WaterfallChartProps {
-  spans: SpanEntry[]
-  errorNodeIds?: Set<string>
-  onSelectNode?: (nodeId: string) => void
+  spans: SpanEntry[];
+  errorNodeIds?: Set<string>;
+  onSelectNode?: (nodeId: string) => void;
 }
 
 interface WaterfallBar {
-  span: SpanEntry
-  startOffset: number
-  duration: number
-  depth: number
-  isCriticalPath: boolean
+  span: SpanEntry;
+  startOffset: number;
+  duration: number;
+  depth: number;
+  isCriticalPath: boolean;
 }
 
 function parseMs(value?: string): number {
-  if (!value) return 0
-  const parsed = Date.parse(value)
-  return Number.isNaN(parsed) ? 0 : parsed
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 function formatDuration(ms: number): string {
-  if (ms < 1_000) return `${Math.round(ms)}ms`
-  return `${(ms / 1_000).toFixed(1)}s`
+  if (ms < 1_000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1_000).toFixed(1)}s`;
 }
 
 function computeDepth(span: SpanEntry, spanMap: Map<string, SpanEntry>): number {
-  if (!span.parentSpanId) return 0
-  const parent = spanMap.get(span.parentSpanId)
-  if (!parent) return 0
-  return computeDepth(parent, spanMap) + 1
+  if (!span.parentSpanId) return 0;
+  const parent = spanMap.get(span.parentSpanId);
+  if (!parent) return 0;
+  return computeDepth(parent, spanMap) + 1;
 }
 
 function computeCriticalPath(bars: WaterfallBar[]): Set<string> {
   // Critical path: longest chain of sequential spans
   // For simplicity, identify spans that are on the longest-duration path
-  const criticalIds = new Set<string>()
-  if (bars.length === 0) return criticalIds
+  const criticalIds = new Set<string>();
+  if (bars.length === 0) return criticalIds;
 
   // Sort by start offset
-  const sorted = [...bars].sort((a, b) => a.startOffset - b.startOffset)
+  const sorted = [...bars].sort((a, b) => a.startOffset - b.startOffset);
 
   // dp[i] = total critical duration ending at span i
-  const dp: number[] = sorted.map((bar) => bar.duration)
-  const prev: number[] = sorted.map((_, i) => i)
+  const dp: number[] = sorted.map((bar) => bar.duration);
+  const prev: number[] = sorted.map((_, i) => i);
 
   for (let i = 1; i < sorted.length; i++) {
     for (let j = 0; j < i; j++) {
-      const jEnd = sorted[j].startOffset + sorted[j].duration
+      const jEnd = sorted[j].startOffset + sorted[j].duration;
       // span j finishes before span i starts (sequential)
       if (jEnd <= sorted[i].startOffset + 1) {
-        const candidate = dp[j] + sorted[i].duration
+        const candidate = dp[j] + sorted[i].duration;
         if (candidate > dp[i]) {
-          dp[i] = candidate
-          prev[i] = j
+          dp[i] = candidate;
+          prev[i] = j;
         }
       }
     }
   }
 
   // Find the end of the critical path
-  let maxIdx = 0
+  let maxIdx = 0;
   for (let i = 1; i < dp.length; i++) {
-    if (dp[i] > dp[maxIdx]) maxIdx = i
+    if (dp[i] > dp[maxIdx]) maxIdx = i;
   }
 
   // Trace back
-  let idx = maxIdx
+  let idx = maxIdx;
   while (true) {
-    criticalIds.add(sorted[idx].span.spanId)
-    if (prev[idx] === idx) break
-    idx = prev[idx]
+    criticalIds.add(sorted[idx].span.spanId);
+    if (prev[idx] === idx) break;
+    idx = prev[idx];
   }
 
-  return criticalIds
+  return criticalIds;
 }
 
 export function WaterfallChart({ spans, errorNodeIds, onSelectNode }: WaterfallChartProps) {
   const { bars, totalDuration, criticalPathDuration } = useMemo(() => {
     if (spans.length === 0) {
-      return { bars: [], totalDuration: 0, criticalPathDuration: 0, runStart: 0 }
+      return { bars: [], totalDuration: 0, criticalPathDuration: 0, runStart: 0 };
     }
 
-    const spanMap = new Map(spans.map((s) => [s.spanId, s]))
+    const spanMap = new Map(spans.map((s) => [s.spanId, s]));
 
-    const startMs = Math.min(
-      ...spans.map((s) => parseMs(s.startTime)).filter((t) => t > 0),
-    )
+    const startMs = Math.min(...spans.map((s) => parseMs(s.startTime)).filter((t) => t > 0));
     const endMs = Math.max(
-      ...spans.map((s) => parseMs(s.endTime) || parseMs(s.startTime) + (s.durationMs ?? 0)).filter((t) => t > 0),
-    )
-    const total = Math.max(endMs - startMs, 1)
+      ...spans
+        .map((s) => parseMs(s.endTime) || parseMs(s.startTime) + (s.durationMs ?? 0))
+        .filter((t) => t > 0),
+    );
+    const total = Math.max(endMs - startMs, 1);
 
     const rawBars: WaterfallBar[] = spans
       .filter((s) => parseMs(s.startTime) > 0)
       .map((s) => ({
         span: s,
         startOffset: parseMs(s.startTime) - startMs,
-        duration: s.durationMs ?? ((parseMs(s.endTime) - parseMs(s.startTime)) || 0),
+        duration: s.durationMs ?? (parseMs(s.endTime) - parseMs(s.startTime) || 0),
         depth: computeDepth(s, spanMap),
         isCriticalPath: false,
       }))
-      .sort((a, b) => a.startOffset - b.startOffset || a.depth - b.depth)
+      .sort((a, b) => a.startOffset - b.startOffset || a.depth - b.depth);
 
-    const criticalIds = computeCriticalPath(rawBars)
-    let critDuration = 0
+    const criticalIds = computeCriticalPath(rawBars);
+    let critDuration = 0;
     for (const bar of rawBars) {
       if (criticalIds.has(bar.span.spanId)) {
-        bar.isCriticalPath = true
-        critDuration += bar.duration
+        bar.isCriticalPath = true;
+        critDuration += bar.duration;
       }
     }
 
-    return { bars: rawBars, totalDuration: total, criticalPathDuration: critDuration }
-  }, [spans])
+    return { bars: rawBars, totalDuration: total, criticalPathDuration: critDuration };
+  }, [spans]);
 
   if (bars.length === 0) {
     return (
       <div className="flex items-center justify-center py-6 text-sm text-[var(--text-muted)]">
         No span timing data available for this run.
       </div>
-    )
+    );
   }
 
-  const labelWidth = 140
+  const labelWidth = 140;
 
   return (
     <TooltipProvider>
       <div className="space-y-1" data-testid="waterfall-chart">
         {bars.map((bar) => {
-          const leftPercent = totalDuration > 0 ? (bar.startOffset / totalDuration) * 100 : 0
-          const widthPercent = totalDuration > 0 ? Math.max((bar.duration / totalDuration) * 100, 1.5) : 1.5
+          const leftPercent = totalDuration > 0 ? (bar.startOffset / totalDuration) * 100 : 0;
+          const widthPercent =
+            totalDuration > 0 ? Math.max((bar.duration / totalDuration) * 100, 1.5) : 1.5;
 
-          const isError = bar.span.status === 'error' || errorNodeIds?.has(bar.span.nodeId)
+          const isError = bar.span.status === 'error' || errorNodeIds?.has(bar.span.nodeId);
           const statusColor = isError
             ? 'var(--status-error)'
             : bar.isCriticalPath
               ? 'var(--status-warning)'
               : bar.span.status === 'active'
                 ? 'var(--status-active)'
-                : 'var(--status-success)'
+                : 'var(--status-success)';
 
           return (
             <Tooltip key={bar.span.spanId}>
@@ -175,28 +171,32 @@ export function WaterfallChart({ spans, errorNodeIds, onSelectNode }: WaterfallC
                         width: `${widthPercent}%`,
                         backgroundColor: statusColor,
                         opacity: bar.isCriticalPath ? 1 : 0.6,
-                        boxShadow: bar.isCriticalPath
-                          ? `0 0 0 1px ${statusColor}`
-                          : undefined,
+                        boxShadow: bar.isCriticalPath ? `0 0 0 1px ${statusColor}` : undefined,
                       }}
                     />
                   </div>
 
-                  <span className={`shrink-0 w-14 text-right font-mono text-xs ${isError ? 'text-[var(--status-error)]' : 'text-[var(--text-muted)]'}`}>
+                  <span
+                    className={`shrink-0 w-14 text-right font-mono text-xs ${isError ? 'text-[var(--status-error)]' : 'text-[var(--text-muted)]'}`}
+                  >
                     {formatDuration(bar.duration)}
                   </span>
                 </button>
               </TooltipTrigger>
               <TooltipContent side="top" className="space-y-1">
                 <p className="font-semibold">{bar.span.nodeId || bar.span.spanName}</p>
-                {bar.span.nodeId ? <p className="text-xs text-[var(--text-muted)]">{bar.span.spanName}</p> : null}
+                {bar.span.nodeId ? (
+                  <p className="text-xs text-[var(--text-muted)]">{bar.span.spanName}</p>
+                ) : null}
                 <p className="text-xs">Duration: {formatDuration(bar.duration)}</p>
                 {bar.isCriticalPath ? (
-                  <p className="text-xs font-semibold text-[var(--status-warning)]">Critical path</p>
+                  <p className="text-xs font-semibold text-[var(--status-warning)]">
+                    Critical path
+                  </p>
                 ) : null}
               </TooltipContent>
             </Tooltip>
-          )
+          );
         })}
 
         <div className="mt-3 flex items-center justify-between border-t border-[var(--border-subtle)] pt-2 text-xs text-[var(--text-muted)]">
@@ -205,5 +205,5 @@ export function WaterfallChart({ spans, errorNodeIds, onSelectNode }: WaterfallC
         </div>
       </div>
     </TooltipProvider>
-  )
+  );
 }

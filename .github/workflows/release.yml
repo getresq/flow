@@ -17,11 +17,21 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Check relay formatting
+        run: cargo fmt --all --check
+        working-directory: relay
+
+      - name: Lint relay
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        working-directory: relay
 
       - name: Test relay
         run: cargo test --locked
@@ -29,6 +39,18 @@ jobs:
 
       - name: Install UI dependencies
         run: bun install --frozen-lockfile
+        working-directory: ui
+
+      - name: Check UI formatting
+        run: bun run fmt:check
+        working-directory: ui
+
+      - name: Lint UI
+        run: bun run lint:errors
+        working-directory: ui
+
+      - name: Typecheck UI
+        run: bun run typecheck
         working-directory: ui
 
       - name: Test UI
@@ -71,7 +93,7 @@ jobs:
         working-directory: ui
 
       - name: Package release artifact
-        run: bash scripts/package-release.sh x86_64-unknown-linux-gnu relay/target/release/resq-flow-relay ui/dist ui/src/flow-contracts dist
+        run: bash scripts/package-release.sh x86_64-unknown-linux-gnu relay/target/release/resq-flow-relay ui/dist ui/src/flow-contracts ui/src/flow-definitions dist
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4

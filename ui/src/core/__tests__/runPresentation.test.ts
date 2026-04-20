@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest';
 
-import type { FlowEdgeConfig, FlowNodeConfig, TraceJourney } from '../types'
+import type { FlowEdgeConfig, FlowNodeConfig, TraceJourney } from '../types';
 import {
   formatRunLabel,
   formatStepDisplayLabel,
@@ -9,7 +9,7 @@ import {
   getJourneyOverviewModel,
   getOverviewSteps,
   isRunBackedJourney,
-} from '../runPresentation'
+} from '../runPresentation';
 
 function makeJourney(overrides: Partial<TraceJourney> = {}): TraceJourney {
   return {
@@ -23,7 +23,7 @@ function makeJourney(overrides: Partial<TraceJourney> = {}): TraceJourney {
     eventCount: 1,
     identifiers: {},
     ...overrides,
-  }
+  };
 }
 
 const flowNodes: FlowNodeConfig[] = [
@@ -48,11 +48,11 @@ const flowNodes: FlowNodeConfig[] = [
     position: { x: 0, y: 0 },
     layout: { order: 20 },
   },
-]
+];
 
 const flowEdges: FlowEdgeConfig[] = [
   { id: 'incoming-worker->send-process', source: 'incoming-worker', target: 'send-process' },
-]
+];
 
 const autosendFlowNodes: FlowNodeConfig[] = [
   {
@@ -69,11 +69,11 @@ const autosendFlowNodes: FlowNodeConfig[] = [
     position: { x: 0, y: 0 },
     layout: { order: 20 },
   },
-]
+];
 
 const autosendFlowEdges: FlowEdgeConfig[] = [
   { id: 'autosend-decision->actions-queue', source: 'autosend-decision', target: 'actions-queue' },
-]
+];
 
 describe('runPresentation', () => {
   it('prefers meaningful mailbox and thread identifiers over placeholder root labels', () => {
@@ -83,10 +83,10 @@ describe('runPresentation', () => {
         mailboxOwner: 'jrojas@getresq.com',
         threadId: '19d1f6ffa726e354',
       },
-    })
+    });
 
-    expect(formatRunLabel(journey)).toBe('jrojas@getresq.com · thread 19d1f6ffa726…')
-  })
+    expect(formatRunLabel(journey)).toBe('jrojas@getresq.com · thread 19d1f6ffa726…');
+  });
 
   it('humanizes canonical step labels', () => {
     expect(
@@ -95,8 +95,8 @@ describe('runPresentation', () => {
         label: 'final-result',
         nodeId: 'extract-worker',
       }),
-    ).toBe('Extract worker · Final result')
-  })
+    ).toBe('Extract worker · Final result');
+  });
 
   it('prefers outcome summaries for lifecycle steps when attrs are present', () => {
     expect(
@@ -111,7 +111,7 @@ describe('runPresentation', () => {
           auto_approved: false,
         },
       }),
-    ).toBe('drafted; awaiting manual review')
+    ).toBe('drafted; awaiting manual review');
 
     expect(
       formatStepDisplayLabel({
@@ -124,8 +124,8 @@ describe('runPresentation', () => {
           result_action: 'sent',
         },
       }),
-    ).toBe('sent')
-  })
+    ).toBe('sent');
+  });
 
   it('treats only explicit run_id journeys as run-backed', () => {
     const runBackedJourney = makeJourney({
@@ -133,16 +133,16 @@ describe('runPresentation', () => {
         runId: 'mail-pipeline_123',
         threadId: 'thread-1',
       },
-    })
+    });
     const ambientJourney = makeJourney({
       identifiers: {
         requestId: 'request-1',
       },
-    })
+    });
 
-    expect(isRunBackedJourney(runBackedJourney)).toBe(true)
-    expect(isRunBackedJourney(ambientJourney)).toBe(false)
-  })
+    expect(isRunBackedJourney(runBackedJourney)).toBe(true);
+    expect(isRunBackedJourney(ambientJourney)).toBe(false);
+  });
 
   it('groups steps by node id and orders cards by first reach', () => {
     const journey = makeJourney({
@@ -178,19 +178,19 @@ describe('runPresentation', () => {
           status: 'success',
         },
       ],
-    })
+    });
 
-    const overview = getJourneyOverviewModel(journey, flowNodes, flowEdges)
+    const overview = getJourneyOverviewModel(journey, flowNodes, flowEdges);
 
     expect(overview.cards.map((card) => card.nodeLabel)).toEqual([
       'Incoming Worker',
       'Schedule Incoming Checks',
-    ])
+    ]);
     // Most recent step in the first group wins the summary.
     // Humanized step_id — no lifecycle-terminal substitution.
-    expect(overview.cards[0]?.summary).toBe('Final result')
-    expect(overview.focusNodeIds).toEqual(['incoming-worker', 'incoming-schedule-process'])
-  })
+    expect(overview.cards[0]?.summary).toBe('Final result');
+    expect(overview.focusNodeIds).toEqual(['incoming-worker', 'incoming-schedule-process']);
+  });
 
   it('uses resolved node ownership instead of raw component_id when they disagree', () => {
     const journey = makeJourney({
@@ -224,13 +224,13 @@ describe('runPresentation', () => {
           },
         },
       ],
-    })
+    });
 
-    const overview = getJourneyOverviewModel(journey, autosendFlowNodes, autosendFlowEdges)
+    const overview = getJourneyOverviewModel(journey, autosendFlowNodes, autosendFlowEdges);
 
-    expect(overview.cards.map((card) => card.nodeLabel)).toEqual(['Auto Send?', 'Actions Queue'])
-    expect(overview.cards[1]?.summary).toBe('Execute enqueue')
-  })
+    expect(overview.cards.map((card) => card.nodeLabel)).toEqual(['Auto Send?', 'Actions Queue']);
+    expect(overview.cards[1]?.summary).toBe('Execute enqueue');
+  });
 
   it('falls back to a shared Other Activity bucket when no node ownership exists', () => {
     const journey = makeJourney({
@@ -254,16 +254,16 @@ describe('runPresentation', () => {
           status: 'success',
         },
       ],
-    })
+    });
 
-    const overview = getJourneyOverviewModel(journey)
+    const overview = getJourneyOverviewModel(journey);
 
-    expect(overview.cards).toHaveLength(1)
-    expect(overview.cards[0]?.nodeLabel).toBe('Other Activity')
-    expect(overview.cards[0]?.nodeId).toBeUndefined()
+    expect(overview.cards).toHaveLength(1);
+    expect(overview.cards[0]?.nodeLabel).toBe('Other Activity');
+    expect(overview.cards[0]?.nodeId).toBeUndefined();
     // Most recent step wins the summary (first-error-else-latest rule).
-    expect(overview.cards[0]?.summary).toBe('Another mystery step')
-  })
+    expect(overview.cards[0]?.summary).toBe('Another mystery step');
+  });
 
   it('surfaces the first error as the summary when the group contains one', () => {
     const journey = makeJourney({
@@ -298,17 +298,17 @@ describe('runPresentation', () => {
           },
         },
       ],
-    })
+    });
 
-    const overview = getJourneyOverviewModel(journey, flowNodes, flowEdges)
+    const overview = getJourneyOverviewModel(journey, flowNodes, flowEdges);
 
-    expect(overview.cards).toHaveLength(1)
+    expect(overview.cards).toHaveLength(1);
     // First error wins over any later success in the same group.
-    expect(overview.cards[0]?.summary).toBe('temporary provider error')
-    expect(overview.cards[0]?.representativeStep.stepId).toBe('provider-call')
+    expect(overview.cards[0]?.summary).toBe('temporary provider error');
+    expect(overview.cards[0]?.representativeStep.stepId).toBe('provider-call');
     // getJourneySummaryStep now also surfaces the error as the representative step.
-    expect(getJourneySummaryStep(journey, flowNodes, flowEdges)?.stepId).toBe('provider-call')
-  })
+    expect(getJourneySummaryStep(journey, flowNodes, flowEdges)?.stepId).toBe('provider-call');
+  });
 
   it('returns one representative overview step per grouped node', () => {
     const steps = [
@@ -342,11 +342,11 @@ describe('runPresentation', () => {
         durationMs: 0,
         status: 'success' as const,
       },
-    ]
+    ];
 
     expect(getOverviewSteps(steps).map((stage) => `${stage.nodeId}:${stage.stepId}`)).toEqual([
       'incoming-worker:final-result',
       'incoming-schedule-process:cursor-update',
-    ])
-  })
-})
+    ]);
+  });
+});

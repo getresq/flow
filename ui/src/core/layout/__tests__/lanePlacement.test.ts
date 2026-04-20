@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest';
 
-import type { FlowNodeConfig } from '../../types'
-import { applyLaneTemplatePositions } from '../lanePlacement'
+import type { FlowNodeConfig } from '../../types';
+import { applyLaneTemplatePositions } from '../lanePlacement';
 
 describe('applyLaneTemplatePositions', () => {
   it('moves sidecar and resource lanes to the right of the main backbone', () => {
@@ -46,18 +46,18 @@ describe('applyLaneTemplatePositions', () => {
         size: { width: 112, height: 128 },
         layout: { lane: 'resource' },
       },
-    ]
+    ];
 
     const positions = applyLaneTemplatePositions(
       nodes,
       new Map(nodes.map((node) => [node.id, node.position])),
       new Map(),
-    )
+    );
 
-    expect(positions.get('sidecar-a')).toEqual({ x: 840, y: 140 })
-    expect(positions.get('sidecar-b')).toEqual({ x: 840, y: 240 })
-    expect(positions.get('resource-a')).toEqual({ x: 1270, y: 220 })
-  })
+    expect(positions.get('sidecar-a')).toEqual({ x: 840, y: 140 });
+    expect(positions.get('sidecar-b')).toEqual({ x: 840, y: 240 });
+    expect(positions.get('resource-a')).toEqual({ x: 1270, y: 220 });
+  });
 
   it('preserves explicit runtime positions for dragged sidecar nodes', () => {
     const nodes: FlowNodeConfig[] = [
@@ -77,14 +77,14 @@ describe('applyLaneTemplatePositions', () => {
         size: { width: 250, height: 64 },
         layout: { lane: 'sidecar' },
       },
-    ]
+    ];
 
     const positions = applyLaneTemplatePositions(
       nodes,
       new Map(nodes.map((node) => [node.id, node.position])),
       new Map([['sidecar-a', { x: 999, y: 222 }]]),
-    )
+    );
 
-    expect(positions.get('sidecar-a')).toEqual({ x: 300, y: 140 })
-  })
-})
+    expect(positions.get('sidecar-a')).toEqual({ x: 300, y: 140 });
+  });
+});

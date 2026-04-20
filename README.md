@@ -348,6 +348,9 @@ Standard checks:
 cd relay && cargo fmt
 cd relay && cargo clippy -- -D warnings
 cd relay && cargo test
+cd ui && bun run fmt:check
+cd ui && bun run lint:errors
+cd ui && bun run typecheck
 cd ui && bun test
 cd ui && bun run build
 ```

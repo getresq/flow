@@ -1,33 +1,37 @@
-import type { NodeProps } from '@xyflow/react'
+import type { NodeProps } from '@xyflow/react';
 
-import { renderHandles, resolveSvgTone, statusGlowClass } from './nodePrimitives'
-import type { FlowNode } from './types'
+import { renderHandles, resolveSvgTone, statusGlowClass } from './nodePrimitives';
+import type { FlowNode } from './types';
 
 const defaultHandles = [
   { position: 'top', type: 'both' },
   { position: 'right', type: 'both' },
   { position: 'bottom', type: 'both' },
   { position: 'left', type: 'both' },
-] as const
+] as const;
 
 const resourceRoleTags: Record<string, string> = {
   s3: 'S3',
   postgres: 'PG',
   redis: 'REDIS',
-}
-
+};
 
 export function CylinderNode({ id, data }: NodeProps<FlowNode>) {
-  const status = data.status?.status ?? 'idle'
-  const svgTone = resolveSvgTone(data.style?.color)
-  const familyClass = `node-family-${data.style?.color ?? 'teal'}`
-  const roleTag = data.style?.icon ? (resourceRoleTags[data.style.icon] ?? data.style.icon.toUpperCase()) : 'STORE'
-  const normalizedRoleTag = roleTag.trim().toLowerCase()
-  const normalizedLabel = data.label.trim().toLowerCase()
-  const showTitle = normalizedLabel !== normalizedRoleTag
+  const status = data.status?.status ?? 'idle';
+  const svgTone = resolveSvgTone(data.style?.color);
+  const familyClass = `node-family-${data.style?.color ?? 'teal'}`;
+  const roleTag = data.style?.icon
+    ? (resourceRoleTags[data.style.icon] ?? data.style.icon.toUpperCase())
+    : 'STORE';
+  const normalizedRoleTag = roleTag.trim().toLowerCase();
+  const normalizedLabel = data.label.trim().toLowerCase();
+  const showTitle = normalizedLabel !== normalizedRoleTag;
 
   return (
-    <div className={`relative h-full w-full ${familyClass}`} style={{ '--node-accent': svgTone.accent, background: 'transparent' } as React.CSSProperties}>
+    <div
+      className={`relative h-full w-full ${familyClass}`}
+      style={{ '--node-accent': svgTone.accent, background: 'transparent' } as React.CSSProperties}
+    >
       {renderHandles(id, data.handles, [...defaultHandles])}
       <svg
         viewBox="0 0 96 112"
@@ -38,10 +42,7 @@ export function CylinderNode({ id, data }: NodeProps<FlowNode>) {
           d="M 0 20 Q 0 0, 48 0 Q 96 0, 96 20 L 96 92 Q 96 112, 48 112 Q 0 112, 0 92 Z"
           fill="var(--flow-surface-bg)"
         />
-        <ellipse
-          cx="48" cy="20" rx="48" ry="20"
-          fill="var(--flow-surface-bg)"
-        />
+        <ellipse cx="48" cy="20" rx="48" ry="20" fill="var(--flow-surface-bg)" />
         <path
           d="M 0 20 Q 0 0, 48 0 Q 96 0, 96 20 L 96 92 Q 96 112, 48 112 Q 0 112, 0 92 Z"
           style={{ fill: svgTone.fill, stroke: svgTone.stroke }}
@@ -50,7 +51,10 @@ export function CylinderNode({ id, data }: NodeProps<FlowNode>) {
           fillOpacity="0.9"
         />
         <ellipse
-          cx="48" cy="20" rx="48" ry="20"
+          cx="48"
+          cy="20"
+          rx="48"
+          ry="20"
           style={{ fill: svgTone.fill, stroke: svgTone.stroke }}
           strokeWidth="1.5"
           strokeOpacity="0.5"
@@ -75,5 +79,5 @@ export function CylinderNode({ id, data }: NodeProps<FlowNode>) {
         ) : null}
       </div>
     </div>
-  )
+  );
 }

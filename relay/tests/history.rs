@@ -1,7 +1,6 @@
 mod common;
 
 use std::collections::BTreeSet;
-use std::ffi::OsString;
 use std::sync::Arc;
 
 use axum::Router;
@@ -26,35 +25,6 @@ impl MockVlogsServer {
     }
 }
 
-struct EnvVarGuard {
-    key: &'static str,
-    previous: Option<OsString>,
-}
-
-impl EnvVarGuard {
-    fn set(key: &'static str, value: String) -> Self {
-        let previous = std::env::var_os(key);
-        // SAFETY: Tests update process env in a scoped guard and restore it in Drop.
-        unsafe {
-            std::env::set_var(key, value);
-        }
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        // SAFETY: Restores the original process env value after the scoped test finishes.
-        unsafe {
-            if let Some(previous) = &self.previous {
-                std::env::set_var(self.key, previous);
-            } else {
-                std::env::remove_var(self.key);
-            }
-        }
-    }
-}
-
 #[derive(Clone)]
 struct MockVlogsState {
     rows: Arc<Vec<String>>,
@@ -75,11 +45,11 @@ struct HistoryResponseBody {
 #[tokio::test]
 async fn history_cursor_pages_walk_older_logs_without_overlap() {
     let mock_vlogs = spawn_mock_vlogs_server(build_mock_rows(2_505)).await;
-    let _vlogs_url = EnvVarGuard::set(
-        "RESQ_FLOW_VLOGS_QUERY_URL",
-        format!("{}/select/logsql/query", mock_vlogs.base_url),
-    );
+    let vlogs_url = format!("{}/select/logsql/query", mock_vlogs.base_url);
 
+    temp_env::async_with_vars(
+        [("RESQ_FLOW_VLOGS_QUERY_URL", Some(vlogs_url.as_str()))],
+        async {
     let server = common::spawn_server().await;
     let client = reqwest::Client::new();
 
@@ -166,6 +136,9 @@ async fn history_cursor_pages_walk_older_logs_without_overlap() {
     assert_eq!(mismatched_cursor.status(), reqwest::StatusCode::BAD_REQUEST);
 
     server.shutdown();
+        },
+    )
+    .await;
     mock_vlogs.shutdown();
 }
 

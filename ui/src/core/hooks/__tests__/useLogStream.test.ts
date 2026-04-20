@@ -1,9 +1,9 @@
-import { act, renderHook, waitFor } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 
-import { mailPipelineFlow } from '../../../flows/mail-pipeline'
-import type { FlowEvent } from '../../types'
-import { useLogStream } from '../useLogStream'
+import { mailPipelineFlow } from '../../../flows/mail-pipeline';
+import type { FlowEvent } from '../../types';
+import { useLogStream } from '../useLogStream';
 
 describe('useLogStream', () => {
   it('builds global and per-node logs and keeps global list ordered', async () => {
@@ -29,25 +29,25 @@ describe('useLogStream', () => {
         },
         duration_ms: 500,
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useLogStream(events, mailPipelineFlow.spanMapping))
+    const { result } = renderHook(() => useLogStream(events, mailPipelineFlow.spanMapping));
 
     await waitFor(() => {
-      expect(result.current.globalLogs.length).toBe(2)
-    })
+      expect(result.current.globalLogs.length).toBe(2);
+    });
 
-    expect(result.current.globalLogs[0].timestamp).toBe('2026-03-03T12:00:00.500Z')
-    expect(result.current.globalLogs[1].timestamp).toBe('2026-03-03T12:00:01.000Z')
-    expect(result.current.globalLogs[0].runId).toBe('run-1')
-    expect(result.current.globalLogs[0].signal).toBe('raw')
-    expect(result.current.globalLogs[0].defaultVisible).toBe(false)
-    expect(result.current.globalLogs[1].signal).toBe('meaningful')
-    expect(result.current.globalLogs[1].defaultVisible).toBe(true)
+    expect(result.current.globalLogs[0].timestamp).toBe('2026-03-03T12:00:00.500Z');
+    expect(result.current.globalLogs[1].timestamp).toBe('2026-03-03T12:00:01.000Z');
+    expect(result.current.globalLogs[0].runId).toBe('run-1');
+    expect(result.current.globalLogs[0].signal).toBe('raw');
+    expect(result.current.globalLogs[0].defaultVisible).toBe(false);
+    expect(result.current.globalLogs[1].signal).toBe('meaningful');
+    expect(result.current.globalLogs[1].defaultVisible).toBe(true);
 
-    expect(result.current.nodeLogMap.get('extract-worker')).toHaveLength(1)
-    expect(result.current.nodeLogMap.get('analyze-queue')).toHaveLength(1)
-  })
+    expect(result.current.nodeLogMap.get('extract-worker')).toHaveLength(1);
+    expect(result.current.nodeLogMap.get('analyze-queue')).toHaveLength(1);
+  });
 
   it('clearSession resets all accumulated logs', async () => {
     const events: FlowEvent[] = [
@@ -59,21 +59,21 @@ describe('useLogStream', () => {
           queue_name: 'rrq:queue:mail-analyze',
         },
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useLogStream(events, mailPipelineFlow.spanMapping))
+    const { result } = renderHook(() => useLogStream(events, mailPipelineFlow.spanMapping));
 
     await waitFor(() => {
-      expect(result.current.globalLogs.length).toBe(1)
-    })
+      expect(result.current.globalLogs.length).toBe(1);
+    });
 
     act(() => {
-      result.current.clearSession()
-    })
+      result.current.clearSession();
+    });
 
-    expect(result.current.globalLogs).toEqual([])
-    expect(result.current.nodeLogMap.size).toBe(0)
-  })
+    expect(result.current.globalLogs).toEqual([]);
+    expect(result.current.nodeLogMap.size).toBe(0);
+  });
 
   it('keeps unknown mappings in global logs but not per-node map', async () => {
     const events: FlowEvent[] = [
@@ -85,17 +85,17 @@ describe('useLogStream', () => {
         },
         message: 'unknown',
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useLogStream(events, mailPipelineFlow.spanMapping))
+    const { result } = renderHook(() => useLogStream(events, mailPipelineFlow.spanMapping));
 
     await waitFor(() => {
-      expect(result.current.globalLogs).toHaveLength(1)
-    })
+      expect(result.current.globalLogs).toHaveLength(1);
+    });
 
-    expect(result.current.globalLogs[0].nodeId).toBeUndefined()
-    expect(result.current.nodeLogMap.size).toBe(0)
-  })
+    expect(result.current.globalLogs[0].nodeId).toBeUndefined();
+    expect(result.current.nodeLogMap.size).toBe(0);
+  });
 
   it('prefers explicit component_id over heuristic node mapping', async () => {
     const events: FlowEvent[] = [
@@ -109,18 +109,18 @@ describe('useLogStream', () => {
         },
         message: 'component-bound event',
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useLogStream(events, mailPipelineFlow.spanMapping))
+    const { result } = renderHook(() => useLogStream(events, mailPipelineFlow.spanMapping));
 
     await waitFor(() => {
-      expect(result.current.globalLogs).toHaveLength(1)
-    })
+      expect(result.current.globalLogs).toHaveLength(1);
+    });
 
-    expect(result.current.globalLogs[0].nodeId).toBe('send-process')
-    expect(result.current.nodeLogMap.get('send-process')).toHaveLength(1)
-    expect(result.current.nodeLogMap.get('extract-worker')).toBeUndefined()
-  })
+    expect(result.current.globalLogs[0].nodeId).toBe('send-process');
+    expect(result.current.nodeLogMap.get('send-process')).toHaveLength(1);
+    expect(result.current.nodeLogMap.get('extract-worker')).toBeUndefined();
+  });
 
   it('derives summary-first display messages for analyze and send outcomes', async () => {
     const events: FlowEvent[] = [
@@ -151,17 +151,17 @@ describe('useLogStream', () => {
         },
         message: 'send finalized draft outcome',
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useLogStream(events, mailPipelineFlow.spanMapping))
+    const { result } = renderHook(() => useLogStream(events, mailPipelineFlow.spanMapping));
 
     await waitFor(() => {
-      expect(result.current.globalLogs).toHaveLength(2)
-    })
+      expect(result.current.globalLogs).toHaveLength(2);
+    });
 
-    expect(result.current.globalLogs[0].displayMessage).toBe('drafted; awaiting manual review')
-    expect(result.current.globalLogs[1].displayMessage).toBe('terminal send failure')
-  })
+    expect(result.current.globalLogs[0].displayMessage).toBe('drafted; awaiting manual review');
+    expect(result.current.globalLogs[1].displayMessage).toBe('terminal send failure');
+  });
 
   it('assigns a stable selection id to history events without a relay seq', async () => {
     const events: FlowEvent[] = [
@@ -175,20 +175,20 @@ describe('useLogStream', () => {
           component_id: 'send-process',
         },
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useLogStream(events, mailPipelineFlow.spanMapping))
+    const { result } = renderHook(() => useLogStream(events, mailPipelineFlow.spanMapping));
 
     await waitFor(() => {
-      expect(result.current.globalLogs).toHaveLength(1)
-    })
+      expect(result.current.globalLogs).toHaveLength(1);
+    });
 
-    expect(result.current.globalLogs[0].seq).toBeUndefined()
-    expect(result.current.globalLogs[0].selectionId).toBeTruthy()
-    expect(result.current.globalLogs[0].selectionId).toMatch(/^history:log:[a-z0-9]+$/)
-    expect(result.current.globalLogs[0].selectionId!.length).toBeLessThan(32)
+    expect(result.current.globalLogs[0].seq).toBeUndefined();
+    expect(result.current.globalLogs[0].selectionId).toBeTruthy();
+    expect(result.current.globalLogs[0].selectionId).toMatch(/^history:log:[a-z0-9]+$/);
+    expect(result.current.globalLogs[0].selectionId!.length).toBeLessThan(32);
     expect(result.current.nodeLogMap.get('send-process')?.[0]?.selectionId).toBe(
       result.current.globalLogs[0].selectionId,
-    )
-  })
-})
+    );
+  });
+});

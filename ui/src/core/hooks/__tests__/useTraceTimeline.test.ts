@@ -1,9 +1,9 @@
-import { renderHook, waitFor } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { renderHook, waitFor } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 
-import { mailPipelineFlow } from '../../../flows/mail-pipeline'
-import type { FlowEvent } from '../../types'
-import { useTraceTimeline } from '../useTraceTimeline'
+import { mailPipelineFlow } from '../../../flows/mail-pipeline';
+import type { FlowEvent } from '../../types';
+import { useTraceTimeline } from '../useTraceTimeline';
 
 describe('useTraceTimeline', () => {
   it('creates span entries with durations when span_start and span_end match', async () => {
@@ -34,19 +34,19 @@ describe('useTraceTimeline', () => {
           status: 'ok',
         },
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useTraceTimeline(events, mailPipelineFlow.spanMapping))
+    const { result } = renderHook(() => useTraceTimeline(events, mailPipelineFlow.spanMapping));
 
     await waitFor(() => {
-      expect(result.current.nodeSpans.get('extract-worker')).toHaveLength(1)
-    })
+      expect(result.current.nodeSpans.get('extract-worker')).toHaveLength(1);
+    });
 
-    const span = result.current.nodeSpans.get('extract-worker')?.[0]
-    expect(span?.durationMs).toBe(900)
-    expect(span?.runId).toBe('run-1')
-    expect(result.current.traceTree.get('run-1')).toHaveLength(1)
-  })
+    const span = result.current.nodeSpans.get('extract-worker')?.[0];
+    expect(span?.durationMs).toBe(900);
+    expect(span?.runId).toBe('run-1');
+    expect(result.current.traceTree.get('run-1')).toHaveLength(1);
+  });
 
   it('preserves parent-child relationships in trace tree', async () => {
     const events: FlowEvent[] = [
@@ -102,16 +102,16 @@ describe('useTraceTimeline', () => {
           status: 'ok',
         },
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useTraceTimeline(events, mailPipelineFlow.spanMapping))
+    const { result } = renderHook(() => useTraceTimeline(events, mailPipelineFlow.spanMapping));
 
     await waitFor(() => {
-      expect(result.current.traceTree.get('run-2')).toHaveLength(2)
-    })
+      expect(result.current.traceTree.get('run-2')).toHaveLength(2);
+    });
 
-    const traceEntries = result.current.traceTree.get('run-2') ?? []
-    const child = traceEntries.find((entry) => entry.spanId === 'child-span')
-    expect(child?.parentSpanId).toBe('parent-span')
-  })
-})
+    const traceEntries = result.current.traceTree.get('run-2') ?? [];
+    const child = traceEntries.find((entry) => entry.spanId === 'child-span');
+    expect(child?.parentSpanId).toBe('parent-span');
+  });
+});

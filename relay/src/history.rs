@@ -156,14 +156,11 @@ pub async fn get_history(
 
     let client = state.history_client.clone();
 
-    let log_query = state
-        .matcher
-        .registry()
-        .history_log_query(
-            selected_flow_id.as_deref(),
-            search.as_deref(),
-            &attr_filters,
-        );
+    let log_query = state.matcher.registry().history_log_query(
+        selected_flow_id.as_deref(),
+        search.as_deref(),
+        &attr_filters,
+    );
 
     let log_future = async {
         let Some(log_query) = log_query.as_deref() else {
@@ -233,21 +230,25 @@ pub async fn get_history(
         filtered_events = filtered_events.split_off(start_index);
     }
 
-    let next_cursor = filtered_events.first().map(history_cursor_boundary).and_then(|older_than| {
-        truncated.then(|| {
-            encode_history_cursor(&HistoryCursor {
-                version: 1,
-                from: start.to_rfc3339_opts(SecondsFormat::Millis, true),
-                anchor_to: end.to_rfc3339_opts(SecondsFormat::Millis, true),
-                query: search.clone(),
-                flow_id: selected_flow_id.clone(),
-                attrs: attr_filters.clone(),
-                logs_only,
-                page: cursor.map_or(1, |cursor| cursor.page.saturating_add(1)),
-                older_than,
+    let next_cursor = filtered_events
+        .first()
+        .map(history_cursor_boundary)
+        .and_then(|older_than| {
+            truncated.then(|| {
+                encode_history_cursor(&HistoryCursor {
+                    version: 1,
+                    from: start.to_rfc3339_opts(SecondsFormat::Millis, true),
+                    anchor_to: end.to_rfc3339_opts(SecondsFormat::Millis, true),
+                    query: search.clone(),
+                    flow_id: selected_flow_id.clone(),
+                    attrs: attr_filters.clone(),
+                    logs_only,
+                    page: cursor.map_or(1, |cursor| cursor.page.saturating_add(1)),
+                    older_than,
+                })
             })
         })
-    }).transpose()?;
+        .transpose()?;
 
     let mut events = filtered_events;
     assign_history_sequence_and_annotations(&mut events);
@@ -289,7 +290,8 @@ fn resolve_history_range(
     let end = if let Some(cursor) = cursor {
         parse_rfc3339_utc(&cursor.anchor_to)?
     } else {
-        query.to
+        query
+            .to
             .as_deref()
             .map(parse_rfc3339_utc)
             .transpose()?
@@ -307,7 +309,8 @@ fn resolve_history_range(
     let mut start = if let Some(cursor) = cursor {
         parse_rfc3339_utc(&cursor.from)?
     } else {
-        query.from
+        query
+            .from
             .as_deref()
             .map(parse_rfc3339_utc)
             .transpose()?
@@ -382,8 +385,9 @@ fn decode_history_cursor(raw: &str) -> RelayResult<HistoryCursor> {
         .decode(raw)
         .map_err(|error| RelayError::bad_request(format!("invalid history cursor: {error}")))?;
 
-    serde_json::from_slice::<HistoryCursor>(&bytes)
-        .map_err(|error| RelayError::bad_request(format!("invalid history cursor payload: {error}")))
+    serde_json::from_slice::<HistoryCursor>(&bytes).map_err(|error| {
+        RelayError::bad_request(format!("invalid history cursor payload: {error}"))
+    })
 }
 
 fn history_cursor_boundary(event: &FlowEvent) -> HistoryCursorBoundary {
@@ -402,28 +406,36 @@ fn event_sorts_before_boundary(event: &FlowEvent, boundary: &HistoryCursorBounda
 }
 
 fn compare_event_to_boundary(event: &FlowEvent, boundary: &HistoryCursorBoundary) -> Ordering {
-    event.timestamp
+    event
+        .timestamp
         .cmp(&boundary.timestamp)
-        .then_with(|| event_type_rank(&event.event_type).cmp(&event_type_rank(&boundary.event_type)))
         .then_with(|| {
-            event.trace_id
+            event_type_rank(&event.event_type).cmp(&event_type_rank(&boundary.event_type))
+        })
+        .then_with(|| {
+            event
+                .trace_id
                 .as_deref()
                 .unwrap_or_default()
                 .cmp(&boundary.trace_id)
         })
         .then_with(|| {
-            event.span_id
+            event
+                .span_id
                 .as_deref()
                 .unwrap_or_default()
                 .cmp(&boundary.span_id)
         })
         .then_with(|| {
-            event.message
+            event
+                .message
                 .as_deref()
                 .unwrap_or_default()
                 .cmp(&boundary.message)
         })
-        .then_with(|| stable_attributes_fingerprint(&event.attributes).cmp(&boundary.attributes_fingerprint))
+        .then_with(|| {
+            stable_attributes_fingerprint(&event.attributes).cmp(&boundary.attributes_fingerprint)
+        })
 }
 
 fn event_type_rank(kind: &str) -> u8 {
@@ -648,7 +660,11 @@ fn map_logsql_line_to_flow_event(value: &Value) -> Option<FlowEvent> {
 
 fn normalize_history_timestamp(raw: String) -> String {
     DateTime::parse_from_rfc3339(&raw)
-        .map(|parsed| parsed.with_timezone(&Utc).to_rfc3339_opts(SecondsFormat::Millis, true))
+        .map(|parsed| {
+            parsed
+                .with_timezone(&Utc)
+                .to_rfc3339_opts(SecondsFormat::Millis, true)
+        })
         .unwrap_or(raw)
 }
 

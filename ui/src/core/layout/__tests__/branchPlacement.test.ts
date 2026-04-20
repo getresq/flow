@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest';
 
-import type { BranchPlacementConfig, FlowNodeConfig } from '../../types'
-import { applyBranchTemplatePositions } from '../branchPlacement'
+import type { BranchPlacementConfig, FlowNodeConfig } from '../../types';
+import { applyBranchTemplatePositions } from '../branchPlacement';
 
 function rectangleNode(
   id: string,
@@ -16,7 +16,7 @@ function rectangleNode(
     position: { x, y },
     size: { width: 200, height: 64 },
     layout: branch ? { branch } : undefined,
-  }
+  };
 }
 
 describe('applyBranchTemplatePositions', () => {
@@ -49,19 +49,19 @@ describe('applyBranchTemplatePositions', () => {
         track: 'primary',
         rank: 0,
       }),
-    ]
+    ];
 
     const positions = applyBranchTemplatePositions(
       nodes,
       new Map(nodes.map((node) => [node.id, node.position])),
       new Map(),
-    )
+    );
 
-    expect(positions.get('primary')).toEqual({ x: 72, y: 476 })
-    expect(positions.get('fallback-a')).toEqual({ x: 564, y: 208 })
-    expect(positions.get('fallback-b')).toEqual({ x: 564, y: 332 })
-    expect(positions.get('primary-child')).toEqual({ x: 72, y: 672 })
-  })
+    expect(positions.get('primary')).toEqual({ x: 72, y: 476 });
+    expect(positions.get('fallback-a')).toEqual({ x: 564, y: 208 });
+    expect(positions.get('fallback-b')).toEqual({ x: 564, y: 332 });
+    expect(positions.get('primary-child')).toEqual({ x: 72, y: 672 });
+  });
 
   it('preserves explicit runtime positions for dragged nodes', () => {
     const nodes: FlowNodeConfig[] = [
@@ -77,16 +77,16 @@ describe('applyBranchTemplatePositions', () => {
         track: 'primary',
         rank: 0,
       }),
-    ]
+    ];
 
     const positions = applyBranchTemplatePositions(
       nodes,
       new Map(nodes.map((node) => [node.id, node.position])),
       new Map([['primary', { x: 999, y: 888 }]]),
-    )
+    );
 
-    expect(positions.get('primary')).toEqual({ x: 0, y: 0 })
-  })
+    expect(positions.get('primary')).toEqual({ x: 0, y: 0 });
+  });
 
   it('supports separate right-side columns and resolves branch collisions downward', () => {
     const nodes: FlowNodeConfig[] = [
@@ -122,18 +122,18 @@ describe('applyBranchTemplatePositions', () => {
         rank: 0,
         column: 1,
       }),
-    ]
+    ];
 
     const positions = applyBranchTemplatePositions(
       nodes,
       new Map(nodes.map((node) => [node.id, node.position])),
       new Map(),
-    )
+    );
 
-    expect(positions.get('right-a')).toEqual({ x: 564, y: 208 })
-    expect(positions.get('right-b')).toEqual({ x: 664, y: 300 })
-    expect(positions.get('right-c')).toEqual({ x: 904, y: 228 })
-  })
+    expect(positions.get('right-a')).toEqual({ x: 564, y: 208 });
+    expect(positions.get('right-b')).toEqual({ x: 664, y: 300 });
+    expect(positions.get('right-c')).toEqual({ x: 904, y: 228 });
+  });
 
   it('supports left-side auxiliary branches for queue side-effects', () => {
     const nodes: FlowNodeConfig[] = [
@@ -149,14 +149,14 @@ describe('applyBranchTemplatePositions', () => {
         track: 'left',
         rank: 0,
       }),
-    ]
+    ];
 
     const positions = applyBranchTemplatePositions(
       nodes,
       new Map(nodes.map((node) => [node.id, node.position])),
       new Map(),
-    )
+    );
 
-    expect(positions.get('left-aux')).toEqual({ x: 80, y: 208 })
-  })
-})
+    expect(positions.get('left-aux')).toEqual({ x: 80, y: 208 });
+  });
+});

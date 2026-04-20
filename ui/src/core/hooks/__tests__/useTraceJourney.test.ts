@@ -1,9 +1,9 @@
-import { renderHook } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { renderHook } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 
-import { mailPipelineFlow } from '../../../flows/mail-pipeline'
-import type { FlowEvent } from '../../types'
-import { useTraceJourney } from '../useTraceJourney'
+import { mailPipelineFlow } from '../../../flows/mail-pipeline';
+import type { FlowEvent } from '../../types';
+import { useTraceJourney } from '../useTraceJourney';
 
 describe('useTraceJourney', () => {
   it('derives ordered steps and identifiers from mixed events', () => {
@@ -57,24 +57,24 @@ describe('useTraceJourney', () => {
           reply_draft_id: 'draft-1',
         },
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping))
-    expect(result.current.journeys).toHaveLength(1)
+    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping));
+    expect(result.current.journeys).toHaveLength(1);
 
-    const journey = result.current.journeys[0]
-    expect(journey.traceId).toBe('run-1')
-    expect(journey.identifiers.runId).toBe('run-1')
+    const journey = result.current.journeys[0];
+    expect(journey.traceId).toBe('run-1');
+    expect(journey.identifiers.runId).toBe('run-1');
     expect(journey.steps.map((stage) => stage.stepId)).toEqual([
       'write-threads',
       'final-result',
       'finalize',
-    ])
-    expect(journey.identifiers.threadId).toBe('thread-1')
-    expect(journey.identifiers.jobId).toBe('job-1')
-    expect(journey.identifiers.replyDraftId).toBe('draft-1')
-    expect(journey.status).toBe('success')
-  })
+    ]);
+    expect(journey.identifiers.threadId).toBe('thread-1');
+    expect(journey.identifiers.jobId).toBe('job-1');
+    expect(journey.identifiers.replyDraftId).toBe('draft-1');
+    expect(journey.status).toBe('success');
+  });
 
   it('marks journey error when stage has error payload', () => {
     const events: FlowEvent[] = [
@@ -108,16 +108,16 @@ describe('useTraceJourney', () => {
           error_message: 'upsert failed',
         },
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping))
-    const journey = result.current.journeys[0]
-    expect(journey.traceId).toBe('run-2')
-    expect(journey.status).toBe('error')
-    expect(journey.errorSummary).toBe('upsert failed')
-    expect(journey.steps[0].status).toBe('error')
-    expect(journey.steps[0].nodeId).toBe('extract-worker')
-  })
+    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping));
+    const journey = result.current.journeys[0];
+    expect(journey.traceId).toBe('run-2');
+    expect(journey.status).toBe('error');
+    expect(journey.errorSummary).toBe('upsert failed');
+    expect(journey.steps[0].status).toBe('error');
+    expect(journey.steps[0].nodeId).toBe('extract-worker');
+  });
 
   it('prefers explicit component_id when deriving journey nodes', () => {
     const events: FlowEvent[] = [
@@ -133,14 +133,14 @@ describe('useTraceJourney', () => {
           step_id: 'final-result',
         },
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping))
-    const journey = result.current.journeys[0]
+    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping));
+    const journey = result.current.journeys[0];
 
-    expect(journey.traceId).toBe('run-3')
-    expect(journey.steps[0].nodeId).toBe('send-process')
-  })
+    expect(journey.traceId).toBe('run-3');
+    expect(journey.steps[0].nodeId).toBe('send-process');
+  });
 
   it('keeps repeated generic step ids separate across distinct components', () => {
     const events: FlowEvent[] = [
@@ -183,17 +183,17 @@ describe('useTraceJourney', () => {
           step_id: 'pickup',
         },
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping))
-    const journey = result.current.journeys[0]
+    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping));
+    const journey = result.current.journeys[0];
 
     expect(journey.steps.map((stage) => `${stage.nodeId}:${stage.stepId}`)).toEqual([
       'analyze-queue:queue.enqueue',
       'send-queue:queue.enqueue',
       'send-worker:pickup',
-    ])
-  })
+    ]);
+  });
 
   it('ignores placeholder identifiers when building journeys', () => {
     const events: FlowEvent[] = [
@@ -211,16 +211,16 @@ describe('useTraceJourney', () => {
           step_id: 'result',
         },
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping))
-    const journey = result.current.journeys[0]
+    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping));
+    const journey = result.current.journeys[0];
 
-    expect(journey.traceId).toBe('trace-placeholder')
-    expect(journey.identifiers.runId).toBeUndefined()
-    expect(journey.identifiers.replyDraftId).toBeUndefined()
-    expect(journey.rootEntity).toBe('jrojas@getresq.com')
-  })
+    expect(journey.traceId).toBe('trace-placeholder');
+    expect(journey.identifiers.runId).toBeUndefined();
+    expect(journey.identifiers.replyDraftId).toBeUndefined();
+    expect(journey.rootEntity).toBe('jrojas@getresq.com');
+  });
 
   it('keeps repeated entries of the same stage as separate stage instances', () => {
     const events: FlowEvent[] = [
@@ -260,17 +260,17 @@ describe('useTraceJourney', () => {
           step_id: 'queue.enqueue',
         },
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping))
-    const journey = result.current.journeys[0]
+    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping));
+    const journey = result.current.journeys[0];
 
     expect(journey.steps.map((stage) => `${stage.instanceId}:${stage.stepId}`)).toEqual([
       'extract-queue::queue.enqueue:queue.enqueue',
       'extract-worker::pickup:pickup',
       'extract-queue::queue.enqueue#2:queue.enqueue',
-    ])
-  })
+    ]);
+  });
 
   it('preserves richer stage attrs when later span events update the same stage', () => {
     const events: FlowEvent[] = [
@@ -301,14 +301,14 @@ describe('useTraceJourney', () => {
           step_id: 'final-result',
         },
       },
-    ]
+    ];
 
-    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping))
-    const journey = result.current.journeys[0]
+    const { result } = renderHook(() => useTraceJourney(events, mailPipelineFlow.spanMapping));
+    const journey = result.current.journeys[0];
 
-    expect(journey.steps).toHaveLength(1)
-    expect(journey.steps[0].attrs?.reply_status).toBe('needs_review')
-    expect(journey.steps[0].attrs?.draft_status).toBe('needs_review')
-    expect(journey.steps[0].attrs?.result_action).toBe('draft_reply')
-  })
-})
+    expect(journey.steps).toHaveLength(1);
+    expect(journey.steps[0].attrs?.reply_status).toBe('needs_review');
+    expect(journey.steps[0].attrs?.draft_status).toBe('needs_review');
+    expect(journey.steps[0].attrs?.result_action).toBe('draft_reply');
+  });
+});

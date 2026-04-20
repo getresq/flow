@@ -1,69 +1,69 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { eventExecutionKey, resolveEventKind } from '../events'
-import { inferErrorState, readStringAttribute, resolveMappedNodeId } from '../mapping'
+import { eventExecutionKey, resolveEventKind } from '../events';
+import { inferErrorState, readStringAttribute, resolveMappedNodeId } from '../mapping';
 import type {
   FlowAnimationState,
   FlowEdgeConfig,
   FlowEvent,
   NodeRuntimeStatus,
   SpanMapping,
-} from '../types'
+} from '../types';
 
-const NODE_SUCCESS_RESET_MS = 3_000
-const NODE_PULSE_RESET_MS = 3_000
-const MIN_VISUAL_PULSE_MS = 2_000
+const NODE_SUCCESS_RESET_MS = 3_000;
+const NODE_PULSE_RESET_MS = 3_000;
+const MIN_VISUAL_PULSE_MS = 2_000;
 /** Events older than this are treated as historical (snapshot replay) and don't glow. */
-const STALENESS_THRESHOLD_MS = 5_000
-const DURATION_VISIBLE_MS = 5_000
-const EDGE_ACTIVE_MS = 1_200
+const STALENESS_THRESHOLD_MS = 5_000;
+const DURATION_VISIBLE_MS = 5_000;
+const EDGE_ACTIVE_MS = 1_200;
 
 interface FlowAnimationTimings {
-  nodeSuccessResetMs: number
-  nodePulseResetMs: number
-  minVisualPulseMs: number
-  stalenessThresholdMs: number
-  durationVisibleMs: number
-  edgeActiveMs: number
+  nodeSuccessResetMs: number;
+  nodePulseResetMs: number;
+  minVisualPulseMs: number;
+  stalenessThresholdMs: number;
+  durationVisibleMs: number;
+  edgeActiveMs: number;
 }
 
 function nowMs(): number {
-  return Date.now()
+  return Date.now();
 }
 
 function parseTimestampMs(timestamp: string | undefined): number | null {
   if (!timestamp) {
-    return null
+    return null;
   }
 
-  const parsed = Date.parse(timestamp)
+  const parsed = Date.parse(timestamp);
   if (Number.isNaN(parsed)) {
-    return null
+    return null;
   }
 
-  return parsed
+  return parsed;
 }
 
 function resolveDurationMs(event: FlowEvent, spanStarts: Map<string, number>): number | undefined {
   if (typeof event.duration_ms === 'number') {
-    return event.duration_ms
+    return event.duration_ms;
   }
 
   if (!event.span_id) {
-    return undefined
+    return undefined;
   }
 
-  const start = spanStarts.get(event.span_id)
-  const end = parseTimestampMs(event.end_time ?? event.timestamp)
+  const start = spanStarts.get(event.span_id);
+  const end = parseTimestampMs(event.end_time ?? event.timestamp);
   if (typeof start === 'number' && typeof end === 'number' && end >= start) {
-    return end - start
+    return end - start;
   }
 
-  return undefined
+  return undefined;
 }
 
 function remainingWindowMs(eventTimeMs: number, windowMs: number, currentTimeMs: number): number {
-  return Math.max(eventTimeMs + windowMs - currentTimeMs, 0)
+  return Math.max(eventTimeMs + windowMs - currentTimeMs, 0);
 }
 
 /**
@@ -79,39 +79,39 @@ function visualPulseMs(
   minMs: number,
   staleThresholdMs: number,
 ): number {
-  const age = currentTimeMs - eventTimeMs
+  const age = currentTimeMs - eventTimeMs;
   if (age > staleThresholdMs) {
-    return 0
+    return 0;
   }
-  const remaining = eventTimeMs + windowMs - currentTimeMs
-  return Math.max(remaining, minMs)
+  const remaining = eventTimeMs + windowMs - currentTimeMs;
+  return Math.max(remaining, minMs);
 }
 
 function matchCandidate(spanMapping: SpanMapping, candidate: string | undefined): string | null {
   if (!candidate) {
-    return null
+    return null;
   }
 
   if (spanMapping[candidate]) {
-    return spanMapping[candidate]
+    return spanMapping[candidate];
   }
 
   for (const [pattern, nodeId] of Object.entries(spanMapping)) {
     if (candidate.includes(pattern)) {
-      return nodeId
+      return nodeId;
     }
   }
 
-  return null
+  return null;
 }
 
 function eventWindowSignature(events: FlowEvent[]): string {
   if (events.length === 0) {
-    return '0'
+    return '0';
   }
 
-  const first = events[0]
-  const last = events[events.length - 1]
+  const first = events[0];
+  const last = events[events.length - 1];
   return [
     events.length,
     first?.seq ?? '',
@@ -119,17 +119,17 @@ function eventWindowSignature(events: FlowEvent[]): string {
     last?.seq ?? '',
     last?.timestamp ?? '',
     last?.type ?? '',
-  ].join('::')
+  ].join('::');
 }
 
 interface UseFlowAnimationsInput {
-  events: FlowEvent[]
-  spanMapping: SpanMapping
-  producerMapping?: SpanMapping
-  edges?: FlowEdgeConfig[]
-  resourceNodeIds?: string[]
-  timings?: Partial<FlowAnimationTimings>
-  sessionKey?: number | string
+  events: FlowEvent[];
+  spanMapping: SpanMapping;
+  producerMapping?: SpanMapping;
+  edges?: FlowEdgeConfig[];
+  resourceNodeIds?: string[];
+  timings?: Partial<FlowAnimationTimings>;
+  sessionKey?: number | string;
 }
 
 export function useFlowAnimations({
@@ -158,53 +158,55 @@ export function useFlowAnimations({
       timings?.nodeSuccessResetMs,
       timings?.stalenessThresholdMs,
     ],
-  )
-  const [nodeStatuses, setNodeStatuses] = useState<Map<string, NodeRuntimeStatus>>(new Map())
-  const [activeEdges, setActiveEdges] = useState<Set<string>>(new Set())
+  );
+  const [nodeStatuses, setNodeStatuses] = useState<Map<string, NodeRuntimeStatus>>(new Map());
+  const [activeEdges, setActiveEdges] = useState<Set<string>>(new Set());
 
-  const processedIndexRef = useRef(0)
-  const eventWindowSignatureRef = useRef(eventWindowSignature(events))
-  const sessionKeyRef = useRef<number | string | undefined>(sessionKey)
-  const spanStartRef = useRef<Map<string, number>>(new Map())
-  const nodeResetTimersRef = useRef<Map<string, number>>(new Map())
-  const edgeResetTimersRef = useRef<Map<string, number>>(new Map())
-  const traceLastNodeRef = useRef<Map<string, string>>(new Map())
+  const processedIndexRef = useRef(0);
+  const eventWindowSignatureRef = useRef(eventWindowSignature(events));
+  const sessionKeyRef = useRef<number | string | undefined>(sessionKey);
+  const spanStartRef = useRef<Map<string, number>>(new Map());
+  const nodeResetTimersRef = useRef<Map<string, number>>(new Map());
+  const edgeResetTimersRef = useRef<Map<string, number>>(new Map());
+  const traceLastNodeRef = useRef<Map<string, string>>(new Map());
 
   const clearStatuses = useCallback(() => {
     for (const timer of nodeResetTimersRef.current.values()) {
-      window.clearTimeout(timer)
+      window.clearTimeout(timer);
     }
     for (const timer of edgeResetTimersRef.current.values()) {
-      window.clearTimeout(timer)
+      window.clearTimeout(timer);
     }
 
-    nodeResetTimersRef.current.clear()
-    edgeResetTimersRef.current.clear()
-    spanStartRef.current.clear()
-    traceLastNodeRef.current.clear()
-    processedIndexRef.current = 0
-    eventWindowSignatureRef.current = eventWindowSignature(events)
+    nodeResetTimersRef.current.clear();
+    edgeResetTimersRef.current.clear();
+    spanStartRef.current.clear();
+    traceLastNodeRef.current.clear();
+    processedIndexRef.current = 0;
+    eventWindowSignatureRef.current = eventWindowSignature(events);
 
-    setNodeStatuses(new Map())
-    setActiveEdges(new Set())
-  }, [events])
+    setNodeStatuses(new Map());
+    setActiveEdges(new Set());
+  }, [events]);
 
   const updateNodeStatus = useCallback(
     (nodeId: string, updater: (previous: NodeRuntimeStatus | undefined) => NodeRuntimeStatus) => {
       setNodeStatuses((previous) => {
-        const next = new Map(previous)
-        next.set(nodeId, updater(previous.get(nodeId)))
-        return next
-      })
+        const next = new Map(previous);
+        next.set(nodeId, updater(previous.get(nodeId)));
+        return next;
+      });
     },
     [],
-  )
+  );
 
   const setNodeIdle = useCallback(
     (
       nodeId: string,
       updatedAt: number,
-      overrides?: Partial<Pick<NodeRuntimeStatus, 'counter' | 'durationMs' | 'durationVisibleUntil' | 'lastMessage'>>,
+      overrides?: Partial<
+        Pick<NodeRuntimeStatus, 'counter' | 'durationMs' | 'durationVisibleUntil' | 'lastMessage'>
+      >,
     ) => {
       updateNodeStatus(nodeId, (previous) => ({
         status: 'idle',
@@ -213,60 +215,62 @@ export function useFlowAnimations({
         durationMs: overrides?.durationMs ?? previous?.durationMs,
         durationVisibleUntil: overrides?.durationVisibleUntil ?? previous?.durationVisibleUntil,
         lastMessage: overrides?.lastMessage ?? previous?.lastMessage,
-      }))
+      }));
     },
     [updateNodeStatus],
-  )
+  );
 
   const scheduleNodeIdle = useCallback(
     (
       nodeId: string,
       delayMs: number,
       updatedAt: number,
-      overrides?: Partial<Pick<NodeRuntimeStatus, 'counter' | 'durationMs' | 'durationVisibleUntil' | 'lastMessage'>>,
+      overrides?: Partial<
+        Pick<NodeRuntimeStatus, 'counter' | 'durationMs' | 'durationVisibleUntil' | 'lastMessage'>
+      >,
     ) => {
-      const existing = nodeResetTimersRef.current.get(nodeId)
+      const existing = nodeResetTimersRef.current.get(nodeId);
       if (existing) {
-        window.clearTimeout(existing)
+        window.clearTimeout(existing);
       }
 
       const timer = window.setTimeout(() => {
-        setNodeIdle(nodeId, updatedAt, overrides)
-        nodeResetTimersRef.current.delete(nodeId)
-      }, delayMs)
+        setNodeIdle(nodeId, updatedAt, overrides);
+        nodeResetTimersRef.current.delete(nodeId);
+      }, delayMs);
 
-      nodeResetTimersRef.current.set(nodeId, timer)
+      nodeResetTimersRef.current.set(nodeId, timer);
     },
     [setNodeIdle],
-  )
+  );
 
   const activateEdge = useCallback((edgeId: string, activeForMs: number) => {
     if (activeForMs <= 0) {
-      return
+      return;
     }
 
     setActiveEdges((previous) => {
-      const next = new Set(previous)
-      next.add(edgeId)
-      return next
-    })
+      const next = new Set(previous);
+      next.add(edgeId);
+      return next;
+    });
 
-    const existing = edgeResetTimersRef.current.get(edgeId)
+    const existing = edgeResetTimersRef.current.get(edgeId);
     if (existing) {
-      window.clearTimeout(existing)
+      window.clearTimeout(existing);
     }
 
     const timer = window.setTimeout(() => {
       setActiveEdges((previous) => {
-        const next = new Set(previous)
-        next.delete(edgeId)
-        return next
-      })
-      edgeResetTimersRef.current.delete(edgeId)
-    }, activeForMs)
+        const next = new Set(previous);
+        next.delete(edgeId);
+        return next;
+      });
+      edgeResetTimersRef.current.delete(edgeId);
+    }, activeForMs);
 
-    edgeResetTimersRef.current.set(edgeId, timer)
-  }, [])
+    edgeResetTimersRef.current.set(edgeId, timer);
+  }, []);
 
   const pulseResourceTargets = useCallback(
     (
@@ -278,13 +282,13 @@ export function useFlowAnimations({
       currentTime: number,
     ) => {
       if (activeForMs <= 0) {
-        return
+        return;
       }
 
       for (const resourceNodeId of resourceNodeIds) {
-        const edgeId = edgeLookup.get(`${sourceNodeId}->${resourceNodeId}`)
+        const edgeId = edgeLookup.get(`${sourceNodeId}->${resourceNodeId}`);
         if (!edgeId) {
-          continue
+          continue;
         }
 
         updateNodeStatus(resourceNodeId, (previous) => ({
@@ -294,88 +298,94 @@ export function useFlowAnimations({
           lastMessage: message,
           durationMs: previous?.durationMs,
           durationVisibleUntil: previous?.durationVisibleUntil,
-        }))
+        }));
         scheduleNodeIdle(resourceNodeId, activeForMs, updatedAt, {
           lastMessage: message,
-        })
+        });
         activateEdge(
           edgeId,
           remainingWindowMs(updatedAt, resolvedTimings.edgeActiveMs, currentTime),
-        )
+        );
       }
     },
-    [activateEdge, resolvedTimings.edgeActiveMs, resourceNodeIds, scheduleNodeIdle, updateNodeStatus],
-  )
+    [
+      activateEdge,
+      resolvedTimings.edgeActiveMs,
+      resourceNodeIds,
+      scheduleNodeIdle,
+      updateNodeStatus,
+    ],
+  );
 
   useEffect(() => {
     if (sessionKeyRef.current === sessionKey) {
-      return
+      return;
     }
-    sessionKeyRef.current = sessionKey
-    clearStatuses()
-  }, [clearStatuses, sessionKey])
+    sessionKeyRef.current = sessionKey;
+    clearStatuses();
+  }, [clearStatuses, sessionKey]);
 
   useEffect(() => {
-    const currentSignature = eventWindowSignature(events)
+    const currentSignature = eventWindowSignature(events);
     if (
       events.length === processedIndexRef.current &&
       eventWindowSignatureRef.current !== currentSignature
     ) {
-      clearStatuses()
-      processedIndexRef.current = 0
+      clearStatuses();
+      processedIndexRef.current = 0;
     }
-    eventWindowSignatureRef.current = currentSignature
+    eventWindowSignatureRef.current = currentSignature;
 
     if (events.length < processedIndexRef.current) {
-      clearStatuses()
-      processedIndexRef.current = 0
+      clearStatuses();
+      processedIndexRef.current = 0;
     }
 
     if (events.length === processedIndexRef.current) {
-      return
+      return;
     }
 
-    const edgeLookup = new Map(edges.map((edge) => [`${edge.source}->${edge.target}`, edge.id]))
+    const edgeLookup = new Map(edges.map((edge) => [`${edge.source}->${edge.target}`, edge.id]));
 
-    const pending = events.slice(processedIndexRef.current)
-    processedIndexRef.current = events.length
-    const currentTime = nowMs()
+    const pending = events.slice(processedIndexRef.current);
+    processedIndexRef.current = events.length;
+    const currentTime = nowMs();
 
     for (const event of pending) {
-      const eventKind = resolveEventKind(event)
-      const mappedNodeId = resolveMappedNodeId(event, spanMapping)
-      const queueName = readStringAttribute(event.attributes, 'queue_name')
-      const workerName = readStringAttribute(event.attributes, 'worker_name')
-      const functionName = readStringAttribute(event.attributes, 'function_name')
-      const queueNodeId = matchCandidate(spanMapping, queueName)
-      const workerNodeId = matchCandidate(spanMapping, workerName)
-      const producerLookup = producerMapping ?? spanMapping
+      const eventKind = resolveEventKind(event);
+      const mappedNodeId = resolveMappedNodeId(event, spanMapping);
+      const queueName = readStringAttribute(event.attributes, 'queue_name');
+      const workerName = readStringAttribute(event.attributes, 'worker_name');
+      const functionName = readStringAttribute(event.attributes, 'function_name');
+      const queueNodeId = matchCandidate(spanMapping, queueName);
+      const workerNodeId = matchCandidate(spanMapping, workerName);
+      const producerLookup = producerMapping ?? spanMapping;
       const producerNodeId =
         matchCandidate(producerLookup, functionName) ??
         matchCandidate(producerLookup, event.span_name) ??
         matchCandidate(spanMapping, functionName) ??
-        matchCandidate(spanMapping, event.span_name)
-      const startTimestamp = parseTimestampMs(event.start_time ?? event.timestamp) ?? currentTime
-      const eventTimestamp = parseTimestampMs(event.end_time ?? event.timestamp) ?? currentTime
-      const executionKey = eventExecutionKey(event)
+        matchCandidate(spanMapping, event.span_name);
+      const startTimestamp = parseTimestampMs(event.start_time ?? event.timestamp) ?? currentTime;
+      const eventTimestamp = parseTimestampMs(event.end_time ?? event.timestamp) ?? currentTime;
+      const executionKey = eventExecutionKey(event);
 
       if (executionKey && mappedNodeId) {
-        const previousNode = traceLastNodeRef.current.get(executionKey)
+        const previousNode = traceLastNodeRef.current.get(executionKey);
         if (previousNode && previousNode !== mappedNodeId) {
-          const edgeId = edgeLookup.get(`${previousNode}->${mappedNodeId}`)
+          const edgeId = edgeLookup.get(`${previousNode}->${mappedNodeId}`);
           if (edgeId) {
             activateEdge(
               edgeId,
               remainingWindowMs(eventTimestamp, resolvedTimings.edgeActiveMs, currentTime),
-            )
+            );
           }
         }
-        traceLastNodeRef.current.set(executionKey, mappedNodeId)
+        traceLastNodeRef.current.set(executionKey, mappedNodeId);
       }
 
       if (eventKind === 'node_started') {
         if (event.span_id) {
-          spanStartRef.current.set(event.span_id, startTimestamp)
+          spanStartRef.current.set(event.span_id, startTimestamp);
         }
 
         if (mappedNodeId) {
@@ -386,24 +396,24 @@ export function useFlowAnimations({
             lastMessage: event.message ?? event.span_name,
             durationMs: previous?.durationMs,
             durationVisibleUntil: previous?.durationVisibleUntil,
-          }))
+          }));
         }
 
-        continue
+        continue;
       }
 
       if (eventKind === 'node_finished') {
         if (!mappedNodeId) {
-          continue
+          continue;
         }
 
-        const durationMs = resolveDurationMs(event, spanStartRef.current)
+        const durationMs = resolveDurationMs(event, spanStartRef.current);
         if (event.span_id) {
-          spanStartRef.current.delete(event.span_id)
+          spanStartRef.current.delete(event.span_id);
         }
 
-        const isError = inferErrorState(event)
-        const durationVisibleUntil = eventTimestamp + resolvedTimings.durationVisibleMs
+        const isError = inferErrorState(event);
+        const durationVisibleUntil = eventTimestamp + resolvedTimings.durationVisibleMs;
 
         if (isError) {
           updateNodeStatus(mappedNodeId, (previous) => ({
@@ -413,7 +423,7 @@ export function useFlowAnimations({
             durationVisibleUntil,
             updatedAt: eventTimestamp,
             lastMessage: event.message ?? event.span_name,
-          }))
+          }));
         } else {
           const pulseMs = visualPulseMs(
             eventTimestamp,
@@ -421,7 +431,7 @@ export function useFlowAnimations({
             currentTime,
             resolvedTimings.minVisualPulseMs,
             resolvedTimings.stalenessThresholdMs,
-          )
+          );
 
           if (pulseMs > 0) {
             updateNodeStatus(mappedNodeId, (previous) => ({
@@ -431,12 +441,12 @@ export function useFlowAnimations({
               durationVisibleUntil,
               updatedAt: eventTimestamp,
               lastMessage: event.message ?? event.span_name,
-            }))
+            }));
             scheduleNodeIdle(mappedNodeId, pulseMs, eventTimestamp, {
               durationMs,
               durationVisibleUntil,
               lastMessage: event.message ?? event.span_name,
-            })
+            });
             pulseResourceTargets(
               mappedNodeId,
               edgeLookup,
@@ -444,41 +454,39 @@ export function useFlowAnimations({
               eventTimestamp,
               event.message ?? event.span_name,
               currentTime,
-            )
+            );
           } else {
             setNodeIdle(mappedNodeId, eventTimestamp, {
               durationMs,
               durationVisibleUntil,
               lastMessage: event.message ?? event.span_name,
-            })
+            });
           }
         }
 
-        continue
+        continue;
       }
 
       if (eventKind === 'queue_enqueued') {
-        const targetQueueNodeId = queueNodeId ?? mappedNodeId
+        const targetQueueNodeId = queueNodeId ?? mappedNodeId;
         const enqueueStepNodeId =
           mappedNodeId &&
           mappedNodeId !== targetQueueNodeId &&
           targetQueueNodeId &&
-          (
-            edgeLookup.has(`${mappedNodeId}->${targetQueueNodeId}`) ||
-            (producerNodeId ? edgeLookup.has(`${producerNodeId}->${mappedNodeId}`) : false)
-          )
+          (edgeLookup.has(`${mappedNodeId}->${targetQueueNodeId}`) ||
+            (producerNodeId ? edgeLookup.has(`${producerNodeId}->${mappedNodeId}`) : false))
             ? mappedNodeId
-            : null
+            : null;
         if (targetQueueNodeId) {
-          const delta = typeof event.queue_delta === 'number' ? event.queue_delta : 1
+          const delta = typeof event.queue_delta === 'number' ? event.queue_delta : 1;
           const pulseMs = visualPulseMs(
             eventTimestamp,
             resolvedTimings.nodePulseResetMs,
             currentTime,
             resolvedTimings.minVisualPulseMs,
             resolvedTimings.stalenessThresholdMs,
-          )
-          const isFresh = pulseMs > 0
+          );
+          const isFresh = pulseMs > 0;
 
           updateNodeStatus(targetQueueNodeId, (previous) => ({
             status: isFresh ? 'active' : 'idle',
@@ -487,11 +495,11 @@ export function useFlowAnimations({
             lastMessage: event.message ?? queueName,
             durationMs: previous?.durationMs,
             durationVisibleUntil: previous?.durationVisibleUntil,
-          }))
+          }));
           if (isFresh) {
             scheduleNodeIdle(targetQueueNodeId, pulseMs, eventTimestamp, {
               lastMessage: event.message ?? queueName,
-            })
+            });
           }
 
           if (enqueueStepNodeId) {
@@ -502,23 +510,23 @@ export function useFlowAnimations({
               lastMessage: event.message ?? event.span_name ?? functionName,
               durationMs: previous?.durationMs,
               durationVisibleUntil: previous?.durationVisibleUntil,
-            }))
+            }));
             if (isFresh) {
               scheduleNodeIdle(enqueueStepNodeId, pulseMs, eventTimestamp, {
                 lastMessage: event.message ?? event.span_name ?? functionName,
-              })
+              });
             }
 
-            const enqueueEdgeId = edgeLookup.get(`${enqueueStepNodeId}->${targetQueueNodeId}`)
+            const enqueueEdgeId = edgeLookup.get(`${enqueueStepNodeId}->${targetQueueNodeId}`);
             if (enqueueEdgeId) {
               activateEdge(
                 enqueueEdgeId,
                 remainingWindowMs(eventTimestamp, resolvedTimings.edgeActiveMs, currentTime),
-              )
+              );
             }
           }
 
-          const producerTargetNodeId = enqueueStepNodeId ?? targetQueueNodeId
+          const producerTargetNodeId = enqueueStepNodeId ?? targetQueueNodeId;
           if (producerNodeId && producerNodeId !== producerTargetNodeId) {
             updateNodeStatus(producerNodeId, (previous) => ({
               status: isFresh ? 'active' : 'idle',
@@ -527,24 +535,24 @@ export function useFlowAnimations({
               lastMessage: event.message ?? functionName ?? event.span_name,
               durationMs: previous?.durationMs,
               durationVisibleUntil: previous?.durationVisibleUntil,
-            }))
+            }));
             if (isFresh) {
               scheduleNodeIdle(producerNodeId, pulseMs, eventTimestamp, {
                 lastMessage: event.message ?? functionName ?? event.span_name,
-              })
+              });
             }
 
-            const edgeId = edgeLookup.get(`${producerNodeId}->${producerTargetNodeId}`)
+            const edgeId = edgeLookup.get(`${producerNodeId}->${producerTargetNodeId}`);
             if (edgeId) {
               activateEdge(
                 edgeId,
                 remainingWindowMs(eventTimestamp, resolvedTimings.edgeActiveMs, currentTime),
-              )
+              );
             }
           }
         }
 
-        continue
+        continue;
       }
 
       if (eventKind === 'queue_picked') {
@@ -554,11 +562,11 @@ export function useFlowAnimations({
           currentTime,
           resolvedTimings.minVisualPulseMs,
           resolvedTimings.stalenessThresholdMs,
-        )
-        const isFresh = pulseMs > 0
+        );
+        const isFresh = pulseMs > 0;
 
         if (queueNodeId) {
-          const delta = typeof event.queue_delta === 'number' ? event.queue_delta : -1
+          const delta = typeof event.queue_delta === 'number' ? event.queue_delta : -1;
           updateNodeStatus(queueNodeId, (previous) => ({
             status: isFresh ? 'active' : 'idle',
             counter: Math.max((previous?.counter ?? 0) + delta, 0),
@@ -566,15 +574,15 @@ export function useFlowAnimations({
             lastMessage: event.message ?? queueName,
             durationMs: previous?.durationMs,
             durationVisibleUntil: previous?.durationVisibleUntil,
-          }))
+          }));
           if (isFresh) {
             scheduleNodeIdle(queueNodeId, pulseMs, eventTimestamp, {
               lastMessage: event.message ?? queueName,
-            })
+            });
           }
         }
 
-        const targetWorkerNodeId = workerNodeId ?? mappedNodeId
+        const targetWorkerNodeId = workerNodeId ?? mappedNodeId;
         if (targetWorkerNodeId) {
           updateNodeStatus(targetWorkerNodeId, (previous) => ({
             status: isFresh ? 'active' : 'idle',
@@ -583,25 +591,25 @@ export function useFlowAnimations({
             lastMessage: event.message ?? workerName ?? event.span_name,
             durationMs: previous?.durationMs,
             durationVisibleUntil: previous?.durationVisibleUntil,
-          }))
+          }));
           if (isFresh) {
             scheduleNodeIdle(targetWorkerNodeId, pulseMs, eventTimestamp, {
               lastMessage: event.message ?? workerName ?? event.span_name,
-            })
+            });
           }
 
           if (queueNodeId) {
-            const edgeId = edgeLookup.get(`${queueNodeId}->${targetWorkerNodeId}`)
+            const edgeId = edgeLookup.get(`${queueNodeId}->${targetWorkerNodeId}`);
             if (edgeId) {
               activateEdge(
                 edgeId,
                 remainingWindowMs(eventTimestamp, resolvedTimings.edgeActiveMs, currentTime),
-              )
+              );
             }
           }
         }
 
-        continue
+        continue;
       }
 
       if (mappedNodeId) {
@@ -611,8 +619,8 @@ export function useFlowAnimations({
           currentTime,
           resolvedTimings.minVisualPulseMs,
           resolvedTimings.stalenessThresholdMs,
-        )
-        const isFresh = pulseMs > 0
+        );
+        const isFresh = pulseMs > 0;
 
         updateNodeStatus(mappedNodeId, (previous) => ({
           status: isFresh ? 'active' : 'idle',
@@ -621,11 +629,11 @@ export function useFlowAnimations({
           lastMessage: event.message ?? event.span_name,
           durationMs: previous?.durationMs,
           durationVisibleUntil: previous?.durationVisibleUntil,
-        }))
+        }));
         if (isFresh) {
           scheduleNodeIdle(mappedNodeId, pulseMs, eventTimestamp, {
             lastMessage: event.message ?? event.span_name,
-          })
+          });
           pulseResourceTargets(
             mappedNodeId,
             edgeLookup,
@@ -633,7 +641,7 @@ export function useFlowAnimations({
             eventTimestamp,
             event.message ?? event.span_name,
             currentTime,
-          )
+          );
         }
       }
     }
@@ -654,23 +662,23 @@ export function useFlowAnimations({
     resourceNodeIds,
     spanMapping,
     updateNodeStatus,
-  ])
+  ]);
 
   useEffect(
     () => () => {
       for (const timer of nodeResetTimersRef.current.values()) {
-        window.clearTimeout(timer)
+        window.clearTimeout(timer);
       }
       for (const timer of edgeResetTimersRef.current.values()) {
-        window.clearTimeout(timer)
+        window.clearTimeout(timer);
       }
     },
     [],
-  )
+  );
 
   return {
     nodeStatuses,
     activeEdges,
     clearStatuses,
-  }
+  };
 }

@@ -1,7 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest';
 
-import { classifyFlowEvent, isDefaultVisibleLogEntry, isDefaultVisibleSignal } from '../telemetryClassification'
-import type { FlowEvent, LogEntry } from '../types'
+import {
+  classifyFlowEvent,
+  isDefaultVisibleLogEntry,
+  isDefaultVisibleSignal,
+} from '../telemetryClassification';
+import type { FlowEvent, LogEntry } from '../types';
 
 describe('telemetryClassification', () => {
   it('classifies generic lifecycle spans as raw', () => {
@@ -12,11 +16,11 @@ describe('telemetryClassification', () => {
       trace_id: 'trace-1',
       span_id: 'span-1',
       attributes: {},
-    }
+    };
 
-    expect(classifyFlowEvent(event)).toBe('raw')
-    expect(isDefaultVisibleSignal(classifyFlowEvent(event))).toBe(false)
-  })
+    expect(classifyFlowEvent(event)).toBe('raw');
+    expect(isDefaultVisibleSignal(classifyFlowEvent(event))).toBe(false);
+  });
 
   it('classifies enqueue handoffs as meaningful', () => {
     const event: FlowEvent = {
@@ -29,11 +33,11 @@ describe('telemetryClassification', () => {
         queue_name: 'rrq:queue:mail-actions',
       },
       message: 'enqueue approved action batch',
-    }
+    };
 
-    expect(classifyFlowEvent(event)).toBe('meaningful')
-    expect(isDefaultVisibleSignal(classifyFlowEvent(event))).toBe(true)
-  })
+    expect(classifyFlowEvent(event)).toBe('meaningful');
+    expect(isDefaultVisibleSignal(classifyFlowEvent(event))).toBe(true);
+  });
 
   it('classifies low-level store writes as operational', () => {
     const event: FlowEvent = {
@@ -46,11 +50,11 @@ describe('telemetryClassification', () => {
         component_id: 'incoming-worker',
       },
       message: 'metadata write complete',
-    }
+    };
 
-    expect(classifyFlowEvent(event)).toBe('operational')
-    expect(isDefaultVisibleSignal(classifyFlowEvent(event))).toBe(false)
-  })
+    expect(classifyFlowEvent(event)).toBe('operational');
+    expect(isDefaultVisibleSignal(classifyFlowEvent(event))).toBe(false);
+  });
 
   it('classifies retries and failures as critical', () => {
     const event: FlowEvent = {
@@ -65,11 +69,11 @@ describe('telemetryClassification', () => {
         error_message: 'provider timeout',
       },
       message: 'send failed',
-    }
+    };
 
-    expect(classifyFlowEvent(event)).toBe('critical')
-    expect(isDefaultVisibleSignal(classifyFlowEvent(event))).toBe(true)
-  })
+    expect(classifyFlowEvent(event)).toBe('critical');
+    expect(isDefaultVisibleSignal(classifyFlowEvent(event))).toBe(true);
+  });
 
   it('hides span-derived rows from the default logs view', () => {
     const entry: LogEntry = {
@@ -79,10 +83,10 @@ describe('telemetryClassification', () => {
       defaultVisible: true,
       message: 'span completed: mail.analyze_decision',
       eventType: 'span_end',
-    }
+    };
 
-    expect(isDefaultVisibleLogEntry(entry)).toBe(false)
-  })
+    expect(isDefaultVisibleLogEntry(entry)).toBe(false);
+  });
 
   it('treats lifecycle span wrappers as raw but keeps lifecycle log events meaningful', () => {
     const spanEvent: FlowEvent = {
@@ -96,7 +100,7 @@ describe('telemetryClassification', () => {
         reply_status: 'needs_review',
       },
       message: 'span completed',
-    }
+    };
 
     const logEvent: FlowEvent = {
       type: 'log',
@@ -111,9 +115,9 @@ describe('telemetryClassification', () => {
         result_action: 'draft_reply',
       },
       message: 'analyze finalized reply branch',
-    }
+    };
 
-    expect(classifyFlowEvent(spanEvent)).toBe('raw')
-    expect(classifyFlowEvent(logEvent)).toBe('meaningful')
-  })
-})
+    expect(classifyFlowEvent(spanEvent)).toBe('raw');
+    expect(classifyFlowEvent(logEvent)).toBe('meaningful');
+  });
+});

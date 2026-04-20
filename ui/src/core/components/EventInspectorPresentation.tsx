@@ -1,21 +1,21 @@
-import type { ReactNode } from 'react'
+import type { ReactNode } from 'react';
 
-import { formatEasternTime } from '../time'
-import type { LogEntry } from '../types'
-import { DurationBadge } from './DurationBadge'
+import { formatEasternTime } from '../time';
+import type { LogEntry } from '../types';
+import { DurationBadge } from './DurationBadge';
 
 export function getEventInspectorPresentation(
   entry: LogEntry,
   nodeLabel?: string,
   onOpenNode?: (nodeId: string) => void,
 ): {
-  title: ReactNode
-  description: ReactNode
-  headerContent: ReactNode
+  title: ReactNode;
+  description: ReactNode;
+  headerContent: ReactNode;
 } {
-  const timestamp = formatEasternTime(entry.timestamp, { precise: true })
-  const label = nodeLabel ?? entry.nodeId ?? 'Event'
-  const canOpenNode = Boolean(entry.nodeId && onOpenNode)
+  const timestamp = formatEasternTime(entry.timestamp, { precise: true });
+  const label = nodeLabel ?? entry.nodeId ?? 'Event';
+  const canOpenNode = Boolean(entry.nodeId && onOpenNode);
 
   const title: ReactNode = canOpenNode ? (
     <button
@@ -27,7 +27,7 @@ export function getEventInspectorPresentation(
     </button>
   ) : (
     label
-  )
+  );
 
   return {
     title,
@@ -38,5 +38,5 @@ export function getEventInspectorPresentation(
       </span>
     ),
     headerContent: null,
-  }
+  };
 }

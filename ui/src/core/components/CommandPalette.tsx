@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import {
   CommandDialog,
@@ -9,62 +9,61 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from '@/components/ui'
+} from '@/components/ui';
 
-import { flows } from '../../flows'
-import { useCommandPaletteStore } from '../../stores/commandPalette'
-import { useLayoutStore } from '../../stores/layout'
+import { useRegisteredFlows } from '../../flows';
+import { useCommandPaletteStore } from '../../stores/commandPalette';
+import { useLayoutStore } from '../../stores/layout';
 
-function currentFlowFromPath(pathname: string) {
-  const match = pathname.match(/^\/flows\/([^/]+)/)
+function currentFlowFromPath(pathname: string, flows: ReturnType<typeof useRegisteredFlows>) {
+  const match = pathname.match(/^\/flows\/([^/]+)/);
   if (!match) {
-    return undefined
+    return undefined;
   }
 
-  return flows.find((flow) => flow.id === match[1])
+  return flows.find((flow) => flow.id === match[1]);
 }
 
-function updateSearchParams(
-  search: string,
-  updates: Record<string, string | null>,
-) {
-  const params = new URLSearchParams(search)
+function updateSearchParams(search: string, updates: Record<string, string | null>) {
+  const params = new URLSearchParams(search);
 
   Object.entries(updates).forEach(([key, value]) => {
     if (value === null) {
-      params.delete(key)
-      return
+      params.delete(key);
+      return;
     }
 
-    params.set(key, value)
-  })
+    params.set(key, value);
+  });
 
-  const nextSearch = params.toString()
-  return nextSearch ? `?${nextSearch}` : ''
+  const nextSearch = params.toString();
+  return nextSearch ? `?${nextSearch}` : '';
 }
 
 export function CommandPalette() {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const commandPaletteOpen = useLayoutStore((state) => state.commandPaletteOpen)
-  const setCommandPaletteOpen = useLayoutStore((state) => state.setCommandPaletteOpen)
-  const theme = useLayoutStore((state) => state.theme)
-  const setTheme = useLayoutStore((state) => state.setTheme)
+  const flows = useRegisteredFlows();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const commandPaletteOpen = useLayoutStore((state) => state.commandPaletteOpen);
+  const setCommandPaletteOpen = useLayoutStore((state) => state.setCommandPaletteOpen);
+  const theme = useLayoutStore((state) => state.theme);
+  const setTheme = useLayoutStore((state) => state.setTheme);
 
-  const runOptions = useCommandPaletteStore((state) => state.runOptions)
-  const onClearLogs = useCommandPaletteStore((state) => state.onClearLogs)
+  const runOptions = useCommandPaletteStore((state) => state.runOptions);
+  const onClearLogs = useCommandPaletteStore((state) => state.onClearLogs);
 
   const currentFlow = useMemo(
-    () => currentFlowFromPath(location.pathname),
-    [location.pathname],
-  )
+    () => currentFlowFromPath(location.pathname, flows),
+    [flows, location.pathname],
+  );
 
-  const nodeOptions = currentFlow?.nodes.map((node) => ({
-    id: node.id,
-    label: node.label,
-  })) ?? []
+  const nodeOptions =
+    currentFlow?.nodes.map((node) => ({
+      id: node.id,
+      label: node.label,
+    })) ?? [];
 
-  const closePalette = () => setCommandPaletteOpen(false)
+  const closePalette = () => setCommandPaletteOpen(false);
 
   return (
     <CommandDialog
@@ -83,12 +82,14 @@ export function CommandPalette() {
               key={flow.id}
               value={`${flow.name} ${flow.id}`}
               onSelect={() => {
-                navigate(`/flows/${flow.id}?mode=live`)
-                closePalette()
+                navigate(`/flows/${flow.id}?mode=live`);
+                closePalette();
               }}
             >
               <span>{flow.name}</span>
-              {!flow.hasGraph ? <span className="ml-auto text-xs text-[var(--text-secondary)]">Headless</span> : null}
+              {!flow.hasGraph ? (
+                <span className="ml-auto text-xs text-[var(--text-secondary)]">Headless</span>
+              ) : null}
             </CommandItem>
           ))}
         </CommandGroup>
@@ -98,8 +99,8 @@ export function CommandPalette() {
         <CommandGroup heading="Actions">
           <CommandItem
             onSelect={() => {
-              setTheme(theme === 'dark' ? 'light' : 'dark')
-              closePalette()
+              setTheme(theme === 'dark' ? 'light' : 'dark');
+              closePalette();
             }}
           >
             <span>Toggle theme</span>
@@ -111,8 +112,8 @@ export function CommandPalette() {
           {onClearLogs ? (
             <CommandItem
               onSelect={() => {
-                onClearLogs()
-                closePalette()
+                onClearLogs();
+                closePalette();
               }}
             >
               Clear logs
@@ -135,8 +136,8 @@ export function CommandPalette() {
                       node: node.id,
                       run: null,
                     }),
-                  })
-                  closePalette()
+                  });
+                  closePalette();
                 }}
               >
                 <span>Filter logs by node</span>
@@ -155,8 +156,8 @@ export function CommandPalette() {
                       run: run.traceId,
                       node: null,
                     }),
-                  })
-                  closePalette()
+                  });
+                  closePalette();
                 }}
               >
                 <span>Filter by trace ID</span>
@@ -169,5 +170,5 @@ export function CommandPalette() {
         ) : null}
       </CommandList>
     </CommandDialog>
-  )
+  );
 }

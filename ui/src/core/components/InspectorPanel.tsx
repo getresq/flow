@@ -1,19 +1,19 @@
-import { useId, type ReactNode } from 'react'
-import { motion } from 'motion/react'
-import { ArrowLeft, X } from 'lucide-react'
+import { useId, type ReactNode } from 'react';
+import { motion } from 'motion/react';
+import { ArrowLeft, X } from 'lucide-react';
 
-import { Button } from '@/components/ui'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui';
+import { cn } from '@/lib/utils';
 
 interface InspectorPanelProps {
-  title: ReactNode
-  description?: ReactNode
-  headerContent?: ReactNode
-  className?: string
-  children: ReactNode
-  onBack?: () => void
-  backLabel?: string
-  onClose: () => void
+  title: ReactNode;
+  description?: ReactNode;
+  headerContent?: ReactNode;
+  className?: string;
+  children: ReactNode;
+  onBack?: () => void;
+  backLabel?: string;
+  onClose: () => void;
 }
 
 export function InspectorPanel({
@@ -26,8 +26,8 @@ export function InspectorPanel({
   backLabel,
   onClose,
 }: InspectorPanelProps) {
-  const titleId = useId()
-  const descriptionId = useId()
+  const titleId = useId();
+  const descriptionId = useId();
 
   return (
     <motion.aside
@@ -75,7 +75,14 @@ export function InspectorPanel({
               {title}
             </h2>
           </div>
-          <Button type="button" variant="ghost" size="icon" className="size-7 shrink-0" onClick={onClose} aria-label="Close">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-7 shrink-0"
+            onClick={onClose}
+            aria-label="Close"
+          >
             <X className="size-4" />
           </Button>
         </div>
@@ -91,5 +98,5 @@ export function InspectorPanel({
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
     </motion.aside>
-  )
+  );
 }

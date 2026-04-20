@@ -1,11 +1,11 @@
-import * as React from 'react'
-import * as SelectPrimitive from '@radix-ui/react-select'
-import { Check, ChevronDown, ChevronUp } from 'lucide-react'
+import * as React from 'react';
+import * as SelectPrimitive from '@radix-ui/react-select';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils';
 
-const Select = SelectPrimitive.Root
-const SelectValue = SelectPrimitive.Value
+const Select = SelectPrimitive.Root;
+const SelectValue = SelectPrimitive.Value;
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
@@ -24,8 +24,8 @@ const SelectTrigger = React.forwardRef<
       <ChevronDown className="size-4 text-[var(--text-secondary)]" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
-))
-SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
+));
+SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
@@ -60,8 +60,8 @@ const SelectContent = React.forwardRef<
       </SelectPrimitive.ScrollDownButton>
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
-))
-SelectContent.displayName = SelectPrimitive.Content.displayName
+));
+SelectContent.displayName = SelectPrimitive.Content.displayName;
 
 const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
@@ -82,7 +82,7 @@ const SelectItem = React.forwardRef<
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
   </SelectPrimitive.Item>
-))
-SelectItem.displayName = SelectPrimitive.Item.displayName
+));
+SelectItem.displayName = SelectPrimitive.Item.displayName;
 
-export { Select, SelectTrigger, SelectContent, SelectItem, SelectValue }
+export { Select, SelectTrigger, SelectContent, SelectItem, SelectValue };

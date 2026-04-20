@@ -1,7 +1,7 @@
 {
   "name": "ui",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "replay": "bun run src/test/replay.ts",
-    "lint": "eslint .",
+    "fmt": "bunx oxfmt && bunx oxfmt --check",
+    "fmt:check": "bunx oxfmt --check",
+    "lint": "bunx oxlint src",
+    "lint:errors": "bunx oxlint --deny-warnings src",
+    "typecheck": "tsc -b",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -56,6 +60,8 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "jsdom": "^28.1.0",
+    "oxfmt": "^0.26.0",
+    "oxlint": "^1.61.0",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",

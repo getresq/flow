@@ -39,15 +39,50 @@ export const themeTokens = {
     edgeDefault: '#3f3f46',
     edgeDimmed: '#27272a',
     marker: '#3f3f46',
-    nodeAmber:   { border: 'rgba(255,168,0,0.40)',    bg: '#150c00',  text: '#fde68a', accent: '#FFA800' },
-    nodeOcean:   { border: 'rgba(56,182,255,0.40)',   bg: '#000d18',  text: '#bfdbfe', accent: '#38B6FF' },
-    nodeSlate:   { border: 'rgba(148,163,184,0.35)',  bg: '#0b1320',  text: '#cbd5e1', accent: '#94A3B8' },
-    nodeSky:     { border: 'rgba(96,165,250,0.28)',   bg: '#011120',  text: '#bfdbfe', accent: '#60A5FA' },
-    nodeViolet:  { border: 'rgba(160,100,255,0.40)',  bg: '#0d0018',  text: '#d8b4fe', accent: '#A064FF' },
-    nodeTeal:    { border: 'rgba(0,180,180,0.35)',    bg: '#001414',  text: '#67e8f9', accent: '#00B4B4' },
-    nodeEmerald: { border: 'rgba(34,197,94,0.40)',    bg: '#04150b',  text: '#bbf7d0', accent: '#22C55E' },
-    nodeMuted:   { border: 'rgba(148,163,184,0.14)',  bg: '#070d16',  text: '#64748b', accent: '#94a3b8' },
-    nodeGroup:   { border: 'rgba(255,255,255,0.12)',  bg: 'transparent', text: '#64748b', accent: '#64748b' },
+    nodeAmber: {
+      border: 'rgba(255,168,0,0.40)',
+      bg: '#150c00',
+      text: '#fde68a',
+      accent: '#FFA800',
+    },
+    nodeOcean: {
+      border: 'rgba(56,182,255,0.40)',
+      bg: '#000d18',
+      text: '#bfdbfe',
+      accent: '#38B6FF',
+    },
+    nodeSlate: {
+      border: 'rgba(148,163,184,0.35)',
+      bg: '#0b1320',
+      text: '#cbd5e1',
+      accent: '#94A3B8',
+    },
+    nodeSky: { border: 'rgba(96,165,250,0.28)', bg: '#011120', text: '#bfdbfe', accent: '#60A5FA' },
+    nodeViolet: {
+      border: 'rgba(160,100,255,0.40)',
+      bg: '#0d0018',
+      text: '#d8b4fe',
+      accent: '#A064FF',
+    },
+    nodeTeal: { border: 'rgba(0,180,180,0.35)', bg: '#001414', text: '#67e8f9', accent: '#00B4B4' },
+    nodeEmerald: {
+      border: 'rgba(34,197,94,0.40)',
+      bg: '#04150b',
+      text: '#bbf7d0',
+      accent: '#22C55E',
+    },
+    nodeMuted: {
+      border: 'rgba(148,163,184,0.14)',
+      bg: '#070d16',
+      text: '#64748b',
+      accent: '#94a3b8',
+    },
+    nodeGroup: {
+      border: 'rgba(255,255,255,0.12)',
+      bg: 'transparent',
+      text: '#64748b',
+      accent: '#64748b',
+    },
   },
   light: {
     surfacePrimary: '#ffffff',
@@ -78,15 +113,50 @@ export const themeTokens = {
     edgeDefault: '#B0B8C4',
     edgeDimmed: '#D1D5DB',
     marker: '#B0B8C4',
-    nodeAmber:   { border: 'rgba(200,120,0,0.55)',   bg: '#FFF5E1', text: '#92400e', accent: '#DC8200' },
-    nodeOcean:   { border: 'rgba(0,120,220,0.55)',   bg: '#EBF0FF', text: '#1e3a5f', accent: '#008CF0' },
-    nodeSlate:   { border: 'rgba(100,116,139,0.45)', bg: '#EDEEF2', text: '#475569', accent: '#64748B' },
-    nodeSky:     { border: 'rgba(59,130,246,0.38)',  bg: '#EAF0FF', text: '#1e3a8a', accent: '#60A5FA' },
-    nodeViolet:  { border: 'rgba(130,70,220,0.55)',  bg: '#F0E8FF', text: '#4c1d95', accent: '#8246DC' },
-    nodeTeal:    { border: 'rgba(0,140,140,0.50)',   bg: '#E8F7F6', text: '#155e75', accent: '#009696' },
-    nodeEmerald: { border: 'rgba(22,150,70,0.48)',   bg: '#E8F8EA', text: '#166534', accent: '#16A34A' },
-    nodeMuted:   { border: 'rgba(100,116,139,0.40)', bg: '#EDEEF2', text: '#64748b', accent: '#94A3B8' },
-    nodeGroup:   { border: 'rgba(0,0,0,0.10)',       bg: 'rgba(0,0,0,0.018)', text: '#64748b', accent: '#94a3b8' },
+    nodeAmber: {
+      border: 'rgba(200,120,0,0.55)',
+      bg: '#FFF5E1',
+      text: '#92400e',
+      accent: '#DC8200',
+    },
+    nodeOcean: {
+      border: 'rgba(0,120,220,0.55)',
+      bg: '#EBF0FF',
+      text: '#1e3a5f',
+      accent: '#008CF0',
+    },
+    nodeSlate: {
+      border: 'rgba(100,116,139,0.45)',
+      bg: '#EDEEF2',
+      text: '#475569',
+      accent: '#64748B',
+    },
+    nodeSky: { border: 'rgba(59,130,246,0.38)', bg: '#EAF0FF', text: '#1e3a8a', accent: '#60A5FA' },
+    nodeViolet: {
+      border: 'rgba(130,70,220,0.55)',
+      bg: '#F0E8FF',
+      text: '#4c1d95',
+      accent: '#8246DC',
+    },
+    nodeTeal: { border: 'rgba(0,140,140,0.50)', bg: '#E8F7F6', text: '#155e75', accent: '#009696' },
+    nodeEmerald: {
+      border: 'rgba(22,150,70,0.48)',
+      bg: '#E8F8EA',
+      text: '#166534',
+      accent: '#16A34A',
+    },
+    nodeMuted: {
+      border: 'rgba(100,116,139,0.40)',
+      bg: '#EDEEF2',
+      text: '#64748b',
+      accent: '#94A3B8',
+    },
+    nodeGroup: {
+      border: 'rgba(0,0,0,0.10)',
+      bg: 'rgba(0,0,0,0.018)',
+      text: '#64748b',
+      accent: '#94a3b8',
+    },
   },
   typography: {
     fontSans: "'Inter', 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif",
@@ -97,7 +167,7 @@ export const themeTokens = {
     panelGap: 12,
     cardPadding: 12,
   },
-} as const
+} as const;
 
-export type ThemeMode = keyof Pick<typeof themeTokens, 'dark' | 'light'>
-export type ThemeTokenScale = keyof typeof themeTokens
+export type ThemeMode = keyof Pick<typeof themeTokens, 'dark' | 'light'>;
+export type ThemeTokenScale = keyof typeof themeTokens;

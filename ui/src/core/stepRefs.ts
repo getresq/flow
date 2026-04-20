@@ -1,28 +1,28 @@
-import { normalizeTraceIdentifierValue } from './traceIdentifiers'
+import { normalizeTraceIdentifierValue } from './traceIdentifiers';
 
 export function normalizeRawStepId(stepId?: string | null): string | undefined {
-  const normalized = normalizeTraceIdentifierValue(stepId)
+  const normalized = normalizeTraceIdentifierValue(stepId);
   if (!normalized) {
-    return undefined
+    return undefined;
   }
 
-  return normalized
+  return normalized;
 }
 
 export function stepLeaf(stepId?: string | null): string | undefined {
-  return normalizeRawStepId(stepId)
+  return normalizeRawStepId(stepId);
 }
 
 export function combinedStepRef(
   componentId?: string | null,
   stepId?: string | null,
 ): string | undefined {
-  const normalizedComponentId = normalizeTraceIdentifierValue(componentId)
-  const normalizedStepLeaf = stepLeaf(stepId)
+  const normalizedComponentId = normalizeTraceIdentifierValue(componentId);
+  const normalizedStepLeaf = stepLeaf(stepId);
 
   if (normalizedComponentId && normalizedStepLeaf) {
-    return `${normalizedComponentId}.${normalizedStepLeaf}`
+    return `${normalizedComponentId}.${normalizedStepLeaf}`;
   }
 
-  return normalizedComponentId ?? normalizedStepLeaf
+  return normalizedComponentId ?? normalizedStepLeaf;
 }

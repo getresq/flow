@@ -1,24 +1,26 @@
-import { Badge, Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
+import { Badge, Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 
-import type { FlowMetricsSnapshot } from '../mockMetrics'
-import type { FlowConfig } from '../types'
-import { Sparkline } from './Sparkline'
-import { StatMini } from './StatMini'
+import type { FlowMetricsSnapshot } from '../mockMetrics';
+import type { FlowConfig } from '../types';
+import { Sparkline } from './Sparkline';
+import { StatMini } from './StatMini';
 
 interface FlowHealthCardProps {
-  flow: FlowConfig
-  metrics: FlowMetricsSnapshot
-  onSelect: (flowId: string) => void
+  flow: FlowConfig;
+  metrics: FlowMetricsSnapshot;
+  onSelect: (flowId: string) => void;
 }
 
-function healthVariant(health: FlowMetricsSnapshot['health']): 'success' | 'warning' | 'destructive' {
+function healthVariant(
+  health: FlowMetricsSnapshot['health'],
+): 'success' | 'warning' | 'destructive' {
   if (health === 'error') {
-    return 'destructive'
+    return 'destructive';
   }
   if (health === 'warning') {
-    return 'warning'
+    return 'warning';
   }
-  return 'success'
+  return 'success';
 }
 
 export function FlowHealthCard({ flow, metrics, onSelect }: FlowHealthCardProps) {
@@ -50,5 +52,5 @@ export function FlowHealthCard({ flow, metrics, onSelect }: FlowHealthCardProps)
         </CardContent>
       </Card>
     </button>
-  )
+  );
 }

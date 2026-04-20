@@ -1,8 +1,8 @@
-import type { FlowNodeConfig, NodeShape } from './types'
+import type { FlowNodeConfig, NodeShape } from './types';
 
 export interface NodeSize {
-  width: number
-  height: number
+  width: number;
+  height: number;
 }
 
 const shapeSizeDefaults: Partial<Record<NodeShape, NodeSize>> = {
@@ -13,10 +13,10 @@ const shapeSizeDefaults: Partial<Record<NodeShape, NodeSize>> = {
   cylinder: { width: 88, height: 104 },
   badge: { width: 184, height: 44 },
   octagon: { width: 160, height: 56 },
-}
+};
 
 export function defaultNodeSizeForShape(type: NodeShape): NodeSize | undefined {
-  return shapeSizeDefaults[type]
+  return shapeSizeDefaults[type];
 }
 
 export function resolveNodeDimensions(
@@ -26,12 +26,12 @@ export function resolveNodeDimensions(
     return {
       width: node.size?.width ?? node.minSize?.width ?? 420,
       height: node.size?.height ?? node.minSize?.height ?? 280,
-    }
+    };
   }
 
-  const defaults = defaultNodeSizeForShape(node.type) ?? { width: 200, height: 50 }
+  const defaults = defaultNodeSizeForShape(node.type) ?? { width: 200, height: 50 };
   return {
     width: node.size?.width ?? defaults.width,
     height: node.size?.height ?? defaults.height,
-  }
+  };
 }

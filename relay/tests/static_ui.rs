@@ -1,14 +1,10 @@
 use std::fs;
-use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use tokio::net::TcpListener;
 
-static ENV_LOCK: Mutex<()> = Mutex::new(());
-
 #[tokio::test]
 async fn serves_static_ui_with_spa_fallback() {
-    let _lock = ENV_LOCK.lock().expect("env lock");
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("bind listener");
@@ -31,14 +27,11 @@ async fn serves_static_ui_with_spa_fallback() {
 
     let contract_dir =
         std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/contracts/default");
-    unsafe {
-        std::env::set_var("RESQ_FLOW_UI_DIR", &ui_dir);
-    }
-    let app = resq_flow_relay::build_app_with_contract_dir(addr.to_string(), contract_dir)
-        .expect("build app");
-    unsafe {
-        std::env::remove_var("RESQ_FLOW_UI_DIR");
-    }
+    let ui_dir_env = ui_dir.to_string_lossy().to_string();
+    let app = temp_env::with_var("RESQ_FLOW_UI_DIR", Some(ui_dir_env), || {
+        resq_flow_relay::build_app_with_contract_dir(addr.to_string(), contract_dir)
+            .expect("build app")
+    });
 
     let handle = tokio::spawn(async move {
         axum::serve(listener, app)
@@ -89,6 +82,18 @@ async fn serves_static_ui_with_spa_fallback() {
         .await
         .expect("get api miss");
     assert_eq!(api_miss.status(), reqwest::StatusCode::NOT_FOUND);
+
+    let flows = client
+        .get(format!("http://{addr}/v1/flows"))
+        .send()
+        .await
+        .expect("get flows")
+        .error_for_status()
+        .expect("flows ok")
+        .json::<serde_json::Value>()
+        .await
+        .expect("flows json");
+    assert!(flows["flows"].as_array().is_some());
 
     let asset_miss = client
         .get(format!("http://{addr}/assets/app-oldhash.js"))

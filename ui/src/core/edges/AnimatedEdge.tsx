@@ -1,9 +1,9 @@
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@xyflow/react'
-import { useEffect, useRef, useState } from 'react'
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@xyflow/react';
+import { useEffect, useRef, useState } from 'react';
 
-import type { FlowEdge } from '../nodes/types'
+import type { FlowEdge } from '../nodes/types';
 
-const PARTICLE_FADE_MS = 3_000
+const PARTICLE_FADE_MS = 3_000;
 
 export function AnimatedEdge({
   id,
@@ -24,36 +24,36 @@ export function AnimatedEdge({
     targetX,
     targetY,
     targetPosition,
-  })
+  });
 
-  const edgeState = data as { active?: boolean; dimmed?: boolean } | undefined
-  const isActive = Boolean(edgeState?.active)
-  const isDimmed = Boolean(edgeState?.dimmed)
+  const edgeState = data as { active?: boolean; dimmed?: boolean } | undefined;
+  const isActive = Boolean(edgeState?.active);
+  const isDimmed = Boolean(edgeState?.dimmed);
 
   // Track when the edge was last active for fade-out
-  const [showParticle, setShowParticle] = useState(false)
-  const fadeTimerRef = useRef<number | null>(null)
+  const [showParticle, setShowParticle] = useState(false);
+  const fadeTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (isActive) {
-      setShowParticle(true)
+      setShowParticle(true);
       if (fadeTimerRef.current !== null) {
-        window.clearTimeout(fadeTimerRef.current)
+        window.clearTimeout(fadeTimerRef.current);
       }
-      fadeTimerRef.current = null
+      fadeTimerRef.current = null;
     } else if (showParticle) {
       fadeTimerRef.current = window.setTimeout(() => {
-        setShowParticle(false)
-        fadeTimerRef.current = null
-      }, PARTICLE_FADE_MS)
+        setShowParticle(false);
+        fadeTimerRef.current = null;
+      }, PARTICLE_FADE_MS);
     }
 
     return () => {
       if (fadeTimerRef.current !== null) {
-        window.clearTimeout(fadeTimerRef.current)
+        window.clearTimeout(fadeTimerRef.current);
       }
-    }
-  }, [isActive])
+    };
+  }, [isActive]);
 
   return (
     <>
@@ -71,23 +71,14 @@ export function AnimatedEdge({
 
       {showParticle && !isDimmed ? (
         <>
-          <path
-            id={`particle-path-${id}`}
-            d={edgePath}
-            fill="none"
-            stroke="none"
-          />
+          <path id={`particle-path-${id}`} d={edgePath} fill="none" stroke="none" />
           <circle
             r={2.5}
             fill="var(--color-active)"
             opacity={isActive ? 0.9 : 0.4}
             style={{ transition: 'opacity 600ms ease' }}
           >
-            <animateMotion
-              dur="1.2s"
-              repeatCount="indefinite"
-              path={edgePath}
-            />
+            <animateMotion dur="1.2s" repeatCount="indefinite" path={edgePath} />
           </circle>
         </>
       ) : null}
@@ -106,5 +97,5 @@ export function AnimatedEdge({
         </EdgeLabelRenderer>
       ) : null}
     </>
-  )
+  );
 }

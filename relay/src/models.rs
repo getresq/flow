@@ -73,8 +73,12 @@ impl FlowEvent {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum WsEnvelope {
-    Snapshot { events: Vec<FlowEvent> },
-    Batch { events: Vec<FlowEvent> },
+    Snapshot {
+        events: Vec<FlowEvent>,
+    },
+    Batch {
+        events: Vec<FlowEvent>,
+    },
     Reset {
         #[serde(skip_serializing_if = "Option::is_none")]
         reason: Option<String>,

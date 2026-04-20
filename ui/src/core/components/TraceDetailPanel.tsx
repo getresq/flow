@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { AlertTriangle, ArrowUpRight, CheckCircle2, Info, XCircle } from 'lucide-react'
+import { useMemo, useState } from 'react';
+import { AlertTriangle, ArrowUpRight, CheckCircle2, Info, XCircle } from 'lucide-react';
 
 import {
   Badge,
@@ -11,62 +11,73 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from '@/components/ui'
-import type { FlowEdgeConfig, FlowNodeConfig, SpanEntry, TraceJourney, TraceStatus } from '../types'
-import { getJourneyOverviewModel, getJourneySummaryStep } from '../runPresentation'
-import { DurationBadge, formatDurationLabel } from './DurationBadge'
-import { PanelSkeleton } from './PanelSkeleton'
-import { WaterfallChart } from './WaterfallChart'
+} from '@/components/ui';
+import type {
+  FlowEdgeConfig,
+  FlowNodeConfig,
+  SpanEntry,
+  TraceJourney,
+  TraceStatus,
+} from '../types';
+import { getJourneyOverviewModel, getJourneySummaryStep } from '../runPresentation';
+import { DurationBadge, formatDurationLabel } from './DurationBadge';
+import { PanelSkeleton } from './PanelSkeleton';
+import { WaterfallChart } from './WaterfallChart';
 
-type TabKey = 'overview' | 'timing'
-type InsightTone = 'neutral' | 'success' | 'warning' | 'error'
+type TabKey = 'overview' | 'timing';
+type InsightTone = 'neutral' | 'success' | 'warning' | 'error';
 
 interface TraceDetailContentProps {
-  journey: TraceJourney
-  flowNodes?: FlowNodeConfig[]
-  flowEdges?: FlowEdgeConfig[]
-  spans?: SpanEntry[]
-  initialTab?: TabKey
-  onTabChange?: (tab: TabKey) => void
-  onSelectNode?: (nodeId: string) => void
+  journey: TraceJourney;
+  flowNodes?: FlowNodeConfig[];
+  flowEdges?: FlowEdgeConfig[];
+  spans?: SpanEntry[];
+  initialTab?: TabKey;
+  onTabChange?: (tab: TabKey) => void;
+  onSelectNode?: (nodeId: string) => void;
 }
 
 interface InsightItem {
-  tone: InsightTone
-  text: string
+  tone: InsightTone;
+  text: string;
 }
 
-function journeyStatusVariant(status: TraceStatus): 'default' | 'destructive' | 'success' | 'warning' {
+function journeyStatusVariant(
+  status: TraceStatus,
+): 'default' | 'destructive' | 'success' | 'warning' {
   if (status === 'error') {
-    return 'destructive'
+    return 'destructive';
   }
   if (status === 'success') {
-    return 'success'
+    return 'success';
   }
   if (status === 'partial') {
-    return 'warning'
+    return 'warning';
   }
-  return 'default'
+  return 'default';
 }
 
 function insightToneClasses(tone: InsightTone): string {
   if (tone === 'success') {
-    return 'border-[var(--status-success)] [background-color:color-mix(in_srgb,var(--status-success)_12%,transparent)] text-[var(--text-primary)]'
+    return 'border-[var(--status-success)] [background-color:color-mix(in_srgb,var(--status-success)_12%,transparent)] text-[var(--text-primary)]';
   }
   if (tone === 'warning') {
-    return 'border-[var(--status-warning)] [background-color:color-mix(in_srgb,var(--status-warning)_12%,transparent)] text-[var(--text-primary)]'
+    return 'border-[var(--status-warning)] [background-color:color-mix(in_srgb,var(--status-warning)_12%,transparent)] text-[var(--text-primary)]';
   }
   if (tone === 'error') {
-    return 'border-[var(--status-error)] [background-color:color-mix(in_srgb,var(--status-error)_12%,transparent)] text-[var(--text-primary)]'
+    return 'border-[var(--status-error)] [background-color:color-mix(in_srgb,var(--status-error)_12%,transparent)] text-[var(--text-primary)]';
   }
-  return 'border-[var(--border-default)] bg-[var(--surface-raised)] text-[var(--text-primary)]'
+  return 'border-[var(--border-default)] bg-[var(--surface-raised)] text-[var(--text-primary)]';
 }
 
 function insightIcon(tone: InsightTone) {
-  if (tone === 'success') return <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[var(--status-success)]" />
-  if (tone === 'warning') return <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[var(--status-warning)]" />
-  if (tone === 'error') return <XCircle className="mt-0.5 size-4 shrink-0 text-[var(--status-error)]" />
-  return <Info className="mt-0.5 size-4 shrink-0 text-[var(--text-muted)]" />
+  if (tone === 'success')
+    return <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[var(--status-success)]" />;
+  if (tone === 'warning')
+    return <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[var(--status-warning)]" />;
+  if (tone === 'error')
+    return <XCircle className="mt-0.5 size-4 shrink-0 text-[var(--status-error)]" />;
+  return <Info className="mt-0.5 size-4 shrink-0 text-[var(--text-muted)]" />;
 }
 
 export function TraceDetailContent({
@@ -79,41 +90,41 @@ export function TraceDetailContent({
   onSelectNode,
 }: TraceDetailContentProps) {
   const [tab, setTab] = useState<TabKey>(() => {
-    if (initialTab === 'timing' && spans.length === 0) return 'overview'
-    return initialTab ?? 'overview'
-  })
+    if (initialTab === 'timing' && spans.length === 0) return 'overview';
+    return initialTab ?? 'overview';
+  });
 
   const overview = useMemo(
     () => getJourneyOverviewModel(journey, flowNodes, flowEdges),
     [flowEdges, flowNodes, journey],
-  )
-  const overviewCards = overview.cards
+  );
+  const overviewCards = overview.cards;
 
   const durationOutlierKeys = useMemo(() => {
     const entries = overviewCards
       .filter((c): c is typeof c & { durationMs: number } => typeof c.durationMs === 'number')
-      .map((c) => ({ key: c.key, durationMs: c.durationMs }))
-    if (entries.length <= 1) return new Set(entries.map((e) => e.key))
-    const sorted = [...entries].sort((a, b) => a.durationMs - b.durationMs)
-    const median = sorted[Math.floor(sorted.length / 2)].durationMs
-    const outliers = new Set(entries.filter((e) => e.durationMs >= median * 2).map((e) => e.key))
-    if (outliers.size === 0) return new Set<string>()
-    if (outliers.size === entries.length) return new Set(entries.map((e) => e.key))
-    return outliers
-  }, [overviewCards])
+      .map((c) => ({ key: c.key, durationMs: c.durationMs }));
+    if (entries.length <= 1) return new Set(entries.map((e) => e.key));
+    const sorted = [...entries].sort((a, b) => a.durationMs - b.durationMs);
+    const median = sorted[Math.floor(sorted.length / 2)].durationMs;
+    const outliers = new Set(entries.filter((e) => e.durationMs >= median * 2).map((e) => e.key));
+    if (outliers.size === 0) return new Set<string>();
+    if (outliers.size === entries.length) return new Set(entries.map((e) => e.key));
+    return outliers;
+  }, [overviewCards]);
 
   const failedCard = useMemo(
     () => overviewCards.find((card) => card.status === 'error'),
     [overviewCards],
-  )
+  );
 
   const errorNodeIds = useMemo(() => {
-    const ids = new Set<string>()
+    const ids = new Set<string>();
     for (const step of journey.steps) {
-      if (step.status === 'error' && step.nodeId) ids.add(step.nodeId)
+      if (step.status === 'error' && step.nodeId) ids.add(step.nodeId);
     }
-    return ids
-  }, [journey.steps])
+    return ids;
+  }, [journey.steps]);
 
   const slowestStep = useMemo(
     () =>
@@ -121,37 +132,37 @@ export function TraceDetailContent({
         .filter((card) => typeof card.durationMs === 'number')
         .sort((left, right) => (right.durationMs ?? 0) - (left.durationMs ?? 0))[0],
     [overviewCards],
-  )
+  );
 
   const insights = useMemo(() => {
-    const items: InsightItem[] = []
+    const items: InsightItem[] = [];
 
     if (journey.status === 'error' && failedCard) {
       items.push({
         tone: 'error',
         text: `This run failed in ${failedCard.nodeLabel}.`,
-      })
+      });
     } else if (journey.status === 'running' || journey.status === 'partial') {
-      const currentStep = getJourneySummaryStep(journey, flowNodes, flowEdges) ?? journey.steps.at(-1)
-      const currentCard = overviewCards.at(-1)
+      const currentStep =
+        getJourneySummaryStep(journey, flowNodes, flowEdges) ?? journey.steps.at(-1);
+      const currentCard = overviewCards.at(-1);
       items.push({
         tone: 'warning',
-        text:
-          currentCard?.summary
-            ? `This run is still active in ${currentCard.nodeLabel.toLowerCase()} — ${currentCard.summary}.`
-            : currentStep
-              ? 'This run is still active.'
-              : 'This run is still active.',
-      })
+        text: currentCard?.summary
+          ? `This run is still active in ${currentCard.nodeLabel.toLowerCase()} — ${currentCard.summary}.`
+          : currentStep
+            ? 'This run is still active.'
+            : 'This run is still active.',
+      });
     }
 
     if (slowestStep?.durationMs && overviewCards.length > 1) {
-      const slowestDuration = formatDurationLabel(slowestStep.durationMs)
+      const slowestDuration = formatDurationLabel(slowestStep.durationMs);
       if (slowestDuration) {
         items.push({
           tone: journey.status === 'error' ? 'neutral' : 'warning',
           text: `Most time was spent in ${slowestStep.nodeLabel} (${slowestDuration}).`,
-        })
+        });
       }
     }
 
@@ -159,15 +170,22 @@ export function TraceDetailContent({
       items.push({
         tone: 'neutral',
         text: `This run reached ${overviewCards.length} ${overviewCards.length === 1 ? 'story stage' : 'story stages'}.`,
-      })
+      });
     }
 
-    return items.slice(0, 3)
-  }, [failedCard, flowEdges, flowNodes, journey, overviewCards, slowestStep])
-
+    return items.slice(0, 3);
+  }, [failedCard, flowEdges, flowNodes, journey, overviewCards, slowestStep]);
 
   return (
-    <Tabs value={tab} onValueChange={(value) => { const next = value as TabKey; setTab(next); onTabChange?.(next) }} className="flex min-h-0 flex-1 flex-col">
+    <Tabs
+      value={tab}
+      onValueChange={(value) => {
+        const next = value as TabKey;
+        setTab(next);
+        onTabChange?.(next);
+      }}
+      className="flex min-h-0 flex-1 flex-col"
+    >
       {spans.length > 0 ? (
         <div className="border-b border-[var(--border-default)] px-4 py-3">
           <TabsList className="min-h-0 border-none bg-transparent p-0">
@@ -182,7 +200,9 @@ export function TraceDetailContent({
           <div className="space-y-4 px-4 py-3">
             {insights.length > 0 ? (
               <section className="space-y-2">
-                <h3 className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Key Insights</h3>
+                <h3 className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
+                  Key Insights
+                </h3>
                 {insights.map((insight, index) => (
                   <div
                     key={`${insight.text}-${index}`}
@@ -196,7 +216,9 @@ export function TraceDetailContent({
             ) : null}
 
             <section className="space-y-2">
-              <h3 className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Path Through Flow</h3>
+              <h3 className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
+                Path Through Flow
+              </h3>
               {overviewCards.length === 0 ? (
                 <PanelSkeleton lines={2} />
               ) : (
@@ -208,22 +230,22 @@ export function TraceDetailContent({
                   />
 
                   {overviewCards.map((card) => {
-                    const isError = card.status === 'error'
-                    const isActive = card.status === 'running' || card.status === 'partial'
-                    const targetNodeId = card.nodeId
+                    const isError = card.status === 'error';
+                    const isActive = card.status === 'running' || card.status === 'partial';
+                    const targetNodeId = card.nodeId;
                     // Success: badge alone conveys status, no subtext needed.
                     // Error: surface the error message (what the badge can't say).
                     // Running/partial: show the current step so the user knows where the run is.
                     const showSummary =
                       card.status !== 'success' &&
-                      card.summary.trim().toLowerCase() !== card.nodeLabel.trim().toLowerCase()
+                      card.summary.trim().toLowerCase() !== card.nodeLabel.trim().toLowerCase();
                     const dotColor = isError
                       ? 'var(--status-error)'
                       : isActive
                         ? 'var(--status-active)'
                         : card.status === 'success'
                           ? 'var(--status-success)'
-                          : 'var(--text-muted)'
+                          : 'var(--text-muted)';
 
                     return (
                       <div key={card.key} className="relative flex gap-3 pb-3">
@@ -250,11 +272,17 @@ export function TraceDetailContent({
                                   <span className="truncate text-sm font-medium text-[var(--text-primary)]">
                                     {card.nodeLabel}
                                   </span>
-                                  <Badge variant={journeyStatusVariant(card.status)}>{card.status}</Badge>
-                                  {durationOutlierKeys.has(card.key) ? <DurationBadge durationMs={card.durationMs} /> : null}
+                                  <Badge variant={journeyStatusVariant(card.status)}>
+                                    {card.status}
+                                  </Badge>
+                                  {durationOutlierKeys.has(card.key) ? (
+                                    <DurationBadge durationMs={card.durationMs} />
+                                  ) : null}
                                 </div>
                                 {showSummary ? (
-                                  <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{card.summary}</p>
+                                  <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+                                    {card.summary}
+                                  </p>
                                 ) : null}
                               </div>
 
@@ -274,7 +302,7 @@ export function TraceDetailContent({
                           </CardContent>
                         </Card>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               )}
@@ -287,11 +315,15 @@ export function TraceDetailContent({
         <TabsContent value="timing" className="mt-0 min-h-0 flex-1 pt-0">
           <ScrollArea className="h-full">
             <div className="px-4 py-3">
-              <WaterfallChart spans={spans} errorNodeIds={errorNodeIds} onSelectNode={onSelectNode} />
+              <WaterfallChart
+                spans={spans}
+                errorNodeIds={errorNodeIds}
+                onSelectNode={onSelectNode}
+              />
             </div>
           </ScrollArea>
         </TabsContent>
       ) : null}
     </Tabs>
-  )
+  );
 }

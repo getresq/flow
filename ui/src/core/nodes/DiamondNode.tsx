@@ -1,17 +1,17 @@
-import type { NodeProps } from '@xyflow/react'
+import type { NodeProps } from '@xyflow/react';
 
-import { nodeContainerClass, renderHandles } from './nodePrimitives'
-import type { FlowNode } from './types'
+import { nodeContainerClass, renderHandles } from './nodePrimitives';
+import type { FlowNode } from './types';
 
 const defaultHandles = [
   { id: 'in-top', position: 'top', type: 'target' },
   { id: 'out-right', position: 'right', type: 'source' },
   { id: 'out-bottom', position: 'bottom', type: 'source' },
   { id: 'out-left', position: 'left', type: 'source' },
-] as const
+] as const;
 
 export function DiamondNode({ id, data }: NodeProps<FlowNode>) {
-  const status = data.status?.status ?? 'idle'
+  const status = data.status?.status ?? 'idle';
 
   return (
     <div className="relative h-full w-full">
@@ -33,5 +33,5 @@ export function DiamondNode({ id, data }: NodeProps<FlowNode>) {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,10 +1,19 @@
-import mailPipelineContractJson from '../flow-contracts/mail-pipeline.json'
-import type { FlowConfig, FlowContract, SpanMapping } from '../core/types'
-import { triggerNode, queueNode, workerNode, schedulerNode, stepNode, decisionNode, resourceNode, detailNode } from './nodeFactory'
+import mailPipelineContractJson from '../flow-contracts/mail-pipeline.json';
+import type { FlowConfig, FlowContract, SpanMapping } from '../core/types';
+import {
+  triggerNode,
+  queueNode,
+  workerNode,
+  schedulerNode,
+  stepNode,
+  decisionNode,
+  resourceNode,
+  detailNode,
+} from './nodeFactory';
 
-const mailPipelineContract = mailPipelineContractJson as FlowContract
+const mailPipelineContract = mailPipelineContractJson as FlowContract;
 
-const workerBullets = ['1 worker at a time', '(configurable to n workers)']
+const workerBullets = ['1 worker at a time', '(configurable to n workers)'];
 
 export const spanMapping: SpanMapping = {
   'cron-scheduler': 'cron-scheduler',
@@ -76,17 +85,18 @@ export const spanMapping: SpanMapping = {
   mail_extract: 'extract-worker',
   mail_actions: 'actions-worker',
   mail_send: 'send-worker',
-}
+};
 
 export const producerMapping: SpanMapping = {
   handle_mail_backfill_start: 'trigger-oauth',
   handle_mail_send_reply: 'actions-send-enqueue',
-}
+};
 
 export const mailPipelineFlow: FlowConfig = {
   id: mailPipelineContract.id,
   name: mailPipelineContract.name,
-  description: 'Real-time view of queue, worker, decision, and persistence steps for mail processing.',
+  description:
+    'Real-time view of queue, worker, decision, and persistence steps for mail processing.',
   contract: mailPipelineContract,
   hasGraph: true,
   seedPositions: {
@@ -180,19 +190,96 @@ export const mailPipelineFlow: FlowConfig = {
         { id: 'out-left', position: 'left', type: 'source' },
       ],
     }),
-    schedulerNode({ id: 'cron-scheduler', label: 'Cron Scheduler', description: 'Recurring scheduler boundary that decides when mailbox checks should run.', position: { x: 175, y: 220 } }),
-    detailNode({ id: 'cron-enqueue', label: 'Enqueue Cron Tick', description: 'Queues the recurring cron tick that drives mailbox checks every minute.', position: { x: 150, y: 320 }, handles: [{ position: 'top', type: 'target' }, { position: 'bottom', type: 'source' }] }),
-    queueNode({ id: 'incoming-queue', label: 'Incoming Queue', notes: ['Holds both the recurring mailbox-sweep work and mailbox incoming-check work.', 'Jobs can arrive from multiple vendors and mailboxes.'], position: { x: 145, y: 405 }, handles: [{ id: 'in-top', position: 'top', type: 'target' }, { id: 'out-bottom', position: 'bottom', type: 'source' }] }),
-    workerNode({ id: 'incoming-worker', label: 'Incoming Worker', description: 'Checks connected inboxes for new mail and hands off downstream work.', notes: ['Picks up both scheduled mailbox-sweep work and mailbox incoming-check work from the Incoming Queue.', 'If no incoming_history_id exists yet, incoming processing writes the baseline cursor and stops.'], position: { x: 205, y: 535 }, bullets: workerBullets, handles: [{ position: 'top', type: 'target' }, { id: 'out-bottom', position: 'bottom', type: 'source' }] }),
+    schedulerNode({
+      id: 'cron-scheduler',
+      label: 'Cron Scheduler',
+      description: 'Recurring scheduler boundary that decides when mailbox checks should run.',
+      position: { x: 175, y: 220 },
+    }),
+    detailNode({
+      id: 'cron-enqueue',
+      label: 'Enqueue Cron Tick',
+      description: 'Queues the recurring cron tick that drives mailbox checks every minute.',
+      position: { x: 150, y: 320 },
+      handles: [
+        { position: 'top', type: 'target' },
+        { position: 'bottom', type: 'source' },
+      ],
+    }),
+    queueNode({
+      id: 'incoming-queue',
+      label: 'Incoming Queue',
+      notes: [
+        'Holds both the recurring mailbox-sweep work and mailbox incoming-check work.',
+        'Jobs can arrive from multiple vendors and mailboxes.',
+      ],
+      position: { x: 145, y: 405 },
+      handles: [
+        { id: 'in-top', position: 'top', type: 'target' },
+        { id: 'out-bottom', position: 'bottom', type: 'source' },
+      ],
+    }),
+    workerNode({
+      id: 'incoming-worker',
+      label: 'Incoming Worker',
+      description: 'Checks connected inboxes for new mail and hands off downstream work.',
+      notes: [
+        'Picks up both scheduled mailbox-sweep work and mailbox incoming-check work from the Incoming Queue.',
+        'If no incoming_history_id exists yet, incoming processing writes the baseline cursor and stops.',
+      ],
+      position: { x: 205, y: 535 },
+      bullets: workerBullets,
+      handles: [
+        { position: 'top', type: 'target' },
+        { id: 'out-bottom', position: 'bottom', type: 'source' },
+      ],
+    }),
 
-    detailNode({ id: 'incoming-schedule-process', label: 'Schedule Incoming Checks', description: 'Finds mailboxes that should get an incoming check and prepares the next queue work.', notes: ['Reads connected mailbox rows from mail_oauth_tokens.', 'Looks up mail_cursors.incoming_check_scheduled_at to find mailboxes due for a check.'], position: { x: -455, y: 702 }, handles: [{ id: 'in-top', position: 'top', type: 'target' }, { id: 'out-bottom', position: 'bottom', type: 'source' }] }),
-    detailNode({ id: 'incoming-check-enqueue', label: 'Enqueue Incoming Check', description: 'Queues a mailbox incoming check when unread mail should be processed.', position: { x: -555, y: 815 }, handles: [{ id: 'in-top', position: 'top', type: 'target' }, { id: 'out-bottom', position: 'bottom', type: 'source' }] }),
-    detailNode({ id: 'incoming-scheduled-at', label: 'Write Schedule Cursor', description: 'Updates the scheduled incoming-check cursor timestamp in Postgres.', notes: ['Writes mail_cursors.incoming_check_scheduled_at in Postgres.', 'Marks when the mailbox was last scheduled for an incoming check.'], position: { x: -340, y: 815 }, handles: [{ id: 'in-top', position: 'top', type: 'target' }, { id: 'out-bottom', position: 'bottom', type: 'source' }] }),
+    detailNode({
+      id: 'incoming-schedule-process',
+      label: 'Schedule Incoming Checks',
+      description:
+        'Finds mailboxes that should get an incoming check and prepares the next queue work.',
+      notes: [
+        'Reads connected mailbox rows from mail_oauth_tokens.',
+        'Looks up mail_cursors.incoming_check_scheduled_at to find mailboxes due for a check.',
+      ],
+      position: { x: -455, y: 702 },
+      handles: [
+        { id: 'in-top', position: 'top', type: 'target' },
+        { id: 'out-bottom', position: 'bottom', type: 'source' },
+      ],
+    }),
+    detailNode({
+      id: 'incoming-check-enqueue',
+      label: 'Enqueue Incoming Check',
+      description: 'Queues a mailbox incoming check when unread mail should be processed.',
+      position: { x: -555, y: 815 },
+      handles: [
+        { id: 'in-top', position: 'top', type: 'target' },
+        { id: 'out-bottom', position: 'bottom', type: 'source' },
+      ],
+    }),
+    detailNode({
+      id: 'incoming-scheduled-at',
+      label: 'Write Schedule Cursor',
+      description: 'Updates the scheduled incoming-check cursor timestamp in Postgres.',
+      notes: [
+        'Writes mail_cursors.incoming_check_scheduled_at in Postgres.',
+        'Marks when the mailbox was last scheduled for an incoming check.',
+      ],
+      position: { x: -340, y: 815 },
+      handles: [
+        { id: 'in-top', position: 'top', type: 'target' },
+        { id: 'out-bottom', position: 'bottom', type: 'source' },
+      ],
+    }),
 
     detailNode({
       id: 'incoming-thread-metadata-write',
       label: 'Persist Incoming Mail',
-      description: 'Stores incoming thread payloads, records normalized thread state, and queues follow-on work.',
+      description:
+        'Stores incoming thread payloads, records normalized thread state, and queues follow-on work.',
       notes: [
         'Incoming path only.',
         'Stores raw thread artifacts in the thread store.',
@@ -208,7 +295,8 @@ export const mailPipelineFlow: FlowConfig = {
     detailNode({
       id: 'backfill-thread-metadata-write',
       label: 'Persist Backfill Mail',
-      description: 'Stores historical thread payloads, records normalized thread state, and queues follow-on work.',
+      description:
+        'Stores historical thread payloads, records normalized thread state, and queues follow-on work.',
       notes: [
         'Backfill path only.',
         'Stores raw thread artifacts in the thread store.',
@@ -246,9 +334,7 @@ export const mailPipelineFlow: FlowConfig = {
         'Receives raw incoming thread artifacts keyed per stored mailbox thread payload.',
       ],
       position: { x: 200, y: 750 },
-      handles: [
-        { id: 'in-top', position: 'top', type: 'target' },
-      ],
+      handles: [{ id: 'in-top', position: 'top', type: 'target' }],
     }),
 
     resourceNode({
@@ -261,9 +347,7 @@ export const mailPipelineFlow: FlowConfig = {
         'Stores mailbox auth state in mail_oauth_tokens, incoming and backfill cursors in mail_cursors, and normalized thread state in mail_threads.',
       ],
       position: { x: 510, y: 910 },
-      handles: [
-        { id: 'in-top', position: 'top', type: 'target' },
-      ],
+      handles: [{ id: 'in-top', position: 'top', type: 'target' }],
     }),
 
     resourceNode({
@@ -276,9 +360,7 @@ export const mailPipelineFlow: FlowConfig = {
         'Receives raw historical thread artifacts keyed per stored mailbox thread payload.',
       ],
       position: { x: 620, y: 750 },
-      handles: [
-        { id: 'in-top', position: 'top', type: 'target' },
-      ],
+      handles: [{ id: 'in-top', position: 'top', type: 'target' }],
     }),
 
     resourceNode({
@@ -291,9 +373,7 @@ export const mailPipelineFlow: FlowConfig = {
         'Stores mailbox auth state in mail_oauth_tokens, incoming and backfill cursors in mail_cursors, and normalized thread state in mail_threads.',
       ],
       position: { x: 920, y: 910 },
-      handles: [
-        { id: 'in-top', position: 'top', type: 'target' },
-      ],
+      handles: [{ id: 'in-top', position: 'top', type: 'target' }],
     }),
 
     detailNode({
@@ -318,13 +398,24 @@ export const mailPipelineFlow: FlowConfig = {
       notes: ['Holds handle_analyze_reply jobs for run-start threads.'],
       position: { x: 980, y: 1010 },
       layout: { order: 56 },
-      handles: [{ id: 'in-top', position: 'top', type: 'target' }, { id: 'out-bottom', position: 'bottom', type: 'source' }],
+      handles: [
+        { id: 'in-top', position: 'top', type: 'target' },
+        { id: 'out-bottom', position: 'bottom', type: 'source' },
+      ],
     }),
-    workerNode({ id: 'analyze-worker', label: 'Analyze Worker', description: 'Analyzes extracted mail and decides whether to draft a reply.', position: { x: 1005, y: 1160 }, bullets: workerBullets, layout: { lane: 'main', order: 58 } }),
+    workerNode({
+      id: 'analyze-worker',
+      label: 'Analyze Worker',
+      description: 'Analyzes extracted mail and decides whether to draft a reply.',
+      position: { x: 1005, y: 1160 },
+      bullets: workerBullets,
+      layout: { lane: 'main', order: 58 },
+    }),
     stepNode({
       id: 'analyze-prechecks',
       label: 'Analyze Prechecks',
-      description: 'Loads the stored thread and clears the early stop or batch-reuse checks before the LLM branch runs.',
+      description:
+        'Loads the stored thread and clears the early stop or batch-reuse checks before the LLM branch runs.',
       notes: [
         'Stops if the latest sender is the mailbox owner.',
         'Reuses an active action batch for the same thread/content when one already exists.',
@@ -340,10 +431,18 @@ export const mailPipelineFlow: FlowConfig = {
     decisionNode({
       id: 'analyze-decision',
       label: 'Next Action?',
-      description: 'Runs propose-mode analysis to choose the next thread action after prechecks pass.',
-      notes: ['The LLM can return skip, needs_review, or draft_reply.', 'Main analyze result telemetry lands here.'],
+      description:
+        'Runs propose-mode analysis to choose the next thread action after prechecks pass.',
+      notes: [
+        'The LLM can return skip, needs_review, or draft_reply.',
+        'Main analyze result telemetry lands here.',
+      ],
       position: { x: 1035, y: 1455 },
-      layout: { lane: 'main', order: 62, branch: { anchorId: 'analyze-prechecks', track: 'primary', rank: 0 } },
+      layout: {
+        lane: 'main',
+        order: 62,
+        branch: { anchorId: 'analyze-prechecks', track: 'primary', rank: 0 },
+      },
     }),
 
     detailNode({
@@ -351,60 +450,147 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'Skip Internal Sender',
       description: 'Stops analyze when the latest sender is the mailbox owner.',
       position: { x: 1275, y: 1270 },
-      layout: { lane: 'branch', order: 61, branch: { anchorId: 'analyze-prechecks', track: 'right', rank: 0, domain: 'analyze', column: 0 } },
+      layout: {
+        lane: 'branch',
+        order: 61,
+        branch: {
+          anchorId: 'analyze-prechecks',
+          track: 'right',
+          rank: 0,
+          domain: 'analyze',
+          column: 0,
+        },
+      },
     }),
     detailNode({
       id: 'reuse-batch-stop',
       label: 'Reuse Existing Batch',
-      description: 'Reuses the latest active action batch and updates thread reply state from that batch.',
+      description:
+        'Reuses the latest active action batch and updates thread reply state from that batch.',
       position: { x: 1300, y: 1370 },
-      layout: { lane: 'branch', order: 62, branch: { anchorId: 'analyze-prechecks', track: 'right', rank: 1, domain: 'analyze', column: 0 } },
+      layout: {
+        lane: 'branch',
+        order: 62,
+        branch: {
+          anchorId: 'analyze-prechecks',
+          track: 'right',
+          rank: 1,
+          domain: 'analyze',
+          column: 0,
+        },
+      },
     }),
     detailNode({
       id: 'skip-thread-status',
       label: 'Mark Skipped',
       description: 'Writes mail_threads.reply_status = skipped and ends this branch.',
       position: { x: 1310, y: 1560 },
-      layout: { lane: 'branch', order: 63, branch: { anchorId: 'analyze-decision', track: 'right', rank: 0, domain: 'analyze', column: 0 } },
+      layout: {
+        lane: 'branch',
+        order: 63,
+        branch: {
+          anchorId: 'analyze-decision',
+          track: 'right',
+          rank: 0,
+          domain: 'analyze',
+          column: 0,
+        },
+      },
     }),
     detailNode({
       id: 'analyze-error',
       label: 'Needs Review',
-      description: 'Falls back to needs_review when analyze returns an error, malformed output, or draft-generation fallback.',
+      description:
+        'Falls back to needs_review when analyze returns an error, malformed output, or draft-generation fallback.',
       notes: ['Some needs-review outcomes happen without a draft ever being created.'],
       position: { x: 1210, y: 1665 },
-      layout: { lane: 'branch', order: 64, branch: { anchorId: 'analyze-decision', track: 'right', rank: 1, domain: 'analyze', column: 0, dx: 0, dy: 8 } },
+      layout: {
+        lane: 'branch',
+        order: 64,
+        branch: {
+          anchorId: 'analyze-decision',
+          track: 'right',
+          rank: 1,
+          domain: 'analyze',
+          column: 0,
+          dx: 0,
+          dy: 8,
+        },
+      },
     }),
 
     stepNode({
       id: 'draft-reply',
       label: 'Draft Reply',
-      description: 'Generates the reply draft and writes the reply_drafts row before approval or send decisions continue.',
+      description:
+        'Generates the reply draft and writes the reply_drafts row before approval or send decisions continue.',
       notes: [
         'If supported proposed actions exist, draft status becomes approval_pending and an action batch is created.',
         'If supported actions are missing or unsupported, draft status becomes needs_review.',
       ],
       position: { x: 930, y: 1690 },
-      layout: { lane: 'main', order: 66, branch: { anchorId: 'analyze-decision', track: 'primary', rank: 0 } },
+      layout: {
+        lane: 'main',
+        order: 66,
+        branch: { anchorId: 'analyze-decision', track: 'primary', rank: 0 },
+      },
     }),
 
     decisionNode({
       id: 'autosend-decision',
       label: 'Auto Send?',
       description: 'Checks whether autosend is enabled and the action batch can be auto-approved.',
-      notes: ['Human approval and auto-approval both converge on the same approved-actions execution queue.'],
+      notes: [
+        'Human approval and auto-approval both converge on the same approved-actions execution queue.',
+      ],
       position: { x: 1035, y: 2145 },
-      layout: { lane: 'main', order: 72, branch: { anchorId: 'draft-reply', track: 'primary', rank: 0 } },
+      layout: {
+        lane: 'main',
+        order: 72,
+        branch: { anchorId: 'draft-reply', track: 'primary', rank: 0 },
+      },
     }),
-    detailNode({ id: 'pause-manual-approval', label: 'Pause Approval', description: 'Stops the flow until someone manually approves the pending action batch.', position: { x: 1290, y: 2195 }, layout: { lane: 'branch', order: 73, branch: { anchorId: 'autosend-decision', track: 'right', rank: 0, domain: 'approval', column: 0, dx: 10 } } }),
-    detailNode({ id: 'manual-approval-api', label: 'Approve Batch', description: 'Manual approval path that approves the batch and enqueues the approved-actions job.', position: { x: 1280, y: 2335 }, layout: { lane: 'branch', order: 74, branch: { anchorId: 'pause-manual-approval', track: 'primary', rank: 0 } } }),
+    detailNode({
+      id: 'pause-manual-approval',
+      label: 'Pause Approval',
+      description: 'Stops the flow until someone manually approves the pending action batch.',
+      position: { x: 1290, y: 2195 },
+      layout: {
+        lane: 'branch',
+        order: 73,
+        branch: {
+          anchorId: 'autosend-decision',
+          track: 'right',
+          rank: 0,
+          domain: 'approval',
+          column: 0,
+          dx: 10,
+        },
+      },
+    }),
+    detailNode({
+      id: 'manual-approval-api',
+      label: 'Approve Batch',
+      description:
+        'Manual approval path that approves the batch and enqueues the approved-actions job.',
+      position: { x: 1280, y: 2335 },
+      layout: {
+        lane: 'branch',
+        order: 74,
+        branch: { anchorId: 'pause-manual-approval', track: 'primary', rank: 0 },
+      },
+    }),
     detailNode({
       id: 'autosend-approved',
       label: 'Auto Approve',
       description: 'Auto-approves the batch and enqueues the approved-actions job.',
       notes: ['Reverts the batch to pending approval if the execute-approved enqueue fails.'],
       position: { x: 835, y: 2325 },
-      layout: { lane: 'main', order: 76, branch: { anchorId: 'autosend-decision', track: 'primary', rank: 0, dy: 6 } },
+      layout: {
+        lane: 'main',
+        order: 76,
+        branch: { anchorId: 'autosend-decision', track: 'primary', rank: 0, dy: 6 },
+      },
     }),
 
     queueNode({
@@ -413,12 +599,16 @@ export const mailPipelineFlow: FlowConfig = {
       notes: ['Holds execute-approved-actions jobs from both auto approval and manual approval.'],
       position: { x: 985, y: 2525 },
       layout: { lane: 'main', order: 77 },
-      handles: [{ id: 'in-top', position: 'top', type: 'target' }, { id: 'out-bottom', position: 'bottom', type: 'source' }],
+      handles: [
+        { id: 'in-top', position: 'top', type: 'target' },
+        { id: 'out-bottom', position: 'bottom', type: 'source' },
+      ],
     }),
     workerNode({
       id: 'actions-worker',
       label: 'Actions Worker',
-      description: 'Claims the approved batch, executes pending actions, and prepares the send handoff.',
+      description:
+        'Claims the approved batch, executes pending actions, and prepares the send handoff.',
       notes: ['If action execution fails, the batch is marked failed before send is ever queued.'],
       position: { x: 1005, y: 2670 },
       bullets: workerBullets,
@@ -443,15 +633,30 @@ export const mailPipelineFlow: FlowConfig = {
       description: 'Enqueues send-reply work after approved actions complete successfully.',
       notes: ['This is the boundary into the next send section.'],
       position: { x: 955, y: 2960 },
-      layout: { lane: 'main', order: 80, branch: { anchorId: 'actions-execute', track: 'primary', rank: 0 } },
+      layout: {
+        lane: 'main',
+        order: 80,
+        branch: { anchorId: 'actions-execute', track: 'primary', rank: 0 },
+      },
     }),
     detailNode({
       id: 'actions-failed',
       label: 'Action Failed',
-      description: 'Marks the action batch as failed and updates reply state before send is skipped.',
+      description:
+        'Marks the action batch as failed and updates reply state before send is skipped.',
       notes: ['Some failures also recover the draft back to needs review.'],
       position: { x: 1240, y: 2960 },
-      layout: { lane: 'branch', order: 80, branch: { anchorId: 'actions-execute', track: 'right', rank: 0, domain: 'actions', column: 0 } },
+      layout: {
+        lane: 'branch',
+        order: 80,
+        branch: {
+          anchorId: 'actions-execute',
+          track: 'right',
+          rank: 0,
+          domain: 'actions',
+          column: 0,
+        },
+      },
     }),
 
     queueNode({
@@ -464,13 +669,18 @@ export const mailPipelineFlow: FlowConfig = {
       ],
       position: { x: 1565, y: 900 },
       layout: { lane: 'sidecar', order: 64 },
-      handles: [{ id: 'in-top', position: 'top', type: 'target' }, { id: 'out-bottom', position: 'bottom', type: 'source' }],
+      handles: [
+        { id: 'in-top', position: 'top', type: 'target' },
+        { id: 'out-bottom', position: 'bottom', type: 'source' },
+      ],
     }),
     workerNode({
       id: 'extract-worker',
       label: 'Extract Worker',
       description: 'Runs thread extraction and persists durable extract results from stored mail.',
-      notes: ['Owns AI extraction, durable contact persistence, contact-thread insight persistence, and final extract state recording.'],
+      notes: [
+        'Owns AI extraction, durable contact persistence, contact-thread insight persistence, and final extract state recording.',
+      ],
       position: { x: 1580, y: 1035 },
       bullets: workerBullets,
       layout: { lane: 'sidecar', order: 68 },
@@ -478,7 +688,8 @@ export const mailPipelineFlow: FlowConfig = {
     detailNode({
       id: 'extract-ai',
       label: 'Run Extract',
-      description: 'Loads the stored thread payload and runs one AI extract pass for contacts and thread insight.',
+      description:
+        'Loads the stored thread payload and runs one AI extract pass for contacts and thread insight.',
       position: { x: 1545, y: 1215 },
       layout: { lane: 'sidecar', order: 70 },
     }),
@@ -487,7 +698,11 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'Extract Succeeded?',
       description: 'Checks whether the extract step produced a usable result.',
       position: { x: 1615, y: 1405 },
-      layout: { lane: 'sidecar', order: 72, branch: { anchorId: 'extract-ai', track: 'primary', rank: 0 } },
+      layout: {
+        lane: 'sidecar',
+        order: 72,
+        branch: { anchorId: 'extract-ai', track: 'primary', rank: 0 },
+      },
     }),
     detailNode({
       id: 'extract-fail-1',
@@ -495,7 +710,17 @@ export const mailPipelineFlow: FlowConfig = {
       description: 'Records extract error state and returns a retryable job error.',
       notes: ['Used for extract execution failures and durable contact persistence failures.'],
       position: { x: 1905, y: 1455 },
-      layout: { lane: 'branch', order: 73, branch: { anchorId: 'extract-ai-success', track: 'right', rank: 0, domain: 'extract', column: 1 } },
+      layout: {
+        lane: 'branch',
+        order: 73,
+        branch: {
+          anchorId: 'extract-ai-success',
+          track: 'right',
+          rank: 0,
+          domain: 'extract',
+          column: 1,
+        },
+      },
       handles: [{ id: 'in-top', position: 'top', type: 'target' }],
     }),
     detailNode({
@@ -509,7 +734,11 @@ export const mailPipelineFlow: FlowConfig = {
         'A durable contact upsert failure returns a retryable job error.',
       ],
       position: { x: 1535, y: 1605 },
-      layout: { lane: 'sidecar', order: 74, branch: { anchorId: 'extract-ai-success', track: 'primary', rank: 0 } },
+      layout: {
+        lane: 'sidecar',
+        order: 74,
+        branch: { anchorId: 'extract-ai-success', track: 'primary', rank: 0 },
+      },
       handles: [
         { id: 'in-top', position: 'top', type: 'target' },
         { id: 'out-bottom', position: 'bottom', type: 'source' },
@@ -538,26 +767,41 @@ export const mailPipelineFlow: FlowConfig = {
         'This write is best-effort; failures are logged without retrying the whole extract job.',
       ],
       position: { x: 1535, y: 1795 },
-      layout: { lane: 'sidecar', order: 76, branch: { anchorId: 'upsert-contacts', track: 'primary', rank: 0 } },
+      layout: {
+        lane: 'sidecar',
+        order: 76,
+        branch: { anchorId: 'upsert-contacts', track: 'primary', rank: 0 },
+      },
       handles: [
         { id: 'in-top', position: 'top', type: 'target' },
         { id: 'out-bottom', position: 'bottom', type: 'source' },
       ],
     }),
 
-    queueNode({ id: 'send-queue', label: 'Send Queue', position: { x: 985, y: 3135 }, handles: [{ id: 'in-top', position: 'top', type: 'target' }, { id: 'out-bottom', position: 'bottom', type: 'source' }] }),
+    queueNode({
+      id: 'send-queue',
+      label: 'Send Queue',
+      position: { x: 985, y: 3135 },
+      handles: [
+        { id: 'in-top', position: 'top', type: 'target' },
+        { id: 'out-bottom', position: 'bottom', type: 'source' },
+      ],
+    }),
     workerNode({
       id: 'send-worker',
       label: 'Send Worker',
       description: 'Picks up queued send-reply jobs and hands off to the send lifecycle.',
-      notes: ['This worker owns the send precheck telemetry before the send lifecycle finalizes the result.'],
+      notes: [
+        'This worker owns the send precheck telemetry before the send lifecycle finalizes the result.',
+      ],
       position: { x: 1005, y: 3280 },
       bullets: workerBullets,
     }),
     stepNode({
       id: 'send-process',
       label: 'Send Reply',
-      description: 'Claims the draft, validates send prerequisites, calls the provider, and finalizes the outcome.',
+      description:
+        'Claims the draft, validates send prerequisites, calls the provider, and finalizes the outcome.',
       notes: [
         'Validates thread state, Gmail send scope, recipient, access token, and normalized body before the provider call.',
         'No-ops if the draft is already approval_pending, sent, or terminal send_failed.',
@@ -581,14 +825,18 @@ export const mailPipelineFlow: FlowConfig = {
       id: 'send-terminal-nonsend',
       label: 'Terminal Non-Send',
       description: 'Records a terminal non-send outcome and updates draft and thread state.',
-      notes: ['Covers stale drafts, missing auth or scope, invalid recipient, empty body, and terminal provider failures.', 'Reply status becomes stale or send_failed depending on the cause.'],
+      notes: [
+        'Covers stale drafts, missing auth or scope, invalid recipient, empty body, and terminal provider failures.',
+        'Reply status becomes stale or send_failed depending on the cause.',
+      ],
       position: { x: 980, y: 3595 },
       handles: [{ id: 'in-top', position: 'top', type: 'target' }],
     }),
     detailNode({
       id: 'send-needs-review',
       label: 'Mark Needs Review',
-      description: 'Moves the draft and thread back to needs_review after a retryable provider failure.',
+      description:
+        'Moves the draft and thread back to needs_review after a retryable provider failure.',
       position: { x: 1260, y: 3595 },
       handles: [{ id: 'in-top', position: 'top', type: 'target' }],
     }),
@@ -633,8 +881,18 @@ export const mailPipelineFlow: FlowConfig = {
       targetHandle: 'postgres-backfill-in-top',
     },
     { id: 'cron-enqueue', source: 'cron-scheduler', target: 'cron-enqueue' },
-    { id: 'cron-enqueue-incoming', source: 'cron-enqueue', target: 'incoming-queue', targetHandle: 'incoming-queue-in-top' },
-    { id: 'incoming-q-worker', source: 'incoming-queue', sourceHandle: 'incoming-queue-out-bottom', target: 'incoming-worker' },
+    {
+      id: 'cron-enqueue-incoming',
+      source: 'cron-enqueue',
+      target: 'incoming-queue',
+      targetHandle: 'incoming-queue-in-top',
+    },
+    {
+      id: 'incoming-q-worker',
+      source: 'incoming-queue',
+      sourceHandle: 'incoming-queue-out-bottom',
+      target: 'incoming-worker',
+    },
 
     {
       id: 'incoming-worker-schedule',
@@ -729,15 +987,67 @@ export const mailPipelineFlow: FlowConfig = {
       targetHandle: 'postgres-incoming-in-top',
     },
 
-    { id: 'analyze-q-worker', source: 'analyze-queue', sourceHandle: 'analyze-queue-out-bottom', target: 'analyze-worker' },
-    { id: 'analyze-worker-prechecks', source: 'analyze-worker', sourceHandle: 'analyze-worker-out-bottom', target: 'analyze-prechecks', targetHandle: 'analyze-prechecks-in-top' },
-    { id: 'analyze-prechecks-skip-owner', source: 'analyze-prechecks', sourceHandle: 'analyze-prechecks-out-right', target: 'skip-owner-stop', targetHandle: 'skip-owner-stop-in-top' },
-    { id: 'analyze-prechecks-reuse-batch', source: 'analyze-prechecks', sourceHandle: 'analyze-prechecks-out-right', target: 'reuse-batch-stop', targetHandle: 'reuse-batch-stop-in-top' },
-    { id: 'analyze-prechecks-decision', source: 'analyze-prechecks', sourceHandle: 'analyze-prechecks-out-bottom', target: 'analyze-decision', targetHandle: 'analyze-decision-in-top' },
-    { id: 'analyze-skip-status', source: 'analyze-decision', sourceHandle: 'analyze-decision-out-right', target: 'skip-thread-status', targetHandle: 'skip-thread-status-in-top' },
-    { id: 'analyze-error', source: 'analyze-decision', sourceHandle: 'analyze-decision-out-right', target: 'analyze-error', targetHandle: 'analyze-error-in-top' },
-    { id: 'analyze-draft', source: 'analyze-decision', sourceHandle: 'analyze-decision-out-bottom', target: 'draft-reply', targetHandle: 'draft-reply-in-top' },
-    { id: 'draft-autosend', source: 'draft-reply', target: 'autosend-decision', targetHandle: 'autosend-decision-in-top' },
+    {
+      id: 'analyze-q-worker',
+      source: 'analyze-queue',
+      sourceHandle: 'analyze-queue-out-bottom',
+      target: 'analyze-worker',
+    },
+    {
+      id: 'analyze-worker-prechecks',
+      source: 'analyze-worker',
+      sourceHandle: 'analyze-worker-out-bottom',
+      target: 'analyze-prechecks',
+      targetHandle: 'analyze-prechecks-in-top',
+    },
+    {
+      id: 'analyze-prechecks-skip-owner',
+      source: 'analyze-prechecks',
+      sourceHandle: 'analyze-prechecks-out-right',
+      target: 'skip-owner-stop',
+      targetHandle: 'skip-owner-stop-in-top',
+    },
+    {
+      id: 'analyze-prechecks-reuse-batch',
+      source: 'analyze-prechecks',
+      sourceHandle: 'analyze-prechecks-out-right',
+      target: 'reuse-batch-stop',
+      targetHandle: 'reuse-batch-stop-in-top',
+    },
+    {
+      id: 'analyze-prechecks-decision',
+      source: 'analyze-prechecks',
+      sourceHandle: 'analyze-prechecks-out-bottom',
+      target: 'analyze-decision',
+      targetHandle: 'analyze-decision-in-top',
+    },
+    {
+      id: 'analyze-skip-status',
+      source: 'analyze-decision',
+      sourceHandle: 'analyze-decision-out-right',
+      target: 'skip-thread-status',
+      targetHandle: 'skip-thread-status-in-top',
+    },
+    {
+      id: 'analyze-error',
+      source: 'analyze-decision',
+      sourceHandle: 'analyze-decision-out-right',
+      target: 'analyze-error',
+      targetHandle: 'analyze-error-in-top',
+    },
+    {
+      id: 'analyze-draft',
+      source: 'analyze-decision',
+      sourceHandle: 'analyze-decision-out-bottom',
+      target: 'draft-reply',
+      targetHandle: 'draft-reply-in-top',
+    },
+    {
+      id: 'draft-autosend',
+      source: 'draft-reply',
+      target: 'autosend-decision',
+      targetHandle: 'autosend-decision-in-top',
+    },
     {
       id: 'autosend-pause',
       source: 'autosend-decision',
@@ -753,17 +1063,73 @@ export const mailPipelineFlow: FlowConfig = {
       label: 'Yes',
     },
     { id: 'pause-manual-api', source: 'pause-manual-approval', target: 'manual-approval-api' },
-    { id: 'autosend-actions', source: 'autosend-approved', target: 'actions-queue', targetHandle: 'actions-queue-in-top' },
-    { id: 'manual-actions', source: 'manual-approval-api', target: 'actions-queue', targetHandle: 'actions-queue-in-top' },
-    { id: 'actions-q-worker', source: 'actions-queue', sourceHandle: 'actions-queue-out-bottom', target: 'actions-worker' },
-    { id: 'actions-worker-execute', source: 'actions-worker', sourceHandle: 'actions-worker-out-bottom', target: 'actions-execute', targetHandle: 'actions-execute-in-top' },
-    { id: 'actions-queue-send', source: 'actions-execute', sourceHandle: 'actions-execute-out-bottom-send', target: 'actions-send-enqueue', targetHandle: 'actions-send-enqueue-in-top' },
-    { id: 'actions-failed', source: 'actions-execute', sourceHandle: 'actions-execute-out-bottom-failed', target: 'actions-failed', targetHandle: 'actions-failed-in-top' },
-    { id: 'actions-send', source: 'actions-send-enqueue', sourceHandle: 'actions-send-enqueue-out-bottom', target: 'send-queue', targetHandle: 'send-queue-in-top' },
+    {
+      id: 'autosend-actions',
+      source: 'autosend-approved',
+      target: 'actions-queue',
+      targetHandle: 'actions-queue-in-top',
+    },
+    {
+      id: 'manual-actions',
+      source: 'manual-approval-api',
+      target: 'actions-queue',
+      targetHandle: 'actions-queue-in-top',
+    },
+    {
+      id: 'actions-q-worker',
+      source: 'actions-queue',
+      sourceHandle: 'actions-queue-out-bottom',
+      target: 'actions-worker',
+    },
+    {
+      id: 'actions-worker-execute',
+      source: 'actions-worker',
+      sourceHandle: 'actions-worker-out-bottom',
+      target: 'actions-execute',
+      targetHandle: 'actions-execute-in-top',
+    },
+    {
+      id: 'actions-queue-send',
+      source: 'actions-execute',
+      sourceHandle: 'actions-execute-out-bottom-send',
+      target: 'actions-send-enqueue',
+      targetHandle: 'actions-send-enqueue-in-top',
+    },
+    {
+      id: 'actions-failed',
+      source: 'actions-execute',
+      sourceHandle: 'actions-execute-out-bottom-failed',
+      target: 'actions-failed',
+      targetHandle: 'actions-failed-in-top',
+    },
+    {
+      id: 'actions-send',
+      source: 'actions-send-enqueue',
+      sourceHandle: 'actions-send-enqueue-out-bottom',
+      target: 'send-queue',
+      targetHandle: 'send-queue-in-top',
+    },
 
-    { id: 'extract-q-worker', source: 'extract-queue', sourceHandle: 'extract-queue-out-bottom', target: 'extract-worker' },
-    { id: 'extract-worker-ai', source: 'extract-worker', sourceHandle: 'extract-worker-out-bottom', target: 'extract-ai', targetHandle: 'extract-ai-in-top' },
-    { id: 'extract-ai-success', source: 'extract-ai', sourceHandle: 'extract-ai-out-bottom', target: 'extract-ai-success', targetHandle: 'extract-ai-success-in-top' },
+    {
+      id: 'extract-q-worker',
+      source: 'extract-queue',
+      sourceHandle: 'extract-queue-out-bottom',
+      target: 'extract-worker',
+    },
+    {
+      id: 'extract-worker-ai',
+      source: 'extract-worker',
+      sourceHandle: 'extract-worker-out-bottom',
+      target: 'extract-ai',
+      targetHandle: 'extract-ai-in-top',
+    },
+    {
+      id: 'extract-ai-success',
+      source: 'extract-ai',
+      sourceHandle: 'extract-ai-out-bottom',
+      target: 'extract-ai-success',
+      targetHandle: 'extract-ai-success-in-top',
+    },
     {
       id: 'extract-fail-1',
       source: 'extract-ai-success',
@@ -778,17 +1144,71 @@ export const mailPipelineFlow: FlowConfig = {
       target: 'upsert-contacts',
       label: 'Yes',
     },
-    { id: 'extract-persist-postgres', source: 'upsert-contacts', sourceHandle: 'upsert-contacts-out-bottom', target: 'postgres-extract', targetHandle: 'postgres-extract-in-top' },
-    { id: 'extract-persist-retry', source: 'upsert-contacts', sourceHandle: 'upsert-contacts-out-right', target: 'extract-fail-1', targetHandle: 'extract-fail-1-in-top' },
-    { id: 'extract-state-write', source: 'upsert-contacts', sourceHandle: 'upsert-contacts-out-bottom', target: 'extract-record-success', targetHandle: 'extract-record-success-in-top' },
-    { id: 'extract-state-postgres', source: 'extract-record-success', sourceHandle: 'extract-record-success-out-bottom', target: 'postgres-extract', targetHandle: 'postgres-extract-in-top' },
+    {
+      id: 'extract-persist-postgres',
+      source: 'upsert-contacts',
+      sourceHandle: 'upsert-contacts-out-bottom',
+      target: 'postgres-extract',
+      targetHandle: 'postgres-extract-in-top',
+    },
+    {
+      id: 'extract-persist-retry',
+      source: 'upsert-contacts',
+      sourceHandle: 'upsert-contacts-out-right',
+      target: 'extract-fail-1',
+      targetHandle: 'extract-fail-1-in-top',
+    },
+    {
+      id: 'extract-state-write',
+      source: 'upsert-contacts',
+      sourceHandle: 'upsert-contacts-out-bottom',
+      target: 'extract-record-success',
+      targetHandle: 'extract-record-success-in-top',
+    },
+    {
+      id: 'extract-state-postgres',
+      source: 'extract-record-success',
+      sourceHandle: 'extract-record-success-out-bottom',
+      target: 'postgres-extract',
+      targetHandle: 'postgres-extract-in-top',
+    },
 
-    { id: 'send-q-worker', source: 'send-queue', sourceHandle: 'send-queue-out-bottom', target: 'send-worker', targetHandle: 'send-worker-in-top' },
-    { id: 'send-worker-process', source: 'send-worker', sourceHandle: 'send-worker-out-bottom', target: 'send-process', targetHandle: 'send-process-in-top' },
-    { id: 'send-success-branch', source: 'send-process', sourceHandle: 'send-process-out-bottom-sent', target: 'send-sent', targetHandle: 'send-sent-in-top' },
-    { id: 'send-retry-branch', source: 'send-process', sourceHandle: 'send-process-out-bottom-review', target: 'send-needs-review', targetHandle: 'send-needs-review-in-top' },
-    { id: 'send-terminal-branch', source: 'send-process', sourceHandle: 'send-process-out-bottom-terminal', target: 'send-terminal-nonsend', targetHandle: 'send-terminal-nonsend-in-top' },
+    {
+      id: 'send-q-worker',
+      source: 'send-queue',
+      sourceHandle: 'send-queue-out-bottom',
+      target: 'send-worker',
+      targetHandle: 'send-worker-in-top',
+    },
+    {
+      id: 'send-worker-process',
+      source: 'send-worker',
+      sourceHandle: 'send-worker-out-bottom',
+      target: 'send-process',
+      targetHandle: 'send-process-in-top',
+    },
+    {
+      id: 'send-success-branch',
+      source: 'send-process',
+      sourceHandle: 'send-process-out-bottom-sent',
+      target: 'send-sent',
+      targetHandle: 'send-sent-in-top',
+    },
+    {
+      id: 'send-retry-branch',
+      source: 'send-process',
+      sourceHandle: 'send-process-out-bottom-review',
+      target: 'send-needs-review',
+      targetHandle: 'send-needs-review-in-top',
+    },
+    {
+      id: 'send-terminal-branch',
+      source: 'send-process',
+      sourceHandle: 'send-process-out-bottom-terminal',
+      target: 'send-terminal-nonsend',
+      targetHandle: 'send-terminal-nonsend-in-top',
+    },
   ],
   producerMapping,
   spanMapping,
-}
+};

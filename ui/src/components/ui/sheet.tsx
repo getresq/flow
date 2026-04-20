@@ -1,14 +1,14 @@
-import * as React from 'react'
-import * as DialogPrimitive from '@radix-ui/react-dialog'
-import { X } from 'lucide-react'
-import { cva, type VariantProps } from 'class-variance-authority'
+import * as React from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { X } from 'lucide-react';
+import { cva, type VariantProps } from 'class-variance-authority';
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils';
 
-const Sheet = DialogPrimitive.Root
-const SheetTrigger = DialogPrimitive.Trigger
-const SheetClose = DialogPrimitive.Close
-const SheetPortal = DialogPrimitive.Portal
+const Sheet = DialogPrimitive.Root;
+const SheetTrigger = DialogPrimitive.Trigger;
+const SheetClose = DialogPrimitive.Close;
+const SheetPortal = DialogPrimitive.Portal;
 
 const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
@@ -22,8 +22,8 @@ const SheetOverlay = React.forwardRef<
     )}
     {...props}
   />
-))
-SheetOverlay.displayName = DialogPrimitive.Overlay.displayName
+));
+SheetOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
   'fixed z-50 flex min-h-0 flex-col gap-4 overflow-hidden border border-[var(--border-default)] bg-[var(--surface-raised)] p-4 text-[var(--text-primary)] shadow-xl transition-transform duration-200 ease-out',
@@ -33,8 +33,7 @@ const sheetVariants = cva(
         top: 'inset-x-0 top-0 border-x-0 border-t-0 data-[state=closed]:-translate-y-full data-[state=open]:translate-y-0',
         bottom:
           'inset-x-0 bottom-0 border-x-0 border-b-0 data-[state=closed]:translate-y-full data-[state=open]:translate-y-0',
-        left:
-          'inset-y-0 left-0 h-full w-[440px] border-l-0 data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0',
+        left: 'inset-y-0 left-0 h-full w-[440px] border-l-0 data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0',
         right:
           'inset-y-0 right-0 h-full w-[440px] border-r-0 data-[state=closed]:translate-x-full data-[state=open]:translate-x-0',
       },
@@ -43,10 +42,10 @@ const sheetVariants = cva(
       side: 'right',
     },
   },
-)
+);
 
 type SheetContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> &
-  VariantProps<typeof sheetVariants>
+  VariantProps<typeof sheetVariants>;
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
@@ -66,16 +65,13 @@ const SheetContent = React.forwardRef<
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </SheetPortal>
-))
-SheetContent.displayName = DialogPrimitive.Content.displayName
+));
+SheetContent.displayName = DialogPrimitive.Content.displayName;
 
-const SheetHeader = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={cn('flex flex-col gap-1.5 text-left', className)} {...props} />
-)
-SheetHeader.displayName = 'SheetHeader'
+);
+SheetHeader.displayName = 'SheetHeader';
 
 const SheetTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
@@ -86,8 +82,8 @@ const SheetTitle = React.forwardRef<
     className={cn('text-base font-semibold text-[var(--text-primary)]', className)}
     {...props}
   />
-))
-SheetTitle.displayName = DialogPrimitive.Title.displayName
+));
+SheetTitle.displayName = DialogPrimitive.Title.displayName;
 
 const SheetDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
@@ -98,15 +94,7 @@ const SheetDescription = React.forwardRef<
     className={cn('text-sm text-[var(--text-secondary)]', className)}
     {...props}
   />
-))
-SheetDescription.displayName = DialogPrimitive.Description.displayName
+));
+SheetDescription.displayName = DialogPrimitive.Description.displayName;
 
-export {
-  Sheet,
-  SheetTrigger,
-  SheetClose,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-}
+export { Sheet, SheetTrigger, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetDescription };

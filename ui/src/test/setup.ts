@@ -1,8 +1,8 @@
-import { GlobalRegistrator } from '@happy-dom/global-registrator'
-import '@testing-library/jest-dom/vitest'
-import { afterEach } from 'vitest'
+import { GlobalRegistrator } from '@happy-dom/global-registrator';
+import '@testing-library/jest-dom/vitest';
+import { afterEach } from 'vitest';
 
-GlobalRegistrator.register()
+GlobalRegistrator.register();
 
 if (!globalThis.ResizeObserver) {
   class TestResizeObserver {
@@ -15,9 +15,9 @@ if (!globalThis.ResizeObserver) {
     configurable: true,
     writable: true,
     value: TestResizeObserver,
-  })
+  });
 }
 
 afterEach(() => {
-  document.body.innerHTML = ''
-})
+  document.body.innerHTML = '';
+});

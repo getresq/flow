@@ -1,9 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 
-import { LogsView } from '../LogsView'
-import type { FlowConfig, LogEntry } from '../../types'
+import { LogsView } from '../LogsView';
+import type { FlowConfig, LogEntry } from '../../types';
 
 const flow: FlowConfig = {
   id: 'mail-pipeline',
@@ -55,7 +55,7 @@ const flow: FlowConfig = {
   ],
   edges: [],
   spanMapping: {},
-}
+};
 
 const logs: LogEntry[] = [
   {
@@ -109,11 +109,11 @@ const logs: LogEntry[] = [
     eventType: 'log',
     traceId: 'run-3',
   },
-]
+];
 
 describe('LogsView', () => {
   it('renders the log stream and filters by status', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
     render(
       <LogsView
@@ -123,20 +123,20 @@ describe('LogsView', () => {
         onSelectNode={vi.fn()}
         onSelectTrace={vi.fn()}
       />,
-    )
+    );
 
-    expect(screen.getByPlaceholderText(/search logs/i)).toBeInTheDocument()
-    expect(screen.getByText('Analysis complete')).toBeInTheDocument()
-    expect(screen.getByText(/Provider timeout/)).toBeInTheDocument()
-    expect(screen.getByText(/mail_send worker picked up job/)).toBeInTheDocument()
-    expect(screen.queryByText('span completed: rrq.job')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'info' })).not.toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/search logs/i)).toBeInTheDocument();
+    expect(screen.getByText('Analysis complete')).toBeInTheDocument();
+    expect(screen.getByText(/Provider timeout/)).toBeInTheDocument();
+    expect(screen.getByText(/mail_send worker picked up job/)).toBeInTheDocument();
+    expect(screen.queryByText('span completed: rrq.job')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'info' })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'error' }))
+    await user.click(screen.getByRole('button', { name: 'error' }));
 
-    expect(screen.queryByText('Analysis complete')).not.toBeInTheDocument()
-    expect(screen.getByText(/Provider timeout/)).toBeInTheDocument()
-  })
+    expect(screen.queryByText('Analysis complete')).not.toBeInTheDocument();
+    expect(screen.getByText(/Provider timeout/)).toBeInTheDocument();
+  });
 
   it('shows emitted flow logs by default while still hiding span-only noise', () => {
     render(
@@ -147,15 +147,15 @@ describe('LogsView', () => {
         onSelectNode={vi.fn()}
         onSelectTrace={vi.fn()}
       />,
-    )
+    );
 
-    expect(screen.getByText(/mail_send worker picked up job/)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /show all telemetry/i })).not.toBeInTheDocument()
-    expect(screen.queryByText('span completed: rrq.job')).not.toBeInTheDocument()
-  })
+    expect(screen.getByText(/mail_send worker picked up job/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /show all telemetry/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('span completed: rrq.job')).not.toBeInTheDocument();
+  });
 
   it('matches search against stable node ids and stage names', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
     render(
       <LogsView
@@ -165,15 +165,15 @@ describe('LogsView', () => {
         onSelectNode={vi.fn()}
         onSelectTrace={vi.fn()}
       />,
-    )
+    );
 
-    await user.type(screen.getByPlaceholderText(/search logs/i), 'send')
-    expect(screen.getByText(/Provider timeout/)).toBeInTheDocument()
+    await user.type(screen.getByPlaceholderText(/search logs/i), 'send');
+    expect(screen.getByText(/Provider timeout/)).toBeInTheDocument();
 
-    await user.clear(screen.getByPlaceholderText(/search logs/i))
-    await user.type(screen.getByPlaceholderText(/search logs/i), 'provider call')
-    expect(screen.getByText(/Provider timeout/)).toBeInTheDocument()
-  })
+    await user.clear(screen.getByPlaceholderText(/search logs/i));
+    await user.type(screen.getByPlaceholderText(/search logs/i), 'provider call');
+    expect(screen.getByText(/Provider timeout/)).toBeInTheDocument();
+  });
 
   it('turns live tail off when the user scrolls away from the top', () => {
     const { container } = render(
@@ -184,21 +184,21 @@ describe('LogsView', () => {
         onSelectNode={vi.fn()}
         onSelectTrace={vi.fn()}
       />,
-    )
+    );
 
-    const viewport = container.querySelector('[data-radix-scroll-area-viewport]')
-    expect(viewport).toBeTruthy()
+    const viewport = container.querySelector('[data-radix-scroll-area-viewport]');
+    expect(viewport).toBeTruthy();
 
     if (!(viewport instanceof HTMLDivElement)) {
-      throw new Error('Expected logs viewport')
+      throw new Error('Expected logs viewport');
     }
 
-    viewport.scrollTop = 48
-    fireEvent.scroll(viewport)
+    viewport.scrollTop = 48;
+    fireEvent.scroll(viewport);
 
     // Live button loses its pulsing dot when scrolled away from top, but is still visible
-    expect(screen.getByRole('button', { name: /^live$/i })).toBeInTheDocument()
-  })
+    expect(screen.getByRole('button', { name: /^live$/i })).toBeInTheDocument();
+  });
 
   it('attaches the scroll listener when logs appear after an empty state', () => {
     const { container, rerender } = render(
@@ -209,9 +209,9 @@ describe('LogsView', () => {
         onSelectNode={vi.fn()}
         onSelectTrace={vi.fn()}
       />,
-    )
+    );
 
-    expect(screen.getByText('Waiting for activity')).toBeInTheDocument()
+    expect(screen.getByText('Waiting for activity')).toBeInTheDocument();
 
     rerender(
       <LogsView
@@ -221,25 +221,29 @@ describe('LogsView', () => {
         onSelectNode={vi.fn()}
         onSelectTrace={vi.fn()}
       />,
-    )
+    );
 
-    const viewport = container.querySelector('[data-radix-scroll-area-viewport]')
-    expect(viewport).toBeTruthy()
+    const viewport = container.querySelector('[data-radix-scroll-area-viewport]');
+    expect(viewport).toBeTruthy();
 
     if (!(viewport instanceof HTMLDivElement)) {
-      throw new Error('Expected logs viewport')
+      throw new Error('Expected logs viewport');
     }
 
-    expect(screen.getByRole('button', { name: /^live$/i }).querySelector('.animate-flow-pulse')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: /^live$/i }).querySelector('.animate-flow-pulse'),
+    ).toBeTruthy();
 
-    viewport.scrollTop = 48
-    fireEvent.scroll(viewport)
+    viewport.scrollTop = 48;
+    fireEvent.scroll(viewport);
 
-    expect(screen.getByRole('button', { name: /^live$/i }).querySelector('.animate-flow-pulse')).toBeNull()
-  })
+    expect(
+      screen.getByRole('button', { name: /^live$/i }).querySelector('.animate-flow-pulse'),
+    ).toBeNull();
+  });
 
   it('only lists nodes with current log activity and falls back to node ids for blank labels', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
     render(
       <LogsView
@@ -249,18 +253,18 @@ describe('LogsView', () => {
         onSelectNode={vi.fn()}
         onSelectTrace={vi.fn()}
       />,
-    )
+    );
 
-    await user.click(screen.getByRole('combobox'))
+    await user.click(screen.getByRole('combobox'));
 
-    expect(screen.getByRole('option', { name: 'Analyze' })).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: 'Send' })).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: 'helper-node' })).toBeInTheDocument()
-    expect(screen.queryByRole('option', { name: 'Inactive Node' })).not.toBeInTheDocument()
-  })
+    expect(screen.getByRole('option', { name: 'Analyze' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Send' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'helper-node' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Inactive Node' })).not.toBeInTheDocument();
+  });
 
   it('shows older-activity messaging and allows manual backfill', async () => {
-    const onLoadOlder = vi.fn()
+    const onLoadOlder = vi.fn();
 
     render(
       <LogsView
@@ -272,12 +276,12 @@ describe('LogsView', () => {
         onSelectNode={vi.fn()}
         onSelectTrace={vi.fn()}
       />,
-    )
+    );
 
-    expect(screen.getByText('Older activity available')).toBeInTheDocument()
+    expect(screen.getByText('Older activity available')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load older' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Load older' }));
 
-    expect(onLoadOlder).toHaveBeenCalledTimes(1)
-  })
-})
+    expect(onLoadOlder).toHaveBeenCalledTimes(1);
+  });
+});

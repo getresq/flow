@@ -1,23 +1,23 @@
-import { TooltipProvider } from '@/components/ui'
+import { TooltipProvider } from '@/components/ui';
 
-import type { ThemeMode } from '../types'
-import { HudControlsPill } from './HudControlsPill'
-import { HudIdentityPill } from './HudIdentityPill'
+import type { ThemeMode } from '../types';
+import { HudControlsPill } from './HudControlsPill';
+import { HudIdentityPill } from './HudIdentityPill';
 
-type HudVariant = 'floating' | 'inline'
+type HudVariant = 'floating' | 'inline';
 
 interface CanvasHudProps {
-  variant?: HudVariant
-  flowName: string
-  connected: boolean
-  reconnecting: boolean
-  relayWsUrl: string
-  showCanvasControls: boolean
-  theme: ThemeMode
-  onNavigateBack: () => void
-  onToggleTheme: () => void
-  onResetLayout: () => void
-  onClearLogs: () => void
+  variant?: HudVariant;
+  flowName: string;
+  connected: boolean;
+  reconnecting: boolean;
+  relayWsUrl: string;
+  showCanvasControls: boolean;
+  theme: ThemeMode;
+  onNavigateBack: () => void;
+  onToggleTheme: () => void;
+  onResetLayout: () => void;
+  onClearLogs: () => void;
 }
 
 export function CanvasHud({
@@ -41,7 +41,7 @@ export function CanvasHud({
       onResetLayout={onResetLayout}
       onClearLogs={onClearLogs}
     />
-  )
+  );
 
   const identityPill = (
     <HudIdentityPill
@@ -51,7 +51,7 @@ export function CanvasHud({
       relayWsUrl={relayWsUrl}
       onNavigateBack={onNavigateBack}
     />
-  )
+  );
 
   if (variant === 'inline') {
     return (
@@ -61,7 +61,7 @@ export function CanvasHud({
           {controlsPill}
         </header>
       </TooltipProvider>
-    )
+    );
   }
 
   return (
@@ -71,10 +71,8 @@ export function CanvasHud({
           {identityPill}
         </div>
 
-        <div className="hud-pill pointer-events-auto absolute right-4 top-4">
-          {controlsPill}
-        </div>
+        <div className="hud-pill pointer-events-auto absolute right-4 top-4">{controlsPill}</div>
       </div>
     </TooltipProvider>
-  )
+  );
 }

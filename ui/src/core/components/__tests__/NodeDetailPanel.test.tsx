@@ -1,8 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
-import { NodeDetailContent } from '../NodeDetailPanel'
-import type { FlowNodeConfig, LogEntry } from '../../types'
+import { NodeDetailContent } from '../NodeDetailPanel';
+import type { FlowNodeConfig, LogEntry } from '../../types';
 
 const node: FlowNodeConfig = {
   id: 'incoming-queue',
@@ -11,7 +11,7 @@ const node: FlowNodeConfig = {
   label: 'Incoming Queue',
   style: { color: 'amber' },
   position: { x: 0, y: 0 },
-}
+};
 
 const logs: LogEntry[] = [
   {
@@ -86,22 +86,22 @@ const logs: LogEntry[] = [
     traceId: 'run-1',
     runId: 'run-1',
   },
-]
+];
 
 describe('NodeDetailContent', () => {
   it('shows the Recent events section and lists the most recent entries first', () => {
-    render(<NodeDetailContent node={node} logs={logs} spans={[]} />)
+    render(<NodeDetailContent node={node} logs={logs} spans={[]} />);
 
-    expect(screen.getByText('Recent events')).toBeInTheDocument()
-    expect(screen.getByText('latest activity')).toBeInTheDocument()
+    expect(screen.getByText('Recent events')).toBeInTheDocument();
+    expect(screen.getByText('latest activity')).toBeInTheDocument();
     // The 6th-oldest event is hidden by the 5-event cap
-    expect(screen.queryByText('activity 1')).not.toBeInTheDocument()
-  })
+    expect(screen.queryByText('activity 1')).not.toBeInTheDocument();
+  });
 
   it('does not show a "most recent first" label (kept clean per redesign)', () => {
-    render(<NodeDetailContent node={node} logs={logs} spans={[]} />)
-    expect(screen.queryByText('most recent first')).not.toBeInTheDocument()
-  })
+    render(<NodeDetailContent node={node} logs={logs} spans={[]} />);
+    expect(screen.queryByText('most recent first')).not.toBeInTheDocument();
+  });
 
   it('shows the latest failure block with the error message when a recent error is present', () => {
     render(
@@ -124,21 +124,21 @@ describe('NodeDetailContent', () => {
         ]}
         spans={[]}
       />,
-    )
+    );
 
-    expect(screen.getByText('Latest failure')).toBeInTheDocument()
-    expect(screen.getByText('Provider timed out after 30s')).toBeInTheDocument()
-  })
+    expect(screen.getByText('Latest failure')).toBeInTheDocument();
+    expect(screen.getByText('Provider timed out after 30s')).toBeInTheDocument();
+  });
 
   it('does not show the latest failure block when no error logs are present', () => {
-    render(<NodeDetailContent node={node} logs={logs} spans={[]} />)
+    render(<NodeDetailContent node={node} logs={logs} spans={[]} />);
 
-    expect(screen.queryByText('Latest failure')).not.toBeInTheDocument()
-    expect(screen.queryByText('Provider timed out after 30s')).not.toBeInTheDocument()
-  })
+    expect(screen.queryByText('Latest failure')).not.toBeInTheDocument();
+    expect(screen.queryByText('Provider timed out after 30s')).not.toBeInTheDocument();
+  });
 
   it('opens the latest failure run when the View run link is clicked', () => {
-    const onOpenRun = vi.fn()
+    const onOpenRun = vi.fn();
 
     render(
       <NodeDetailContent
@@ -161,11 +161,11 @@ describe('NodeDetailContent', () => {
         spans={[]}
         onOpenRun={onOpenRun}
       />,
-    )
+    );
 
-    fireEvent.click(screen.getByText(/View run →/))
-    expect(onOpenRun).toHaveBeenCalledWith('run-latest')
-  })
+    fireEvent.click(screen.getByText(/View run →/));
+    expect(onOpenRun).toHaveBeenCalledWith('run-latest');
+  });
 
   it('does not show View run link for a trace-only ambient error (no runId)', () => {
     render(
@@ -189,30 +189,30 @@ describe('NodeDetailContent', () => {
         spans={[]}
         onOpenRun={vi.fn()}
       />,
-    )
+    );
 
-    expect(screen.queryByText(/View run/)).not.toBeInTheDocument()
-  })
+    expect(screen.queryByText(/View run/)).not.toBeInTheDocument();
+  });
 
   it('caps recent events at five entries', () => {
-    render(<NodeDetailContent node={node} logs={logs} spans={[]} />)
+    render(<NodeDetailContent node={node} logs={logs} spans={[]} />);
 
-    expect(screen.getByText('latest activity')).toBeInTheDocument()
-    expect(screen.getByText('activity 2')).toBeInTheDocument()
+    expect(screen.getByText('latest activity')).toBeInTheDocument();
+    expect(screen.getByText('activity 2')).toBeInTheDocument();
     // The 6th-oldest is hidden until user clicks "Show older events"
-    expect(screen.queryByText('activity 1')).not.toBeInTheDocument()
-  })
+    expect(screen.queryByText('activity 1')).not.toBeInTheDocument();
+  });
 
   it('reveals older events when "Show older events" is clicked', () => {
-    render(<NodeDetailContent node={node} logs={logs} spans={[]} />)
+    render(<NodeDetailContent node={node} logs={logs} spans={[]} />);
 
-    expect(screen.queryByText('activity 1')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByText('Show older events'))
-    expect(screen.getByText('activity 1')).toBeInTheDocument()
-  })
+    expect(screen.queryByText('activity 1')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Show older events'));
+    expect(screen.getByText('activity 1')).toBeInTheDocument();
+  });
 
   it('calls onOpenLog when a recent event row is clicked', () => {
-    const onOpenLog = vi.fn()
+    const onOpenLog = vi.fn();
 
     render(
       <NodeDetailContent
@@ -235,10 +235,10 @@ describe('NodeDetailContent', () => {
         spans={[]}
         onOpenLog={onOpenLog}
       />,
-    )
+    );
 
-    fireEvent.click(screen.getByText('picked work'))
-    expect(onOpenLog).toHaveBeenCalledTimes(1)
-    expect(onOpenLog.mock.calls[0][0].message).toBe('picked work')
-  })
-})
+    fireEvent.click(screen.getByText('picked work'));
+    expect(onOpenLog).toHaveBeenCalledTimes(1);
+    expect(onOpenLog.mock.calls[0][0].message).toBe('picked work');
+  });
+});

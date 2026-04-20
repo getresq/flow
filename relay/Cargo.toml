@@ -1,7 +1,13 @@
 [package]
 name = "resq-flow-relay"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
+
+[profile.release]
+overflow-checks = true
+strip = true
+lto = "thin"
+codegen-units = 1
 
 [dependencies]
 axum = { version = "0.8", features = ["ws", "json"] }
@@ -23,3 +29,11 @@ url = "2"
 
 [dev-dependencies]
 futures-util = "0.3"
+temp-env = { version = "0.3.6", features = ["async_closure"] }
+
+[lints.rust]
+unsafe_code = "deny"
+dead_code = "warn"
+
+[lints.clippy]
+string_slice = "deny"

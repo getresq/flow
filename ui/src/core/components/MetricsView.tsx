@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 import {
   Card,
@@ -12,21 +12,24 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui'
+} from '@/components/ui';
 
-import { getMockFlowMetric, type MetricsWindow } from '../mockMetrics'
-import type { FlowConfig, TraceJourney } from '../types'
-import { RunsTable } from './RunsTable'
-import { Sparkline } from './Sparkline'
-import { StatMini } from './StatMini'
+import { getMockFlowMetric, type MetricsWindow } from '../mockMetrics';
+import type { FlowConfig, TraceJourney } from '../types';
+import { RunsTable } from './RunsTable';
+import { Sparkline } from './Sparkline';
+import { StatMini } from './StatMini';
 
 interface MetricsViewProps {
-  flow: FlowConfig
-  selectedTraceId?: string
-  onSelectTrace: (traceId?: string) => void
+  flow: FlowConfig;
+  selectedTraceId?: string;
+  onSelectTrace: (traceId?: string) => void;
 }
 
-function recentRunsToJourneys(flow: FlowConfig, recentRuns: ReturnType<typeof getMockFlowMetric>['recentRuns']): TraceJourney[] {
+function recentRunsToJourneys(
+  flow: FlowConfig,
+  recentRuns: ReturnType<typeof getMockFlowMetric>['recentRuns'],
+): TraceJourney[] {
   return recentRuns.map((run) => ({
     traceId: run.traceId,
     rootEntity: run.rootEntity,
@@ -51,30 +54,26 @@ function recentRunsToJourneys(flow: FlowConfig, recentRuns: ReturnType<typeof ge
     identifiers: {
       flowId: flow.id,
     },
-  }))
+  }));
 }
 
-export function MetricsView({
-  flow,
-  selectedTraceId,
-  onSelectTrace,
-}: MetricsViewProps) {
-  const [timeWindow, setTimeWindow] = useState<MetricsWindow>('24h')
+export function MetricsView({ flow, selectedTraceId, onSelectTrace }: MetricsViewProps) {
+  const [timeWindow, setTimeWindow] = useState<MetricsWindow>('24h');
   const { data: metrics } = useQuery({
     queryKey: ['flow-metrics-view', flow.id, timeWindow],
     queryFn: async () => {
       // TODO: wire to useQuery when relay endpoint exists
-      return getMockFlowMetric(flow, timeWindow)
+      return getMockFlowMetric(flow, timeWindow);
     },
-  })
+  });
 
   const recentJourneys = useMemo(
     () => recentRunsToJourneys(flow, metrics?.recentRuns ?? []),
     [flow, metrics?.recentRuns],
-  )
+  );
 
   if (!metrics) {
-    return null
+    return null;
   }
 
   return (
@@ -107,7 +106,12 @@ export function MetricsView({
         </Card>
         <Card>
           <CardContent className="pt-3">
-            <StatMini label="Success rate" value={`${metrics.successRate}%`} trend="Stable" tone="success" />
+            <StatMini
+              label="Success rate"
+              value={`${metrics.successRate}%`}
+              trend="Stable"
+              tone="success"
+            />
           </CardContent>
         </Card>
         <Card>
@@ -117,7 +121,12 @@ export function MetricsView({
         </Card>
         <Card>
           <CardContent className="pt-3">
-            <StatMini label="Errors" value={metrics.errorCount} trend="Needs watch" tone="warning" />
+            <StatMini
+              label="Errors"
+              value={metrics.errorCount}
+              trend="Needs watch"
+              tone="warning"
+            />
           </CardContent>
         </Card>
       </section>
@@ -129,7 +138,11 @@ export function MetricsView({
             <CardDescription>Runs over time</CardDescription>
           </CardHeader>
           <CardContent>
-            <Sparkline data={metrics.throughputSeries} className="h-20" ariaLabel="Throughput sparkline" />
+            <Sparkline
+              data={metrics.throughputSeries}
+              className="h-20"
+              ariaLabel="Throughput sparkline"
+            />
           </CardContent>
         </Card>
         <Card>
@@ -138,7 +151,12 @@ export function MetricsView({
             <CardDescription>Failures over time</CardDescription>
           </CardHeader>
           <CardContent>
-            <Sparkline data={metrics.errorSeries} variant="error" className="h-20" ariaLabel="Error sparkline" />
+            <Sparkline
+              data={metrics.errorSeries}
+              variant="error"
+              className="h-20"
+              ariaLabel="Error sparkline"
+            />
           </CardContent>
         </Card>
         <Card>
@@ -147,7 +165,11 @@ export function MetricsView({
             <CardDescription>p95 trend</CardDescription>
           </CardHeader>
           <CardContent>
-            <Sparkline data={metrics.latencySeries} className="h-20" ariaLabel="Latency sparkline" />
+            <Sparkline
+              data={metrics.latencySeries}
+              className="h-20"
+              ariaLabel="Latency sparkline"
+            />
           </CardContent>
         </Card>
       </section>
@@ -166,5 +188,5 @@ export function MetricsView({
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

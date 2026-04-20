@@ -1,18 +1,18 @@
-import ELK from 'elkjs/lib/main.js'
-import type { ElkNode } from 'elkjs/lib/elk-api'
+import ELK from 'elkjs/lib/main.js';
+import type { ElkNode } from 'elkjs/lib/elk-api';
 
-import type { FlowEdgeConfig, FlowNodeConfig, GroupLayoutMode, LayoutLane } from '../types'
-import { resolveNodeDimensions } from '../nodeSizing'
+import type { FlowEdgeConfig, FlowNodeConfig, GroupLayoutMode, LayoutLane } from '../types';
+import { resolveNodeDimensions } from '../nodeSizing';
 
-const elk = new ELK()
+const elk = new ELK();
 
-const EXCLUDED_SHAPES = new Set<string>(['annotation'])
+const EXCLUDED_SHAPES = new Set<string>(['annotation']);
 
 export interface LayoutGeometry {
-  x: number
-  y: number
-  width?: number
-  height?: number
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
 }
 
 function baseLayoutOptions() {
@@ -27,7 +27,7 @@ function baseLayoutOptions() {
     'elk.layered.crossingMinimization.forceNodeModelOrder': 'true',
     'elk.edgeRouting': 'ORTHOGONAL',
     'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
-  } as const
+  } as const;
 }
 
 function groupLayoutOptions(mode: GroupLayoutMode = 'stack') {
@@ -38,7 +38,7 @@ function groupLayoutOptions(mode: GroupLayoutMode = 'stack') {
       'elk.layered.spacing.nodeNodeBetweenLayers': '80',
       'elk.layered.spacing.edgeNodeBetweenLayers': '40',
       'elk.spacing.nodeNode': '56',
-    } as const
+    } as const;
   }
 
   return {
@@ -47,11 +47,11 @@ function groupLayoutOptions(mode: GroupLayoutMode = 'stack') {
     'elk.layered.spacing.nodeNodeBetweenLayers': '44',
     'elk.layered.spacing.edgeNodeBetweenLayers': '24',
     'elk.spacing.nodeNode': '28',
-  } as const
+  } as const;
 }
 
 function nodeDimensions(node: FlowNodeConfig) {
-  return resolveNodeDimensions(node)
+  return resolveNodeDimensions(node);
 }
 
 const lanePriority: Record<LayoutLane, number> = {
@@ -60,7 +60,7 @@ const lanePriority: Record<LayoutLane, number> = {
   sidecar: 2,
   resource: 3,
   note: 4,
-}
+};
 
 const shapePriority: Record<string, number> = {
   roundedRect: 1,
@@ -72,58 +72,67 @@ const shapePriority: Record<string, number> = {
   circle: 4,
   group: 5,
   annotation: 6,
-}
+};
 
 function sortedLayoutNodes(nodes: FlowNodeConfig[]) {
   return [...nodes].sort((left, right) => {
-    const leftOrder = left.layout?.order ?? Number.MAX_SAFE_INTEGER
-    const rightOrder = right.layout?.order ?? Number.MAX_SAFE_INTEGER
+    const leftOrder = left.layout?.order ?? Number.MAX_SAFE_INTEGER;
+    const rightOrder = right.layout?.order ?? Number.MAX_SAFE_INTEGER;
     if (leftOrder !== rightOrder) {
-      return leftOrder - rightOrder
+      return leftOrder - rightOrder;
     }
 
-    const leftLane = lanePriority[left.layout?.lane ?? 'main']
-    const rightLane = lanePriority[right.layout?.lane ?? 'main']
+    const leftLane = lanePriority[left.layout?.lane ?? 'main'];
+    const rightLane = lanePriority[right.layout?.lane ?? 'main'];
     if (leftLane !== rightLane) {
-      return leftLane - rightLane
+      return leftLane - rightLane;
     }
 
-    const leftShape = shapePriority[left.type] ?? 99
-    const rightShape = shapePriority[right.type] ?? 99
+    const leftShape = shapePriority[left.type] ?? 99;
+    const rightShape = shapePriority[right.type] ?? 99;
     if (leftShape !== rightShape) {
-      return leftShape - rightShape
+      return leftShape - rightShape;
     }
 
-    return left.id.localeCompare(right.id)
-  })
+    return left.id.localeCompare(right.id);
+  });
 }
 
 function buildElkNode(
   node: FlowNodeConfig,
   childrenByParent: Map<string, FlowNodeConfig[]>,
 ): ElkNode {
-  const children = sortedLayoutNodes(childrenByParent.get(node.id) ?? []).map((child) => buildElkNode(child, childrenByParent))
-  const dims = nodeDimensions(node)
+  const children = sortedLayoutNodes(childrenByParent.get(node.id) ?? []).map((child) =>
+    buildElkNode(child, childrenByParent),
+  );
+  const dims = nodeDimensions(node);
 
   const elkNode: ElkNode = {
     id: node.id,
     width: dims.width,
     height: dims.height,
-  }
+  };
 
   if (node.type === 'group') {
-    elkNode.layoutOptions = groupLayoutOptions(node.layout?.groupMode)
+    elkNode.layoutOptions = groupLayoutOptions(node.layout?.groupMode);
   }
 
   if (children.length > 0) {
-    elkNode.children = children
+    elkNode.children = children;
   }
 
-  return elkNode
+  return elkNode;
 }
 
 function collectLayoutGeometry(
-  node: { id: string; x?: number; y?: number; width?: number; height?: number; children?: unknown[] },
+  node: {
+    id: string;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    children?: unknown[];
+  },
   layout: Map<string, LayoutGeometry>,
 ) {
   if (node.id !== 'root' && node.x !== undefined && node.y !== undefined) {
@@ -132,14 +141,21 @@ function collectLayoutGeometry(
       y: node.y,
       width: node.width,
       height: node.height,
-    })
+    });
   }
 
   for (const child of node.children ?? []) {
     collectLayoutGeometry(
-      child as { id: string; x?: number; y?: number; width?: number; height?: number; children?: unknown[] },
+      child as {
+        id: string;
+        x?: number;
+        y?: number;
+        width?: number;
+        height?: number;
+        children?: unknown[];
+      },
       layout,
-    )
+    );
   }
 }
 
@@ -147,17 +163,17 @@ export async function computeElkLayout(
   nodes: FlowNodeConfig[],
   edges: FlowEdgeConfig[],
 ): Promise<Map<string, LayoutGeometry>> {
-  const layoutableNodes = nodes.filter((n) => !EXCLUDED_SHAPES.has(n.type))
-  const layoutableNodeIds = new Set(layoutableNodes.map((n) => n.id))
-  const childrenByParent = new Map<string, FlowNodeConfig[]>()
+  const layoutableNodes = nodes.filter((n) => !EXCLUDED_SHAPES.has(n.type));
+  const layoutableNodeIds = new Set(layoutableNodes.map((n) => n.id));
+  const childrenByParent = new Map<string, FlowNodeConfig[]>();
 
   for (const node of layoutableNodes) {
     if (!node.parentId) {
-      continue
+      continue;
     }
-    const siblings = childrenByParent.get(node.parentId) ?? []
-    siblings.push(node)
-    childrenByParent.set(node.parentId, siblings)
+    const siblings = childrenByParent.get(node.parentId) ?? [];
+    siblings.push(node);
+    childrenByParent.set(node.parentId, siblings);
   }
 
   const elkGraph: ElkNode = {
@@ -166,8 +182,9 @@ export async function computeElkLayout(
       ...baseLayoutOptions(),
       'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
     },
-    children: sortedLayoutNodes(layoutableNodes.filter((node) => !node.parentId))
-      .map((node) => buildElkNode(node, childrenByParent)),
+    children: sortedLayoutNodes(layoutableNodes.filter((node) => !node.parentId)).map((node) =>
+      buildElkNode(node, childrenByParent),
+    ),
     edges: edges
       .filter((e) => layoutableNodeIds.has(e.source) && layoutableNodeIds.has(e.target))
       .map((edge) => ({
@@ -175,18 +192,28 @@ export async function computeElkLayout(
         sources: [edge.source],
         targets: [edge.target],
       })),
-  }
+  };
 
   try {
-    const result = await elk.layout(elkGraph)
-    const positions = new Map<string, LayoutGeometry>()
-    collectLayoutGeometry(result as { id: string; x?: number; y?: number; width?: number; height?: number; children?: unknown[] }, positions)
+    const result = await elk.layout(elkGraph);
+    const positions = new Map<string, LayoutGeometry>();
+    collectLayoutGeometry(
+      result as {
+        id: string;
+        x?: number;
+        y?: number;
+        width?: number;
+        height?: number;
+        children?: unknown[];
+      },
+      positions,
+    );
 
-    return positions
+    return positions;
   } catch {
     // Keep authored/lane/branch positions when ELK cannot safely resolve a
     // compound graph. This avoids console noise and preserves the current
     // semantic layout instead of crashing the canvas.
-    return new Map<string, LayoutGeometry>()
+    return new Map<string, LayoutGeometry>();
   }
 }

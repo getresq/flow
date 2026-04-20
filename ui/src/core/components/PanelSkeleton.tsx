@@ -1,5 +1,5 @@
 interface PanelSkeletonProps {
-  lines?: number
+  lines?: number;
 }
 
 export function PanelSkeleton({ lines = 4 }: PanelSkeletonProps) {
@@ -17,5 +17,5 @@ export function PanelSkeleton({ lines = 4 }: PanelSkeletonProps) {
         <div key={i} className="skeleton-shimmer h-12 rounded-lg" />
       ))}
     </div>
-  )
+  );
 }
