@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Check relay formatting
+        run: cargo fmt --all --check
+        working-directory: relay
+
+      - name: Lint relay
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        working-directory: relay
+
+      - name: Test relay
+        run: cargo test --locked
+        working-directory: relay
+
+      - name: Install UI dependencies
+        run: bun install --frozen-lockfile
+        working-directory: ui
+
+      - name: Check UI formatting
+        run: bun run fmt:check
+        working-directory: ui
+
+      - name: Lint UI
+        run: bun run lint:errors
+        working-directory: ui
+
+      - name: Typecheck UI
+        run: bun run typecheck
+        working-directory: ui
+
+      - name: Test UI with coverage
+        run: bun run test:coverage
+        working-directory: ui
+
+      - name: Install CLI dependencies
+        run: bun install --frozen-lockfile
+        working-directory: cli
+
+      - name: Test CLI with coverage
+        run: bun run test:coverage
+        working-directory: cli

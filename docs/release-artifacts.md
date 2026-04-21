@@ -33,6 +33,8 @@ git push origin v0.1.0
 
 The GitHub Release is created by `.github/workflows/release.yml`.
 
+Regular CI for pushes and pull requests runs from `.github/workflows/ci.yml`, including TypeScript coverage for the UI and CLI.
+
 ## Local Packaging Check
 
 After building the relay and UI locally, package the same artifact shape with:

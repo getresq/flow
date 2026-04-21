@@ -348,9 +348,23 @@ Standard checks:
 cd relay && cargo fmt
 cd relay && cargo clippy -- -D warnings
 cd relay && cargo test
+cd ui && bun install --frozen-lockfile
 cd ui && bun run fmt:check
 cd ui && bun run lint:errors
 cd ui && bun run typecheck
 cd ui && bun test
+cd ui && bun run test:coverage
+cd cli && bun install --frozen-lockfile
+cd cli && bun run test:coverage
 cd ui && bun run build
 ```
+
+## Git Hooks
+
+Install repo-local hooks once from the repo root:
+
+```bash
+make pre-commit
+```
+
+This installs both `pre-commit` and `pre-push` via `uvx pre-commit`.

@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -53,16 +53,16 @@ jobs:
         run: bun run typecheck
         working-directory: ui
 
-      - name: Test UI
-        run: bun test
+      - name: Test UI with coverage
+        run: bun run test:coverage
         working-directory: ui
 
       - name: Install CLI dependencies
         run: bun install --frozen-lockfile
         working-directory: cli
 
-      - name: Test CLI
-        run: bun test
+      - name: Test CLI with coverage
+        run: bun run test:coverage
         working-directory: cli
 
   build-linux-x86_64:
@@ -71,7 +71,7 @@ jobs:
     needs:
       - test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
 

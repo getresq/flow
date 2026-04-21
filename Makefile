@@ -1,4 +1,4 @@
-.PHONY: dev dev-relay dev-ui test test-relay test-ui lint lint-relay lint-ui fmt-check fmt-check-relay fmt-check-ui build-cli test-cli test-cli-integration replay verify-ingest print-endpoints smoke-relay-ingest smoke-vector-fanout
+.PHONY: dev dev-relay dev-ui test test-relay test-ui test-ui-coverage lint lint-relay lint-ui fmt-check fmt-check-relay fmt-check-ui build-cli test-cli test-cli-coverage test-cli-integration replay verify-ingest print-endpoints smoke-relay-ingest smoke-vector-fanout git-hooks pre-commit pre-push
 
 RESQ_FLOW_BASE_URL ?= http://localhost:4200
 RESQ_FLOW_VECTOR_LOGS_URL ?= http://localhost:4318/v1/logs
@@ -21,6 +21,9 @@ test-relay: ## Run Rust relay tests
 test-ui: ## Run frontend tests
 	cd ui && bun test
 
+test-ui-coverage: ## Run frontend tests with coverage
+	cd ui && bun run test:coverage
+
 lint: lint-relay lint-ui ## Run strict lint checks
 
 lint-relay: ## Run Rust clippy with warnings denied
@@ -42,6 +45,9 @@ build-cli: ## Build the CLI package
 
 test-cli: ## Run CLI tests
 	cd cli && bun test
+
+test-cli-coverage: ## Run CLI tests with coverage
+	cd cli && bun run test:coverage
 
 test-cli-integration: ## Run CLI integration tests only
 	cd cli && bun test src/__tests__/integration-*.test.ts
@@ -69,3 +75,13 @@ smoke-relay-ingest: ## Send a protobuf OTLP smoke log directly to the relay, the
 
 smoke-vector-fanout: ## Send a protobuf OTLP smoke log through Vector and confirm it reaches the relay
 	cd relay && OTLP_SMOKE_ENDPOINT=$(RESQ_FLOW_VECTOR_LOGS_URL) OTLP_SMOKE_EXPECT_INGEST_URL=$(RESQ_FLOW_BASE_URL)/health/ingest cargo run --bin otlp_smoke
+
+git-hooks: ## Install repo-local git hooks
+	./scripts/install-hooks.sh
+
+pre-push: ## Install the pre-push hook in the current worktree
+	uvx pre-commit install --hook-type pre-push
+
+pre-commit: ## Install both pre-commit and pre-push hooks in the current worktree
+	uvx pre-commit install --hook-type pre-commit
+	uvx pre-commit install --hook-type pre-push
