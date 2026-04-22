@@ -1,24 +1,17 @@
-import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { MoonStar, SunMedium, Zap } from 'lucide-react';
+import { ChevronRight, MoonStar, SunMedium, Zap } from 'lucide-react';
 
 import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui';
 
 import { useRegisteredFlows } from '../../flows';
 import { useLayoutStore } from '../../stores/layout';
-import { getMockFlowMetrics, type FlowMetricsSnapshot } from '../mockMetrics';
 import type { FlowConfig } from '../types';
-import { FlowHealthCard } from './FlowHealthCard';
 
 interface FlowsHomeProps {
   registeredFlows?: FlowConfig[];
-  initialMetrics?: FlowMetricsSnapshot[];
 }
 
-export function FlowsHome({
-  registeredFlows: registeredFlowsInput,
-  initialMetrics,
-}: FlowsHomeProps) {
+export function FlowsHome({ registeredFlows: registeredFlowsInput }: FlowsHomeProps = {}) {
   const registryFlows = useRegisteredFlows();
   const registeredFlows = registeredFlowsInput ?? registryFlows;
   const navigate = useNavigate();
@@ -26,25 +19,14 @@ export function FlowsHome({
   const theme = useLayoutStore((state) => state.theme);
   const setTheme = useLayoutStore((state) => state.setTheme);
 
-  const { data: metrics = initialMetrics ?? [] } = useQuery({
-    queryKey: ['flows-home', registeredFlows.map((flow) => flow.id)],
-    queryFn: async () => {
-      // TODO: wire to useQuery when relay endpoint exists
-      return initialMetrics ?? getMockFlowMetrics(registeredFlows);
-    },
-    initialData: initialMetrics,
-  });
-
-  const metricMap = new Map(metrics.map((entry) => [entry.flowId, entry]));
-
   return (
     <main className="min-h-screen bg-[var(--surface-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6">
-        <header className="flex items-center justify-between gap-4">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
+        <header className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Flows</h1>
+            <h1 className="text-2xl font-semibold">Flows</h1>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Health, throughput, and recent run quality across every registered flow.
+              Pipelines available in this workspace.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -60,9 +42,9 @@ export function FlowsHome({
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                   >
                     {theme === 'dark' ? (
-                      <SunMedium className="size-4 transition-transform duration-150 ease-out" />
+                      <SunMedium className="size-4" />
                     ) : (
-                      <MoonStar className="size-4 transition-transform duration-150 ease-out" />
+                      <MoonStar className="size-4" />
                     )}
                   </Button>
                 </TooltipTrigger>
@@ -84,16 +66,29 @@ export function FlowsHome({
             </p>
           </div>
         ) : (
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <ul className="divide-y divide-[var(--border-subtle)] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--surface-raised)]">
             {registeredFlows.map((flow) => (
-              <FlowHealthCard
-                key={flow.id}
-                flow={flow}
-                metrics={metricMap.get(flow.id) ?? getMockFlowMetrics([flow])[0]}
-                onSelect={(flowId) => navigate(`/flows/${flowId}?mode=live`)}
-              />
+              <li key={flow.id}>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/flows/${flow.id}?mode=live`)}
+                  className="group flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-[var(--surface-hover)] focus-visible:bg-[var(--surface-hover)] focus-visible:outline-none"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-base font-medium text-[var(--text-primary)]">
+                      {flow.name}
+                    </div>
+                    {flow.description ? (
+                      <p className="mt-0.5 line-clamp-2 text-sm text-[var(--text-secondary)]">
+                        {flow.description}
+                      </p>
+                    ) : null}
+                  </div>
+                  <ChevronRight className="size-4 shrink-0 text-[var(--text-muted)] transition-transform duration-150 ease-out group-hover:translate-x-0.5 group-hover:text-[var(--text-secondary)]" />
+                </button>
+              </li>
             ))}
-          </section>
+          </ul>
         )}
       </div>
     </main>

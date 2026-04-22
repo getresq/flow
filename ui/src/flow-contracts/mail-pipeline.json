@@ -1,7 +1,7 @@
 {
   "version": 1,
   "id": "mail-pipeline",
-  "name": "Mail Pipeline",
+  "name": "Gmail Integration",
   "telemetry": {
     "log_events": ["flow_event"],
     "queue_prefixes": ["rrq:queue:mail-"],

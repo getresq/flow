@@ -1,11 +1,11 @@
 {
   "id": "mail-pipeline",
-  "name": "Mail Pipeline",
-  "description": "Real-time view of queue, worker, decision, and persistence steps for mail processing.",
+  "name": "Gmail Integration",
+  "description": "Gmail connection, batch email extraction, and auto-replies.",
   "contract": {
     "version": 1,
     "id": "mail-pipeline",
-    "name": "Mail Pipeline",
+    "name": "Gmail Integration",
     "telemetry": {
       "log_events": ["flow_event"],
       "queue_prefixes": ["rrq:queue:mail-"],
