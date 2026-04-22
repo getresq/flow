@@ -86,7 +86,7 @@ export const producerMapping: SpanMapping = {
 export const mailPipelineFlow: FlowConfig = {
   id: mailPipelineContract.id,
   name: mailPipelineContract.name,
-  description: 'Real-time view of queue, worker, decision, and persistence steps for mail processing.',
+  description: 'Gmail connection, batch email extraction, and auto-replies.',
   contract: mailPipelineContract,
   hasGraph: true,
   seedPositions: {

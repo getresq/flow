@@ -21,7 +21,7 @@ export const spanMapping: SpanMapping = {
 export const demoPipelineFlow: FlowConfig = {
   id: demoPipelineContract.id,
   name: demoPipelineContract.name,
-  description: 'A compact sample flow that exercises triggers, queues, workers, decisions, detail steps, and resource writes.',
+  description: 'Sample flow covering triggers, queues, workers, and decisions.',
   contract: demoPipelineContract,
   hasGraph: true,
   nodes: [

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "id": "demo-pipeline",
-  "name": "Demo Pipeline",
+  "name": "Demo",
   "telemetry": {
     "log_events": ["flow_event"],
     "queue_prefixes": ["intake-queue", "publish-queue"],
